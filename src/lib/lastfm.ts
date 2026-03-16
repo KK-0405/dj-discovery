@@ -30,18 +30,42 @@ export async function searchTracks(query: string): Promise<Track[]> {
   const data = await res.json() as any;
   const tracks = data.results?.trackmatches?.track ?? [];
 
-  return tracks.map((t: any, i: number) => ({
-    id: t.mbid || `${i}-${t.name}`,
-    name: t.name,
-    artists: [{ name: t.artist }],
-    album: {
-      name: "",
-      images: [{ url: t.image?.[2]?.["#text"] || `https://picsum.photos/seed/${i}/48` }],
-    },
-    duration_ms: 0,
-    bpm: 0,
-    key: "",
-    url: t.url,
+  return Promise.all(tracks.map(async (t: any, i: number) => {
+    try {
+      const artistRes = await fetchWithProxy(
+        `${BASE_URL}?method=artist.getinfo&artist=${encodeURIComponent(t.artist)}&api_key=${API_KEY}&format=json`
+      );
+      const artistData = await artistRes.json() as any;
+      const imageUrl = artistData.artist?.image?.[2]?.["#text"] || `https://picsum.photos/seed/${i}/48`;
+
+      return {
+        id: t.mbid || `${i}-${t.name}`,
+        name: t.name,
+        artists: [{ name: t.artist }],
+        album: {
+          name: "",
+          images: [{ url: imageUrl }],
+        },
+        duration_ms: 0,
+        bpm: 0,
+        key: "",
+        url: t.url,
+      };
+    } catch {
+      return {
+        id: t.mbid || `${i}-${t.name}`,
+        name: t.name,
+        artists: [{ name: t.artist }],
+        album: {
+          name: "",
+          images: [{ url: `https://picsum.photos/seed/${i}/48` }],
+        },
+        duration_ms: 0,
+        bpm: 0,
+        key: "",
+        url: t.url,
+      };
+    }
   }));
 }
 
@@ -52,17 +76,41 @@ export async function getSimilarTracks(artist: string, track: string): Promise<T
   const data = await res.json() as any;
   const tracks = data.similartracks?.track ?? [];
 
-  return tracks.map((t: any, i: number) => ({
-    id: t.mbid || `${i}-${t.name}`,
-    name: t.name,
-    artists: [{ name: t.artist.name }],
-    album: {
-      name: "",
-      images: [{ url: t.image?.[2]?.["#text"] || `https://picsum.photos/seed/${i}/48` }],
-    },
-    duration_ms: t.duration * 1000 || 0,
-    bpm: 0,
-    key: "",
-    url: t.url,
+  return Promise.all(tracks.map(async (t: any, i: number) => {
+    try {
+      const artistRes = await fetchWithProxy(
+        `${BASE_URL}?method=artist.getinfo&artist=${encodeURIComponent(t.artist.name)}&api_key=${API_KEY}&format=json`
+      );
+      const artistData = await artistRes.json() as any;
+      const imageUrl = artistData.artist?.image?.[2]?.["#text"] || `https://picsum.photos/seed/${i}/48`;
+
+      return {
+        id: t.mbid || `${i}-${t.name}`,
+        name: t.name,
+        artists: [{ name: t.artist.name }],
+        album: {
+          name: "",
+          images: [{ url: imageUrl }],
+        },
+        duration_ms: t.duration * 1000 || 0,
+        bpm: 0,
+        key: "",
+        url: t.url,
+      };
+    } catch {
+      return {
+        id: t.mbid || `${i}-${t.name}`,
+        name: t.name,
+        artists: [{ name: t.artist.name }],
+        album: {
+          name: "",
+          images: [{ url: `https://picsum.photos/seed/${i}/48` }],
+        },
+        duration_ms: t.duration * 1000 || 0,
+        bpm: 0,
+        key: "",
+        url: t.url,
+      };
+    }
   }));
 }
