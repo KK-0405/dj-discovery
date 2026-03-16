@@ -32,18 +32,21 @@ export async function searchTracks(query: string): Promise<Track[]> {
 
   return Promise.all(tracks.map(async (t: any, i: number) => {
     try {
-      const artistRes = await fetchWithProxy(
-        `${BASE_URL}?method=artist.getinfo&artist=${encodeURIComponent(t.artist)}&api_key=${API_KEY}&format=json`
+      const infoRes = await fetchWithProxy(
+        `${BASE_URL}?method=track.getInfo&artist=${encodeURIComponent(t.artist)}&track=${encodeURIComponent(t.name)}&api_key=${API_KEY}&format=json`
       );
-      const artistData = await artistRes.json() as any;
-      const imageUrl = artistData.artist?.image?.[2]?.["#text"] || `https://picsum.photos/seed/${i}/48`;
+      const infoData = await infoRes.json() as any;
+      const imageUrl =
+        infoData.track?.album?.image?.[2]?.["#text"] ||
+        infoData.track?.album?.image?.[1]?.["#text"] ||
+        `https://picsum.photos/seed/${i}/48`;
 
       return {
         id: t.mbid || `${i}-${t.name}`,
         name: t.name,
         artists: [{ name: t.artist }],
         album: {
-          name: "",
+          name: infoData.track?.album?.title || "",
           images: [{ url: imageUrl }],
         },
         duration_ms: 0,
@@ -78,18 +81,21 @@ export async function getSimilarTracks(artist: string, track: string): Promise<T
 
   return Promise.all(tracks.map(async (t: any, i: number) => {
     try {
-      const artistRes = await fetchWithProxy(
-        `${BASE_URL}?method=artist.getinfo&artist=${encodeURIComponent(t.artist.name)}&api_key=${API_KEY}&format=json`
+      const infoRes = await fetchWithProxy(
+        `${BASE_URL}?method=track.getInfo&artist=${encodeURIComponent(t.artist.name)}&track=${encodeURIComponent(t.name)}&api_key=${API_KEY}&format=json`
       );
-      const artistData = await artistRes.json() as any;
-      const imageUrl = artistData.artist?.image?.[2]?.["#text"] || `https://picsum.photos/seed/${i}/48`;
+      const infoData = await infoRes.json() as any;
+      const imageUrl =
+        infoData.track?.album?.image?.[2]?.["#text"] ||
+        infoData.track?.album?.image?.[1]?.["#text"] ||
+        `https://picsum.photos/seed/${i}/48`;
 
       return {
         id: t.mbid || `${i}-${t.name}`,
         name: t.name,
         artists: [{ name: t.artist.name }],
         album: {
-          name: "",
+          name: infoData.track?.album?.title || "",
           images: [{ url: imageUrl }],
         },
         duration_ms: t.duration * 1000 || 0,
