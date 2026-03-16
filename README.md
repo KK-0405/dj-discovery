@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DJ Discovery
 
-## Getting Started
+DJ向け楽曲探索アプリ
 
-First, run the development server:
+## 概要
 
+曲 → 似ている曲 → さらに似ている曲という探索構造でDJが新しい曲を見つけるアプリ。
+
+## 機能
+
+- 曲検索（Last.fm API）
+- 類似曲探索
+- メイン・サブSeed設定
+- BPMフィルター
+- プレイリスト作成
+- YouTubeプレイリスト書き出し（実装予定）
+
+## 技術スタック
+
+- Next.js 16
+- React 19
+- TypeScript
+- Tailwind CSS
+- Last.fm API
+- YouTube Data API v3
+- Supabase
+- Vercel
+
+## セットアップ
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/kk-0405/dj-discovery.git
+cd dj-discovery
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`.env.local` を作成して以下を設定：
+```env
+LASTFM_API_KEY=your_api_key
+LASTFM_API_SECRET=your_api_secret
+GOOGLE_CLIENT_ID=your_client_id
+GOOGLE_CLIENT_SECRET=your_client_secret
+```
+```bash
+npm run dev
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## デモ
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+https://dj-discovery-ihhs.vercel.app
 
-## Learn More
+## 今後の改善
 
-To learn more about Next.js, take a look at the following resources:
+- BPM・Key自動取得
+- YouTubeプレイリスト書き出し
+- Discovery Graph
+- DJ Set Builder
+- Supabaseでプレイリスト保存
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## クレジット
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- BPM data by [GetSongBPM](https://getsongbpm.com)
+- 楽曲データ by [Last.fm](https://www.last.fm)
