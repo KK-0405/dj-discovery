@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useSession, signIn } from "next-auth/react";
 import { type Track } from "@/lib/lastfm";
 
 type Mode = "search" | "similar";
 
 export default function Home() {
+  const { data: session } = useSession();
   const [query, setQuery] = useState("");
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(false);
@@ -23,9 +25,13 @@ export default function Home() {
     setLoading(true);
     setMode("search");
     setSimilarTracks([]);
-    const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-    const data = await res.json();
-    setTracks(data.tracks);
+    try {
+      const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      setTracks(data.tracks ?? []);
+    } catch (e) {
+      setTracks([]);
+    }
     setLoading(false);
   };
 
@@ -33,14 +39,33 @@ export default function Home() {
     if (!mainSeed) return;
     setLoading(true);
     setMode("similar");
-    const artist = mainSeed.artists[0].name;
-    const track = mainSeed.name;
-    const res = await fetch(
-      `/api/similar?artist=${encodeURIComponent(artist)}&track=${encodeURIComponent(track)}`
-    );
-    const data = await res.json();
-    setSimilarTracks(data.tracks);
+    try {
+      const artist = mainSeed.artists[0].name;
+      const track = mainSeed.name;
+      const res = await fetch(
+        `/api/similar?artist=${encodeURIComponent(artist)}&track=${encodeURIComponent(track)}`
+      );
+      const data = await res.json();
+      setSimilarTracks(data.tracks ?? []);
+    } catch (e) {
+      setSimilarTracks([]);
+    }
     setLoading(false);
+  };
+
+  const exportToYouTube = async () => {
+    if (playlist.length === 0) return;
+    const res = await fetch("/api/youtube/playlist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "DJ Discovery Playlist", tracks: playlist }),
+    });
+    const data = await res.json();
+    if (data.url) {
+      window.open(data.url, "_blank");
+    } else {
+      alert("エラーが発生しました");
+    }
   };
 
   const setAsMainSeed = (track: Track) => setMainSeed(track);
@@ -52,11 +77,14 @@ export default function Home() {
   };
 
   const removeSubSeed = (id: string) => setSubSeeds(subSeeds.filter((t) => t.id !== id));
+
   const addToPlaylist = (track: Track) => {
     if (playlist.find((t) => t.id === track.id)) return;
     setPlaylist([...playlist, track]);
   };
+
   const removeFromPlaylist = (id: string) => setPlaylist(playlist.filter((t) => t.id !== id));
+
   const isInPlaylist = (track: Track) => !!playlist.find((t) => t.id === track.id);
 
   const filteredSimilar = similarTracks.filter((track) => {
@@ -76,6 +104,13 @@ export default function Home() {
         <div style={{ padding: "8px 12px", borderRadius: "8px", background: "#1db954", color: "#fff", fontSize: "13px", fontWeight: 500 }}>Search</div>
         <div style={{ padding: "8px 12px", borderRadius: "8px", color: "#888", fontSize: "13px" }}>Discovery Graph</div>
         <div style={{ padding: "8px 12px", borderRadius: "8px", color: "#888", fontSize: "13px" }}>Playlist Builder</div>
+        <div style={{ marginTop: "auto", paddingTop: "12px" }}>
+          {session ? (
+            <div style={{ fontSize: "11px", color: "#666", textAlign: "center" }}>
+              {session.user?.email}
+            </div>
+          ) : null}
+        </div>
       </div>
 
       {/* メインコンテンツ */}
@@ -233,11 +268,21 @@ export default function Home() {
               </div>
             ))}
           </div>
-          <button
-            style={{ width: "100%", padding: "8px", background: playlist.length > 0 ? "#1db954" : "#222", border: "none", borderRadius: "8px", color: playlist.length > 0 ? "#fff" : "#555", fontSize: "13px", fontWeight: 500, cursor: playlist.length > 0 ? "pointer" : "default", marginTop: "auto" }}
-          >
-            YouTubeに書き出し
-          </button>
+          {!session ? (
+            <button
+              onClick={() => signIn("google")}
+              style={{ width: "100%", padding: "8px", background: "#4285f4", border: "none", borderRadius: "8px", color: "#fff", fontSize: "13px", fontWeight: 500, cursor: "pointer", marginTop: "auto" }}
+            >
+              Googleでログイン
+            </button>
+          ) : (
+            <button
+              onClick={exportToYouTube}
+              style={{ width: "100%", padding: "8px", background: playlist.length > 0 ? "#ff0000" : "#222", border: "none", borderRadius: "8px", color: playlist.length > 0 ? "#fff" : "#555", fontSize: "13px", fontWeight: 500, cursor: playlist.length > 0 ? "pointer" : "default", marginTop: "auto" }}
+            >
+              YouTubeに書き出し
+            </button>
+          )}
           <div style={{ marginTop: "8px", paddingTop: "8px", borderTop: "0.5px solid #222", textAlign: "center" }}>
             <a href="https://getsongbpm.com" target="_blank" rel="noreferrer" style={{ color: "#444", fontSize: "10px", textDecoration: "none" }}>
               BPM data by GetSongBPM
