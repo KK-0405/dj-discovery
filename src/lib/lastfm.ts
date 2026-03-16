@@ -77,7 +77,7 @@ export async function searchTracks(query: string): Promise<Track[]> {
       const { bpm, key } = await getBpmAndKey(t.artist, t.name);
 
       return {
-        id: t.mbid || `${i}-${t.name}`,
+        id: t.mbid || `search-${i}-${t.name}-${t.artist}`,
         name: t.name,
         artists: [{ name: t.artist }],
         album: {
@@ -92,7 +92,7 @@ export async function searchTracks(query: string): Promise<Track[]> {
     } catch {
       const imageUrl = await getItunesArtwork(t.artist, t.name) || `https://picsum.photos/seed/${i}/48`;
       return {
-        id: t.mbid || `${i}-${t.name}`,
+        id: `search-${i}-${t.name}-${t.artist}`,
         name: t.name,
         artists: [{ name: t.artist }],
         album: {
@@ -132,7 +132,7 @@ export async function getSimilarTracks(artist: string, track: string): Promise<T
       const { bpm, key } = await getBpmAndKey(t.artist.name, t.name);
 
       return {
-        id: t.mbid || `${i}-${t.name}`,
+        id: t.mbid || `similar-${i}-${t.name}-${t.artist.name}`,
         name: t.name,
         artists: [{ name: t.artist.name }],
         album: {
@@ -147,7 +147,7 @@ export async function getSimilarTracks(artist: string, track: string): Promise<T
     } catch {
       const imageUrl = await getItunesArtwork(t.artist.name, t.name) || `https://picsum.photos/seed/${i}/48`;
       return {
-        id: t.mbid || `${i}-${t.name}`,
+        id: `similar-${i}-${t.name}-${t.artist.name}`,
         name: t.name,
         artists: [{ name: t.artist.name }],
         album: {
