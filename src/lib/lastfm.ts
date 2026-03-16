@@ -12,6 +12,19 @@ const fetchWithProxy = async (url: string) => {
   return fetch(url);
 };
 
+async function getItunesArtwork(artist: string, track: string): Promise<string | null> {
+  try {
+    const res = await fetchWithProxy(
+      `https://itunes.apple.com/search?term=${encodeURIComponent(`${artist} ${track}`)}&media=music&limit=1`
+    );
+    const data = await res.json() as any;
+    const artwork = data.results?.[0]?.artworkUrl100;
+    return artwork ? artwork.replace("100x100", "300x300") : null;
+  } catch {
+    return null;
+  }
+}
+
 export type Track = {
   id: string;
   name: string;
@@ -36,10 +49,13 @@ export async function searchTracks(query: string): Promise<Track[]> {
         `${BASE_URL}?method=track.getInfo&artist=${encodeURIComponent(t.artist)}&track=${encodeURIComponent(t.name)}&api_key=${API_KEY}&format=json`
       );
       const infoData = await infoRes.json() as any;
-      const imageUrl =
+      let imageUrl =
         infoData.track?.album?.image?.[2]?.["#text"] ||
-        infoData.track?.album?.image?.[1]?.["#text"] ||
-        `https://picsum.photos/seed/${i}/48`;
+        infoData.track?.album?.image?.[1]?.["#text"] || "";
+
+      if (!imageUrl || imageUrl.includes("2a96cbd8b46e442fc41c2b86b821562f")) {
+        imageUrl = await getItunesArtwork(t.artist, t.name) || `https://picsum.photos/seed/${i}/48`;
+      }
 
       return {
         id: t.mbid || `${i}-${t.name}`,
@@ -55,13 +71,14 @@ export async function searchTracks(query: string): Promise<Track[]> {
         url: t.url,
       };
     } catch {
+      const imageUrl = await getItunesArtwork(t.artist, t.name) || `https://picsum.photos/seed/${i}/48`;
       return {
         id: t.mbid || `${i}-${t.name}`,
         name: t.name,
         artists: [{ name: t.artist }],
         album: {
           name: "",
-          images: [{ url: `https://picsum.photos/seed/${i}/48` }],
+          images: [{ url: imageUrl }],
         },
         duration_ms: 0,
         bpm: 0,
@@ -85,10 +102,13 @@ export async function getSimilarTracks(artist: string, track: string): Promise<T
         `${BASE_URL}?method=track.getInfo&artist=${encodeURIComponent(t.artist.name)}&track=${encodeURIComponent(t.name)}&api_key=${API_KEY}&format=json`
       );
       const infoData = await infoRes.json() as any;
-      const imageUrl =
+      let imageUrl =
         infoData.track?.album?.image?.[2]?.["#text"] ||
-        infoData.track?.album?.image?.[1]?.["#text"] ||
-        `https://picsum.photos/seed/${i}/48`;
+        infoData.track?.album?.image?.[1]?.["#text"] || "";
+
+      if (!imageUrl || imageUrl.includes("2a96cbd8b46e442fc41c2b86b821562f")) {
+        imageUrl = await getItunesArtwork(t.artist.name, t.name) || `https://picsum.photos/seed/${i}/48`;
+      }
 
       return {
         id: t.mbid || `${i}-${t.name}`,
@@ -104,13 +124,14 @@ export async function getSimilarTracks(artist: string, track: string): Promise<T
         url: t.url,
       };
     } catch {
+      const imageUrl = await getItunesArtwork(t.artist.name, t.name) || `https://picsum.photos/seed/${i}/48`;
       return {
         id: t.mbid || `${i}-${t.name}`,
         name: t.name,
         artists: [{ name: t.artist.name }],
         album: {
           name: "",
-          images: [{ url: `https://picsum.photos/seed/${i}/48` }],
+          images: [{ url: imageUrl }],
         },
         duration_ms: t.duration * 1000 || 0,
         bpm: 0,
