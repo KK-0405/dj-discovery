@@ -10,7 +10,7 @@ export type GeminiMetadata = {
   confidence: "high" | "medium" | "low";
 };
 
-const GEMINI_API = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+const GEMINI_API = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
 function parseJson(text: string): any {
   const match = text.match(/```json\s*([\s\S]*?)```/) || text.match(/(\[[\s\S]*\]|\{[\s\S]*\})/);
@@ -36,12 +36,18 @@ function sanitize(m: any): GeminiMetadata {
   };
 }
 
+export type BatchResult = {
+  results: (GeminiMetadata | null)[];
+  error?: string;
+  rawResponse?: unknown;
+};
+
 // テキストベースで複数トラックのメタデータを一括取得（1回のAPI呼び出し）
 export async function getMetadataBatch(
   tracks: { title: string; artist: string }[]
-): Promise<(GeminiMetadata | null)[]> {
+): Promise<BatchResult> {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return tracks.map(() => null);
+  if (!apiKey) return { results: tracks.map(() => null), error: "GEMINI_API_KEY not set" };
 
   const list = tracks.map((t, i) => `${i + 1}. "${t.title}" by ${t.artist}`).join("\n");
 
@@ -70,14 +76,21 @@ For each song return an object with these fields:
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
     });
     const data = (await res.json()) as any;
+    if (!res.ok || data?.error) {
+      return { results: tracks.map(() => null), error: `HTTP ${res.status}`, rawResponse: data };
+    }
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
     const parsed = parseJson(text);
-    if (!Array.isArray(parsed)) return tracks.map(() => null);
-    return parsed.map((m: any) => {
-      try { return sanitize(m); } catch { return null; }
-    });
-  } catch {
-    return tracks.map(() => null);
+    if (!Array.isArray(parsed)) {
+      return { results: tracks.map(() => null), error: "Response was not a JSON array", rawResponse: text };
+    }
+    return {
+      results: parsed.map((m: any) => {
+        try { return sanitize(m); } catch { return null; }
+      }),
+    };
+  } catch (e) {
+    return { results: tracks.map(() => null), error: String(e) };
   }
 }
 

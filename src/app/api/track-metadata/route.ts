@@ -13,13 +13,13 @@ export async function POST(request: NextRequest) {
 
     // Step A: テキストベースで一括解析
     const hasKey = !!process.env.GEMINI_API_KEY;
-    const textResults = await getMetadataBatch(
+    const batchResult = await getMetadataBatch(
       tracks.map((t) => ({ title: t.title, artist: t.artist }))
     );
 
     // Step B: 信頼度が "low" かつ previewURL があるトラックは音声解析にフォールバック
     const finalResults = await Promise.all(
-      textResults.map(async (meta, i) => {
+      batchResult.results.map(async (meta, i) => {
         if (meta?.confidence !== "low") return meta;
         const preview = tracks[i].preview;
         if (!preview) return meta;
@@ -38,7 +38,14 @@ export async function POST(request: NextRequest) {
       })
     );
 
-    return NextResponse.json({ metadata: finalResults, debug: { hasKey, textResults } });
+    return NextResponse.json({
+      metadata: finalResults,
+      debug: {
+        hasKey,
+        error: batchResult.error,
+        rawResponse: batchResult.rawResponse,
+      },
+    });
   } catch (error) {
     console.error("track-metadata error:", error);
     return NextResponse.json({ error: String(error) }, { status: 500 });
