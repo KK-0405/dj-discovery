@@ -81,19 +81,10 @@ async function fetchBpm(trackId: string, artist: string, title: string): Promise
 
 export async function searchTracks(query: string): Promise<Track[]> {
   const res = await fetch(
-    `https://api.deezer.com/search?q=${encodeURIComponent(query)}&limit=20`
+    `https://api.deezer.com/search?q=${encodeURIComponent(query)}&limit=50`
   );
   const data = (await res.json()) as any;
-  const tracks = (data?.data ?? []).map(mapTrack);
-
-  return Promise.all(
-    tracks.map(async (track: Track, i: number) => {
-      if (track.bpm) return track;
-      const raw = (data.data as any[])[i];
-      const bpm = await fetchBpm(raw.id, raw.artist?.name ?? "", raw.title);
-      return { ...track, bpm };
-    })
-  );
+  return (data?.data ?? []).map(mapTrack);
 }
 
 export async function getSimilarTracks(artist: string, track: string, limit = 50): Promise<Track[]> {
