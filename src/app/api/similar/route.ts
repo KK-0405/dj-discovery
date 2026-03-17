@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSimilarTrackSuggestions, getMetadataBatch } from "@/lib/gemini";
+import { getSimilarTrackSuggestions } from "@/lib/gemini";
 
 function mapDeezerTrack(t: any) {
   return {
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
 
     const cap = Math.min(count, 30);
 
-    // Step1: Geminiに類似曲のtitle+artistを提案させる（高速）
+    // Step1: Geminiに類似曲の提案＋メタデータを1回で取得
     const suggestions = await getSimilarTrackSuggestions(seed, subSeeds, cap);
     if (suggestions.length === 0) {
       return NextResponse.json({ tracks: [] });
@@ -64,28 +64,24 @@ export async function POST(request: NextRequest) {
       })
     );
 
-    const tracks = deezerResults.filter(Boolean) as ReturnType<typeof mapDeezerTrack>[];
-
-    // Step3: Geminiでbatchメタデータ分析（ジャンル・BPM・エネルギー等）
-    const batchResult = await getMetadataBatch(
-      tracks.map((t) => ({ title: t.name, artist: t.artists[0]?.name ?? "" }))
-    );
-
-    const tracksWithMeta = tracks.map((track, i) => {
-      const m = batchResult.results[i];
-      if (!m) return track;
-      return {
-        ...track,
-        bpm: track.bpm || m.bpm,
-        key: m.key,
-        camelot: m.camelot,
-        energy: m.energy,
-        danceability: m.danceability,
-        is_vocal: m.is_vocal,
-        genre_tags: m.genre_tags,
-        release_year: track.release_year || m.release_year,
-      };
-    });
+    // Deezerヒットをsuggestionsのメタデータと合成（Step3のGemini呼び出し不要）
+    const tracksWithMeta = deezerResults
+      .map((track, i) => {
+        if (!track) return null;
+        const s = suggestions[i];
+        return {
+          ...track,
+          bpm: track.bpm || s.bpm || 0,
+          key: s.key ?? "",
+          camelot: s.camelot ?? "",
+          energy: s.energy ?? 0.5,
+          danceability: s.danceability ?? 0.5,
+          is_vocal: s.is_vocal ?? true,
+          genre_tags: s.genre_tags ?? [],
+          release_year: track.release_year || s.release_year || undefined,
+        };
+      })
+      .filter(Boolean);
 
     return NextResponse.json({ tracks: tracksWithMeta });
   } catch (error) {

@@ -189,15 +189,23 @@ export default function SeedPanel({
               </div>
             </div>
             {hasGemini && mainSeed?.genre_tags?.length && (
-              <div style={{ fontSize: "10px", padding: "2px 0 3px" }}>
-                <span style={{ color: "#555" }}>メインジャンル：</span>
-                <span style={{ color: "#1db954" }}>{mainSeed.genre_tags.join(" / ")}</span>
+              <div style={{ padding: "2px 0 4px" }}>
+                <span style={{ fontSize: "10px", color: "#555" }}>メインジャンル：</span>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "3px", marginTop: "3px" }}>
+                  {mainSeed.genre_tags.map((g) => (
+                    <span key={g} style={{ fontSize: "10px", color: "#1db954", background: "#1db95418", border: "0.5px solid #1db95444", borderRadius: "4px", padding: "1px 5px" }}>{g}</span>
+                  ))}
+                </div>
               </div>
             )}
             {subSeeds.some((t) => (t.genre_tags?.length ?? 0) > 0) && (
-              <div style={{ fontSize: "10px", padding: "2px 0 3px" }}>
-                <span style={{ color: "#555" }}>サブジャンル：</span>
-                <span style={{ color: "#aaa" }}>{[...new Set(subSeeds.flatMap((t) => t.genre_tags ?? []))].join(" / ")}</span>
+              <div style={{ padding: "2px 0 4px" }}>
+                <span style={{ fontSize: "10px", color: "#555" }}>サブジャンル：</span>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "3px", marginTop: "3px" }}>
+                  {[...new Set(subSeeds.flatMap((t) => t.genre_tags ?? []))].map((g) => (
+                    <span key={g} style={{ fontSize: "10px", color: "#aaa", background: "#1a1a1a", border: "0.5px solid #333", borderRadius: "4px", padding: "1px 5px" }}>{g}</span>
+                  ))}
+                </div>
               </div>
             )}
             {!hasGemini && <div style={{ fontSize: "10px", color: "#444" }}>※ Gemini解析後に解除</div>}

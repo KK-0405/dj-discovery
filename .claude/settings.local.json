@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:dj-discovery-ihhs.vercel.app)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(gh run:*)",
+      "WebFetch(domain:api.vercel.com)",
+      "Bash",
+      "Skill(update-config)",
+      "Bash(npm run:*)"
+    ]
+  }
+}

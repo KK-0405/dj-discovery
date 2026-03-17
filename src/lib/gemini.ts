@@ -94,9 +94,9 @@ For each song return an object with these fields:
   }
 }
 
-export type TrackSuggestion = { title: string; artist: string };
+export type TrackSuggestion = { title: string; artist: string } & Partial<GeminiMetadata>;
 
-// シードのメタデータをもとに類似曲のtitle+artistのみを提案（高速）
+// シードのメタデータをもとに類似曲の提案とメタデータを1回のAPI呼び出しで取得
 export async function getSimilarTrackSuggestions(
   seed: {
     title: string;
@@ -118,10 +118,11 @@ export async function getSimilarTrackSuggestions(
   const subGenreStr = subSeeds.flatMap((s) => s.genre_tags ?? []).filter(Boolean);
   const subInfo = subGenreStr.length ? `Sub-influences: ${subGenreStr.join(", ")}` : "";
 
-  const prompt = `You are a DJ. List ${count} real songs to mix with "${seed.title}" by ${seed.artist}.
+  const prompt = `You are a DJ and music expert. List ${count} real songs to mix with "${seed.title}" by ${seed.artist}.
 Genre: ${genres}. BPM≈${seed.bpm || "?"}, Era: ${seed.release_year || "?"}.${subInfo ? " " + subInfo : ""}
 Rules: match genre closely, BPM within ±15, same era ±10 years, exclude the seed itself.
-Return ONLY a JSON array: [{"title":"...","artist":"..."},...]. No explanation.`;
+Return ONLY a JSON array with full metadata for each song. No explanation.
+Each object must have: title, artist, bpm (integer), key (e.g. "F# minor"), camelot (e.g. "11A"), energy (float 0-1), danceability (float 0-1), is_vocal (boolean), genre_tags (string array max 4), release_year (integer), confidence ("high"/"medium"/"low").`;
 
   try {
     const res = await fetch(`${GEMINI_API}?key=${apiKey}`, {
@@ -135,8 +136,12 @@ Return ONLY a JSON array: [{"title":"...","artist":"..."},...]. No explanation.`
     const parsed = parseJson(text);
     if (!Array.isArray(parsed)) return [];
     return parsed
-      .map((m: any) => ({ title: String(m.title ?? ""), artist: String(m.artist ?? "") }))
-      .filter((m) => m.title && m.artist);
+      .map((m: any) => {
+        if (!m.title || !m.artist) return null;
+        const meta = (() => { try { return sanitize(m); } catch { return null; } })();
+        return { title: String(m.title), artist: String(m.artist), ...meta };
+      })
+      .filter(Boolean) as TrackSuggestion[];
   } catch {
     return [];
   }
