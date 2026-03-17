@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { type Track, type Mode, type SavedPlaylist } from "@/types";
+import { type Track, type Mode, type SavedPlaylist, type SimilarFilters } from "@/types";
 import SearchPanel from "@/components/SearchPanel";
 import SeedPanel from "@/components/SeedPanel";
 import PlaylistPanel from "@/components/PlaylistPanel";
@@ -17,9 +17,7 @@ export default function Home() {
   const [similarTracks, setSimilarTracks] = useState<Track[]>([]);
   const [playlist, setPlaylist] = useState<Track[]>([]);
   const [mode, setMode] = useState<Mode>("search");
-  const [bpmMin, setBpmMin] = useState("");
-  const [bpmMax, setBpmMax] = useState("");
-  const [showBpmFilter, setShowBpmFilter] = useState(false);
+  const [filters, setFilters] = useState<SimilarFilters>({ bpmRange: null, sameArtist: false });
   const [savedPlaylists, setSavedPlaylists] = useState<SavedPlaylist[]>([]);
   const [playlistName, setPlaylistName] = useState("DJ Discovery Playlist");
 
@@ -126,8 +124,12 @@ export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const filteredSimilar = similarTracks.filter((track) => {
-    if (bpmMin && track.bpm < parseInt(bpmMin)) return false;
-    if (bpmMax && track.bpm > parseInt(bpmMax)) return false;
+    if (filters.bpmRange && mainSeed?.bpm) {
+      if (Math.abs(track.bpm - mainSeed.bpm) > filters.bpmRange) return false;
+    }
+    if (filters.sameArtist && mainSeed) {
+      if (track.artists[0]?.name !== mainSeed.artists[0]?.name) return false;
+    }
     return true;
   });
 
@@ -184,12 +186,6 @@ export default function Home() {
         addToSubSeed={addToSubSeed}
         addToPlaylist={addToPlaylist}
         isInPlaylist={isInPlaylist}
-        bpmMin={bpmMin}
-        bpmMax={bpmMax}
-        setBpmMin={setBpmMin}
-        setBpmMax={setBpmMax}
-        showBpmFilter={showBpmFilter}
-        setShowBpmFilter={setShowBpmFilter}
         filteredSimilarCount={filteredSimilar.length}
       />
 
@@ -201,6 +197,8 @@ export default function Home() {
           subSeeds={subSeeds}
           removeSubSeed={removeSubSeed}
           exploreSimilar={exploreSimilar}
+          filters={filters}
+          setFilters={setFilters}
         />
         <div style={{ borderTop: "0.5px solid #333" }} />
         <PlaylistPanel

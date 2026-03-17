@@ -15,21 +15,13 @@ type Props = {
   addToSubSeed: (track: Track) => void;
   addToPlaylist: (track: Track) => void;
   isInPlaylist: (track: Track) => boolean;
-  bpmMin: string;
-  bpmMax: string;
-  setBpmMin: (v: string) => void;
-  setBpmMax: (v: string) => void;
-  showBpmFilter: boolean;
-  setShowBpmFilter: (v: boolean) => void;
   filteredSimilarCount: number;
 };
 
 export default function SearchPanel({
   query, setQuery, search, loading, mode, displayTracks,
   mainSeed, subSeeds, setAsMainSeed, addToSubSeed,
-  addToPlaylist, isInPlaylist, bpmMin, bpmMax,
-  setBpmMin, setBpmMax, showBpmFilter, setShowBpmFilter,
-  filteredSimilarCount,
+  addToPlaylist, isInPlaylist, filteredSimilarCount,
 }: Props) {
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
@@ -51,29 +43,10 @@ export default function SearchPanel({
         </button>
       </div>
 
-      <div style={{ display: "flex", gap: "8px", padding: "1rem 1.5rem", borderBottom: "0.5px solid #222", alignItems: "center", flexWrap: "wrap" }}>
-        <div style={{ fontSize: "12px", color: "#666", marginRight: "4px" }}>
-          {mode === "search" ? "検索結果" : "類似曲"}
+      <div style={{ display: "flex", gap: "8px", padding: "0.75rem 1.5rem", borderBottom: "0.5px solid #222", alignItems: "center" }}>
+        <div style={{ fontSize: "12px", color: "#666" }}>
+          {mode === "search" ? "検索結果" : `類似曲 ${filteredSimilarCount}曲`}
         </div>
-        {mode === "similar" && (
-          <>
-            <button
-              onClick={() => setShowBpmFilter(!showBpmFilter)}
-              style={{ padding: "4px 12px", background: bpmMin || bpmMax ? "#1db95422" : "#222", border: bpmMin || bpmMax ? "0.5px solid #1db954" : "0.5px solid transparent", borderRadius: "20px", color: bpmMin || bpmMax ? "#1db954" : "#aaa", fontSize: "12px", cursor: "pointer" }}
-            >
-              {bpmMin || bpmMax ? `BPM: ${bpmMin}–${bpmMax}` : "BPM フィルター"}
-            </button>
-            {showBpmFilter && (
-              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                <input type="number" placeholder="最小" value={bpmMin} onChange={(e) => setBpmMin(e.target.value)} style={{ width: "70px", padding: "4px 8px", background: "#222", border: "0.5px solid #444", borderRadius: "6px", color: "#fff", fontSize: "12px", outline: "none" }} />
-                <span style={{ color: "#666", fontSize: "12px" }}>–</span>
-                <input type="number" placeholder="最大" value={bpmMax} onChange={(e) => setBpmMax(e.target.value)} style={{ width: "70px", padding: "4px 8px", background: "#222", border: "0.5px solid #444", borderRadius: "6px", color: "#fff", fontSize: "12px", outline: "none" }} />
-                <button onClick={() => { setBpmMin(""); setBpmMax(""); setShowBpmFilter(false); }} style={{ padding: "4px 8px", background: "#333", border: "none", borderRadius: "6px", color: "#aaa", fontSize: "12px", cursor: "pointer" }}>クリア</button>
-              </div>
-            )}
-            <div style={{ color: "#666", fontSize: "12px" }}>{filteredSimilarCount}曲</div>
-          </>
-        )}
       </div>
 
       <div style={{ flex: 1, overflowY: "auto", padding: "1rem 1.5rem", display: "flex", flexDirection: "column", gap: "8px" }}>
