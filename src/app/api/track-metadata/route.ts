@@ -12,6 +12,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Step A: テキストベースで一括解析
+    const hasKey = !!process.env.GEMINI_API_KEY;
     const textResults = await getMetadataBatch(
       tracks.map((t) => ({ title: t.title, artist: t.artist }))
     );
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
       })
     );
 
-    return NextResponse.json({ metadata: finalResults });
+    return NextResponse.json({ metadata: finalResults, debug: { hasKey, textResults } });
   } catch (error) {
     console.error("track-metadata error:", error);
     return NextResponse.json({ error: String(error) }, { status: 500 });
