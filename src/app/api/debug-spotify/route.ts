@@ -18,10 +18,12 @@ export async function GET() {
       },
       body: "grant_type=client_credentials",
     });
-    const tokenData = (await tokenRes.json()) as any;
+    const tokenRaw = await tokenRes.text();
+    let tokenData: any = null;
+    try { tokenData = JSON.parse(tokenRaw); } catch { /* not json */ }
 
-    if (!tokenData.access_token) {
-      return NextResponse.json({ step: "token", error: tokenData });
+    if (!tokenData?.access_token) {
+      return NextResponse.json({ step: "token_failed", status: tokenRes.status, raw: tokenRaw.slice(0, 300), parsed: tokenData });
     }
 
     // 検索テスト
