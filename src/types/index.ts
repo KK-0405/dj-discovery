@@ -1,4 +1,4 @@
-import { type Track } from "@/lib/spotify";
+import { type Track } from "@/lib/deezer";
 
 export type { Track };
 

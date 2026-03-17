@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSimilarTracks } from "@/lib/spotify";
+import { getSimilarTracks } from "@/lib/deezer";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
