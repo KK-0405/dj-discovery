@@ -45,11 +45,53 @@ export default function Home() {
     try {
       const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
       const data = await res.json();
-      setTracks(data.tracks ?? []);
+      const fetched: Track[] = data.tracks ?? [];
+      setTracks(fetched);
+      setLoading(false);
+      // 検索結果のBPM・Key等をGeminiで非同期取得
+      if (fetched.length > 0) {
+        enrichSearchTracks(fetched);
+      }
     } catch {
       setTracks([]);
+      setLoading(false);
     }
-    setLoading(false);
+  };
+
+  const enrichSearchTracks = async (trackList: Track[]) => {
+    try {
+      const res = await fetch("/api/track-metadata", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tracks: trackList.slice(0, 30).map((t) => ({
+            id: t.id,
+            title: t.name,
+            artist: t.artists[0]?.name ?? "",
+            preview: t.preview,
+          })),
+        }),
+      });
+      const data = await res.json();
+      const metadata: (any | null)[] = data.metadata ?? [];
+      setTracks((prev) =>
+        prev.map((track, i) => {
+          const m = metadata[i];
+          if (!m) return track;
+          return {
+            ...track,
+            bpm: track.bpm || m.bpm,
+            key: m.key || track.key,
+            camelot: m.camelot,
+            energy: m.energy,
+            danceability: m.danceability,
+            is_vocal: m.is_vocal,
+            genre_tags: m.genre_tags,
+            release_year: track.release_year || m.release_year,
+          };
+        })
+      );
+    } catch { /* ignore */ }
   };
 
   const fetchGeminiMetadata = async (trackList: Track[], seed: Track | null) => {
