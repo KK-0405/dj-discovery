@@ -112,12 +112,5 @@ export async function getSimilarTracks(artist: string, track: string, limit = 50
   const radioData = (await radioRes.json()) as any;
   const tracks: any[] = radioData?.data ?? [];
 
-  return Promise.all(
-    tracks.map(async (t) => {
-      const base = mapTrack(t);
-      if (base.bpm) return base;
-      const bpm = await fetchBpm(t.id, t.artist?.name ?? "", t.title);
-      return { ...base, bpm };
-    })
-  );
+  return tracks.map((t) => mapTrack(t));
 }
