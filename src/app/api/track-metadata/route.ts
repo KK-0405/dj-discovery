@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       })
     );
 
-    return NextResponse.json({ metadata: finalResults });
+    return NextResponse.json({ metadata: finalResults, _debug: { error: batchResult.error, rawResponse: batchResult.rawResponse } });
   } catch (error) {
     console.error("track-metadata error:", error);
     return NextResponse.json({ error: String(error) }, { status: 500 });
