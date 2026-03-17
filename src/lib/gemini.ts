@@ -12,6 +12,15 @@ export type GeminiMetadata = {
 
 const GEMINI_API = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
+// Gemini 2.5はthinkingパートとtextパートが分かれる場合があるため全パートを結合して検索
+function extractText(data: any): string {
+  const parts: any[] = data?.candidates?.[0]?.content?.parts ?? [];
+  // thought=trueのパートを除いたテキストを優先、なければ全部結合
+  const textParts = parts.filter((p: any) => !p.thought && typeof p.text === "string");
+  if (textParts.length > 0) return textParts.map((p: any) => p.text).join("");
+  return parts.map((p: any) => p.text ?? "").join("");
+}
+
 function parseJson(text: string): any {
   const match = text.match(/```json\s*([\s\S]*?)```/) || text.match(/(\[[\s\S]*\]|\{[\s\S]*\})/);
   if (!match) throw new Error("No JSON found");
@@ -79,7 +88,7 @@ For each song return an object with these fields:
     if (!res.ok || data?.error) {
       return { results: tracks.map(() => null), error: `HTTP ${res.status}`, rawResponse: data };
     }
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+    const text = extractText(data);
     const parsed = parseJson(text);
     if (!Array.isArray(parsed)) {
       return { results: tracks.map(() => null), error: "Response was not a JSON array", rawResponse: text };
@@ -132,7 +141,7 @@ Each object must have: title, artist, bpm (integer), key (e.g. "F# minor"), came
     });
     const data = (await res.json()) as any;
     if (!res.ok || data?.error) return [];
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+    const text = extractText(data);
     const parsed = parseJson(text);
     if (!Array.isArray(parsed)) return [];
     return parsed
@@ -184,7 +193,7 @@ Provide music metadata in JSON format. Return ONLY the JSON object, no explanati
       }),
     });
     const data = (await res.json()) as any;
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+    const text = extractText(data);
     return sanitize(parseJson(text));
   } catch {
     return null;
