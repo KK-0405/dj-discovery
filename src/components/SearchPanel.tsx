@@ -90,10 +90,9 @@ export default function SearchPanel({
             <div style={{ flex: 1 }}>
               <div style={{ color: "#fff", fontSize: "14px", fontWeight: 500 }}>{track.name}</div>
               <div style={{ color: "#888", fontSize: "12px" }}>{track.artists.map((a) => a.name).join(", ")}</div>
-            </div>
-            <div style={{ textAlign: "right", minWidth: "60px" }}>
-              <div style={{ color: "#1db954", fontSize: "12px", fontWeight: 500 }}>{track.bpm ? `${track.bpm} BPM` : ""}</div>
-              <div style={{ color: "#666", fontSize: "11px" }}>{track.key}</div>
+              <div style={{ color: "#1db954", fontSize: "11px", fontWeight: 500, marginTop: "2px" }}>
+                {track.bpm ? `${track.bpm} BPM` : "-- BPM"}
+              </div>
             </div>
             {mode === "search" && (
               <div style={{ display: "flex", gap: "6px" }}>

@@ -30,7 +30,19 @@ export async function searchTracks(query: string): Promise<Track[]> {
     `https://api.deezer.com/search?q=${encodeURIComponent(query)}&limit=20`
   );
   const data = (await res.json()) as any;
-  return (data?.data ?? []).map(mapTrack);
+  const tracks = (data?.data ?? []).map(mapTrack);
+
+  // BPMはsearch APIでは返らないので /track/{id} で補完
+  return Promise.all(
+    tracks.map(async (track: Track, i: number) => {
+      if (track.bpm) return track;
+      try {
+        const bpmRes = await fetch(`https://api.deezer.com/track/${(data.data as any[])[i].id}`);
+        const bpmData = (await bpmRes.json()) as any;
+        return { ...track, bpm: bpmData?.bpm ? Math.round(bpmData.bpm) : 0 };
+      } catch { return track; }
+    })
+  );
 }
 
 export async function getSimilarTracks(artist: string, track: string): Promise<Track[]> {
@@ -52,17 +64,15 @@ export async function getSimilarTracks(artist: string, track: string): Promise<T
   const radioData = (await radioRes.json()) as any;
   const tracks: any[] = radioData?.data ?? [];
 
-  // BPMがない曲はDeezer検索で補完
+  // BPMがない曲は /track/{id} で補完
   return Promise.all(
     tracks.map(async (t) => {
       let bpm = t.bpm ? Math.round(t.bpm) : 0;
       if (!bpm) {
         try {
-          const bpmRes = await fetch(
-            `https://api.deezer.com/search?q=${encodeURIComponent(`${t.title} ${t.artist?.name ?? ""}`)}&limit=1`
-          );
+          const bpmRes = await fetch(`https://api.deezer.com/track/${t.id}`);
           const bpmData = (await bpmRes.json()) as any;
-          bpm = bpmData?.data?.[0]?.bpm ? Math.round(bpmData.data[0].bpm) : 0;
+          bpm = bpmData?.bpm ? Math.round(bpmData.bpm) : 0;
         } catch { /* skip */ }
       }
       return { ...mapTrack(t), bpm };
