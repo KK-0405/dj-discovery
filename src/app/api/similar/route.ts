@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSimilarTrackSuggestions } from "@/lib/gemini";
+import { getSimilarTrackSuggestions, getMetadataBatch } from "@/lib/gemini";
 
-function mapDeezerTrack(t: any, meta: { bpm: number; key: string; camelot: string; energy: number; danceability: number; is_vocal: boolean; genre_tags: string[]; release_year: number }) {
+function mapDeezerTrack(t: any) {
   return {
     id: String(t.id),
     name: t.title,
@@ -11,22 +11,17 @@ function mapDeezerTrack(t: any, meta: { bpm: number; key: string; camelot: strin
       images: t.album?.cover_medium ? [{ url: t.album.cover_medium }] : [],
     },
     duration_ms: (t.duration ?? 0) * 1000,
-    bpm: meta.bpm || (t.bpm ? Math.round(t.bpm) : 0),
-    key: meta.key,
-    camelot: meta.camelot,
-    energy: meta.energy,
-    danceability: meta.danceability,
-    is_vocal: meta.is_vocal,
-    genre_tags: meta.genre_tags,
-    release_year: meta.release_year || (t.release_date ? parseInt(t.release_date.slice(0, 4)) : undefined),
+    bpm: t.bpm ? Math.round(t.bpm) : 0,
+    key: "",
     url: t.link ?? `https://www.deezer.com/track/${t.id}`,
     preview: t.preview ?? undefined,
+    release_year: t.release_date ? parseInt(t.release_date.slice(0, 4)) : undefined,
   };
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { seed, subSeeds = [], count = 50 } = (await request.json()) as {
+    const { seed, subSeeds = [], count = 20 } = (await request.json()) as {
       seed: {
         title: string;
         artist: string;
@@ -46,31 +41,53 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "seed is required" }, { status: 400 });
     }
 
-    // Geminiに類似曲を提案させる
-    const suggestions = await getSimilarTrackSuggestions(seed, subSeeds, count);
+    const cap = Math.min(count, 30);
 
+    // Step1: Geminiに類似曲のtitle+artistを提案させる（高速）
+    const suggestions = await getSimilarTrackSuggestions(seed, subSeeds, cap);
     if (suggestions.length === 0) {
-      return NextResponse.json({ tracks: [], error: "Gemini returned no suggestions" });
+      return NextResponse.json({ tracks: [] });
     }
 
-    // 各提案をDeezerで検索（並列）
-    const results = await Promise.all(
+    // Step2: 各提案をDeezerで並列検索
+    const deezerResults = await Promise.all(
       suggestions.map(async (s) => {
         try {
           const q = encodeURIComponent(`${s.title} ${s.artist}`);
           const res = await fetch(`https://api.deezer.com/search?q=${q}&limit=1`);
           const data = (await res.json()) as any;
           const hit = data?.data?.[0];
-          if (!hit) return null;
-          return mapDeezerTrack(hit, s);
+          return hit ? mapDeezerTrack(hit) : null;
         } catch {
           return null;
         }
       })
     );
 
-    const tracks = results.filter(Boolean);
-    return NextResponse.json({ tracks });
+    const tracks = deezerResults.filter(Boolean) as ReturnType<typeof mapDeezerTrack>[];
+
+    // Step3: Geminiでbatchメタデータ分析（ジャンル・BPM・エネルギー等）
+    const batchResult = await getMetadataBatch(
+      tracks.map((t) => ({ title: t.name, artist: t.artists[0]?.name ?? "" }))
+    );
+
+    const tracksWithMeta = tracks.map((track, i) => {
+      const m = batchResult.results[i];
+      if (!m) return track;
+      return {
+        ...track,
+        bpm: track.bpm || m.bpm,
+        key: m.key,
+        camelot: m.camelot,
+        energy: m.energy,
+        danceability: m.danceability,
+        is_vocal: m.is_vocal,
+        genre_tags: m.genre_tags,
+        release_year: track.release_year || m.release_year,
+      };
+    });
+
+    return NextResponse.json({ tracks: tracksWithMeta });
   } catch (error) {
     console.error("Similar error:", error);
     return NextResponse.json({ error: String(error) }, { status: 500 });

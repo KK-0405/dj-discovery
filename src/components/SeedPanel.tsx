@@ -11,8 +11,8 @@ type Props = {
   exploreSimilar: () => void;
   filters: SimilarFilters;
   setFilters: (f: SimilarFilters) => void;
-  similarCount: 20 | 50 | 100;
-  setSimilarCount: (n: 20 | 50 | 100) => void;
+  similarCount: 10 | 20 | 30;
+  setSimilarCount: (n: 10 | 20 | 30) => void;
   seedAnalyzing: boolean;
 };
 
@@ -124,7 +124,7 @@ export default function SeedPanel({
       <div style={{ marginBottom: "10px" }}>
         <div style={{ fontSize: "11px", color: "#666", marginBottom: "6px" }}>取得件数</div>
         <div style={{ display: "flex", gap: "6px" }}>
-          {([20, 50, 100] as const).map((n) => (
+          {([10, 20, 30] as const).map((n) => (
             <Chip key={n} label={`${n}曲`} active={similarCount === n} onClick={() => setSimilarCount(n)} />
           ))}
         </div>

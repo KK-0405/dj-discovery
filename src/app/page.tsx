@@ -30,7 +30,7 @@ export default function Home() {
   const [playlist, setPlaylist] = useState<Track[]>([]);
   const [mode, setMode] = useState<Mode>("search");
   const [filters, setFilters] = useState<SimilarFilters>(DEFAULT_FILTERS);
-  const [similarCount, setSimilarCount] = useState<20 | 50 | 100>(50);
+  const [similarCount, setSimilarCount] = useState<10 | 20 | 30>(20);
   const [metadataLoading, setMetadataLoading] = useState(false);
   const [seedAnalyzing, setSeedAnalyzing] = useState(false);
   const [savedPlaylists, setSavedPlaylists] = useState<SavedPlaylist[]>([]);

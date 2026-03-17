@@ -94,20 +94,9 @@ For each song return an object with these fields:
   }
 }
 
-export type TrackSuggestion = {
-  title: string;
-  artist: string;
-  bpm: number;
-  key: string;
-  camelot: string;
-  energy: number;
-  danceability: number;
-  is_vocal: boolean;
-  genre_tags: string[];
-  release_year: number;
-};
+export type TrackSuggestion = { title: string; artist: string };
 
-// シードのメタデータをもとに類似曲を提案（メタデータ付き）
+// シードのメタデータをもとに類似曲のtitle+artistのみを提案（高速）
 export async function getSimilarTrackSuggestions(
   seed: {
     title: string;
@@ -116,7 +105,6 @@ export async function getSimilarTrackSuggestions(
     bpm?: number;
     camelot?: string;
     energy?: number;
-    danceability?: number;
     is_vocal?: boolean;
     release_year?: number;
   },
@@ -127,41 +115,13 @@ export async function getSimilarTrackSuggestions(
   if (!apiKey) return [];
 
   const genres = seed.genre_tags?.join(", ") || "unknown";
-  const subGenres = subSeeds.length > 0
-    ? subSeeds.map((s) => `${s.title} by ${s.artist}${s.genre_tags?.length ? ` (${s.genre_tags.join(", ")})` : ""}`).join("; ")
-    : null;
+  const subGenreStr = subSeeds.flatMap((s) => s.genre_tags ?? []).filter(Boolean);
+  const subInfo = subGenreStr.length ? `Sub-influences: ${subGenreStr.join(", ")}` : "";
 
-  const prompt = `You are an expert DJ and music curator. Suggest ${count} real tracks that a DJ could mix with this seed track.
-
-Seed track:
-- Title: "${seed.title}" by ${seed.artist}
-- Genre: ${genres}
-- BPM: ${seed.bpm || "unknown"}
-- Camelot key: ${seed.camelot || "unknown"}
-- Energy: ${seed.energy !== undefined ? Math.round(seed.energy * 10) + "/10" : "unknown"}
-- Danceability: ${seed.danceability !== undefined ? Math.round(seed.danceability * 10) + "/10" : "unknown"}
-- Vocal: ${seed.is_vocal !== undefined ? (seed.is_vocal ? "yes" : "no (instrumental)") : "unknown"}
-- Era: ${seed.release_year || "unknown"}
-${subGenres ? `\nSub-seed influences (blend these styles too):\n${subGenres}` : ""}
-
-Rules:
-- Match the genre closely (${genres})
-- Keep BPM within ±15 of ${seed.bpm || "the seed"}
-- Prefer tracks from the same era (±10 years of ${seed.release_year || "the seed"})
-- Do NOT suggest the seed track itself
-- Only suggest real, existing tracks
-
-Return ONLY a JSON array. No explanation. Each object must have:
-- title: string
-- artist: string
-- bpm: integer
-- key: string (e.g. "F# minor")
-- camelot: string (e.g. "11A")
-- energy: float 0-1
-- danceability: float 0-1
-- is_vocal: boolean
-- genre_tags: string array (max 3)
-- release_year: integer`;
+  const prompt = `You are a DJ. List ${count} real songs to mix with "${seed.title}" by ${seed.artist}.
+Genre: ${genres}. BPM≈${seed.bpm || "?"}, Era: ${seed.release_year || "?"}.${subInfo ? " " + subInfo : ""}
+Rules: match genre closely, BPM within ±15, same era ±10 years, exclude the seed itself.
+Return ONLY a JSON array: [{"title":"...","artist":"..."},...]. No explanation.`;
 
   try {
     const res = await fetch(`${GEMINI_API}?key=${apiKey}`, {
@@ -174,18 +134,9 @@ Return ONLY a JSON array. No explanation. Each object must have:
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
     const parsed = parseJson(text);
     if (!Array.isArray(parsed)) return [];
-    return parsed.map((m: any) => ({
-      title: String(m.title ?? ""),
-      artist: String(m.artist ?? ""),
-      bpm: typeof m.bpm === "number" ? Math.round(clamp(m.bpm, 40, 220)) : 0,
-      key: String(m.key ?? ""),
-      camelot: String(m.camelot ?? ""),
-      energy: typeof m.energy === "number" ? clamp(m.energy, 0, 1) : 0.5,
-      danceability: typeof m.danceability === "number" ? clamp(m.danceability, 0, 1) : 0.5,
-      is_vocal: typeof m.is_vocal === "boolean" ? m.is_vocal : true,
-      genre_tags: Array.isArray(m.genre_tags) ? m.genre_tags.slice(0, 3) : [],
-      release_year: typeof m.release_year === "number" ? m.release_year : 0,
-    })).filter((m) => m.title && m.artist);
+    return parsed
+      .map((m: any) => ({ title: String(m.title ?? ""), artist: String(m.artist ?? "") }))
+      .filter((m) => m.title && m.artist);
   } catch {
     return [];
   }
