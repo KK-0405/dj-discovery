@@ -66,6 +66,9 @@ export default function SeedPanel({
     filters.vocalType !== null,
   ].filter(Boolean).length;
 
+  const hasGemini = mainSeed?.energy !== undefined;
+  const hasDecade = !!(mainSeed?.release_year);
+
   return (
     <div>
       <div style={{ fontSize: "12px", fontWeight: 500, color: "#aaa", marginBottom: "10px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Seed</div>
@@ -147,6 +150,11 @@ export default function SeedPanel({
                 ✦ Geminiがキー・エネルギー等を解析中...
               </div>
             )}
+            {mainSeed && !seedAnalyzing && !hasGemini && (
+              <div style={{ fontSize: "10px", color: "#555", padding: "6px 0", borderBottom: "0.5px solid #1a1a1a", marginBottom: "4px" }}>
+                ✦ Seedを選択するとGeminiが自動解析します
+              </div>
+            )}
 
             {/* リズム・テンポ */}
             <Section title="リズム・テンポ" />
@@ -159,30 +167,33 @@ export default function SeedPanel({
 
             {/* キー・ハーモニー */}
             <Section title="キー・ハーモニー" />
-            <Row label="同じキー">
+            <Row label="同じキー" available={hasGemini}>
               <input type="checkbox" checked={filters.sameKey} onChange={(e) => set({ sameKey: e.target.checked })} style={{ accentColor: "#1db954", cursor: "pointer" }} />
             </Row>
-            <Row label="Camelot隣接（±1）">
+            <Row label="Camelot隣接（±1）" available={hasGemini}>
               <input type="checkbox" checked={filters.camelotAdjacent} onChange={(e) => set({ camelotAdjacent: e.target.checked })} style={{ accentColor: "#1db954", cursor: "pointer" }} />
             </Row>
+            {!hasGemini && <div style={{ fontSize: "10px", color: "#444" }}>※ Gemini解析後に解除</div>}
 
             {/* ジャンル */}
             <Section title="ジャンル" />
-            <Row label="ジャンル一致">
+            <Row label="ジャンル一致" available={hasGemini}>
               <input type="checkbox" checked={filters.genreMatch} onChange={(e) => set({ genreMatch: e.target.checked })} style={{ accentColor: "#1db954", cursor: "pointer" }} />
             </Row>
+            {!hasGemini && <div style={{ fontSize: "10px", color: "#444" }}>※ Gemini解析後に解除</div>}
 
             {/* エネルギー・ムード */}
             <Section title="エネルギー・ムード" />
             <div style={{ fontSize: "11px", color: "#888", marginBottom: "4px" }}>エネルギーレベル</div>
-            <div style={{ display: "flex", gap: "4px" }}>
+            <div style={{ display: "flex", gap: "4px", opacity: hasGemini ? 1 : 0.3, pointerEvents: hasGemini ? "auto" : "none" }}>
               {([null, "high", "medium", "low"] as const).map((v) => (
                 <Chip key={String(v)} label={v === null ? "全て" : v === "high" ? "高" : v === "medium" ? "中" : "低"} active={filters.energyLevel === v} onClick={() => set({ energyLevel: filters.energyLevel === v ? null : v })} />
               ))}
             </div>
-            <Row label="ダンサビリティ高">
+            <Row label="ダンサビリティ高" available={hasGemini}>
               <input type="checkbox" checked={filters.danceabilityHigh} onChange={(e) => set({ danceabilityHigh: e.target.checked })} style={{ accentColor: "#1db954", cursor: "pointer" }} />
             </Row>
+            {!hasGemini && <div style={{ fontSize: "10px", color: "#444" }}>※ Gemini解析後に解除</div>}
 
             {/* アーティスト・時代 */}
             <Section title="アーティスト・時代" />
@@ -190,20 +201,22 @@ export default function SeedPanel({
               <input type="checkbox" checked={filters.sameArtist} onChange={(e) => set({ sameArtist: e.target.checked })} style={{ accentColor: "#1db954", cursor: "pointer" }} />
             </Row>
             <div style={{ fontSize: "11px", color: "#888", marginTop: "4px", marginBottom: "4px" }}>リリース年代</div>
-            <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", opacity: hasDecade ? 1 : 0.3, pointerEvents: hasDecade ? "auto" : "none" }}>
               {DECADES.map((d) => (
                 <Chip key={d} label={d} active={filters.decade === d} onClick={() => set({ decade: filters.decade === d ? null : d })} />
               ))}
             </div>
+            {!hasDecade && <div style={{ fontSize: "10px", color: "#444", marginTop: "2px" }}>※ Seed選択後に解除</div>}
 
             {/* サウンド特性 */}
             <Section title="サウンド特性" />
             <div style={{ fontSize: "11px", color: "#888", marginBottom: "4px" }}>ボーカル</div>
-            <div style={{ display: "flex", gap: "4px" }}>
+            <div style={{ display: "flex", gap: "4px", opacity: hasGemini ? 1 : 0.3, pointerEvents: hasGemini ? "auto" : "none" }}>
               {([null, "vocal", "instrumental"] as const).map((v) => (
                 <Chip key={String(v)} label={v === null ? "全て" : v === "vocal" ? "🎤 ボーカル" : "🎸 インスト"} active={filters.vocalType === v} onClick={() => set({ vocalType: filters.vocalType === v ? null : v })} />
               ))}
             </div>
+            {!hasGemini && <div style={{ fontSize: "10px", color: "#444", marginTop: "2px" }}>※ Gemini解析後に解除</div>}
 
           </div>
         )}
