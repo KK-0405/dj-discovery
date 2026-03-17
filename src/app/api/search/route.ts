@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { searchTracks } from "@/lib/lastfm";
+import { searchTracks } from "@/lib/spotify";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;

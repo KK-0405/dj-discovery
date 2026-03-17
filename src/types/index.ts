@@ -1,4 +1,4 @@
-import { type Track } from "@/lib/lastfm";
+import { type Track } from "@/lib/spotify";
 
 export type { Track };
 
