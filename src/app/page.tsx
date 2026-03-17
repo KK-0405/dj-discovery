@@ -208,10 +208,33 @@ export default function Home() {
     setMainSeed(track);
     analyzeSeed(track);
   };
-  const addToSubSeed = (track: Track) => {
+  const addToSubSeed = async (track: Track) => {
     if (subSeeds.find((t) => t.id === track.id)) return;
     if (mainSeed?.id === track.id) return;
-    setSubSeeds([...subSeeds, track]);
+    setSubSeeds((prev) => [...prev, track]);
+    try {
+      const res = await fetch("/api/track-metadata", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tracks: [{ id: track.id, title: track.name, artist: track.artists[0]?.name ?? "", preview: track.preview }],
+        }),
+      });
+      const data = await res.json();
+      const m = data.metadata?.[0];
+      if (m) {
+        setSubSeeds((prev) => prev.map((t) => t.id === track.id ? {
+          ...t,
+          genre_tags: m.genre_tags,
+          energy: m.energy,
+          danceability: m.danceability,
+          is_vocal: m.is_vocal,
+          camelot: m.camelot,
+          bpm: t.bpm || m.bpm,
+          release_year: m.release_year,
+        } : t));
+      }
+    } catch { /* ignore */ }
   };
   const removeSubSeed = (id: string) => setSubSeeds(subSeeds.filter((t) => t.id !== id));
   const addToPlaylist = (track: Track) => {

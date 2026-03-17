@@ -156,6 +156,43 @@ export default function SeedPanel({
               </div>
             )}
 
+            {/* 解析結果サマリー */}
+            {hasGemini && mainSeed && (
+              <div style={{ borderBottom: "0.5px solid #1a1a1a", paddingBottom: "8px", marginBottom: "6px" }}>
+                <div style={{ fontSize: "10px", color: "#555", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "6px" }}>解析結果</div>
+
+                {mainSeed.genre_tags?.length > 0 && (
+                  <div style={{ marginBottom: "3px" }}>
+                    <span style={{ fontSize: "10px", color: "#666" }}>ジャンル：</span>
+                    <span style={{ fontSize: "10px", color: "#ccc" }}>{mainSeed.genre_tags.join(" / ")}</span>
+                  </div>
+                )}
+
+                {subSeeds.some((t) => (t.genre_tags?.length ?? 0) > 0) && (
+                  <div style={{ marginBottom: "3px" }}>
+                    <span style={{ fontSize: "10px", color: "#666" }}>サブジャンル：</span>
+                    <span style={{ fontSize: "10px", color: "#aaa" }}>
+                      {[...new Set(subSeeds.flatMap((t) => t.genre_tags ?? []))].join(" / ")}
+                    </span>
+                  </div>
+                )}
+
+                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "4px" }}>
+                  {mainSeed.bpm > 0 && <span style={{ fontSize: "10px", color: "#1db954" }}>BPM: {mainSeed.bpm}</span>}
+                  {mainSeed.key && <span style={{ fontSize: "10px", color: "#888" }}>キー: {mainSeed.key}</span>}
+                  {mainSeed.camelot && <span style={{ fontSize: "10px", color: "#888" }}>Camelot: {mainSeed.camelot}</span>}
+                </div>
+                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "3px" }}>
+                  {mainSeed.energy !== undefined && <span style={{ fontSize: "10px", color: "#888" }}>エネルギー: {Math.round(mainSeed.energy * 100)}%</span>}
+                  {mainSeed.danceability !== undefined && <span style={{ fontSize: "10px", color: "#888" }}>ダンサビリティ: {Math.round(mainSeed.danceability * 100)}%</span>}
+                </div>
+                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "3px" }}>
+                  {mainSeed.is_vocal !== undefined && <span style={{ fontSize: "10px", color: "#888" }}>ボーカル: {mainSeed.is_vocal ? "あり" : "なし（インスト）"}</span>}
+                  {mainSeed.release_year && <span style={{ fontSize: "10px", color: "#888" }}>{mainSeed.release_year}年</span>}
+                </div>
+              </div>
+            )}
+
             {/* リズム・テンポ */}
             <Section title="リズム・テンポ" />
             <div style={{ fontSize: "11px", color: "#888", marginBottom: "4px" }}>BPM範囲（シード基準）</div>
