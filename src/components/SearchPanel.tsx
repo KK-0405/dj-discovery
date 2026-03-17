@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { type Track, type Mode } from "@/types";
 
 type Props = {
@@ -90,6 +90,7 @@ export default function SearchPanel({
   addToPlaylist, isInPlaylist, filteredSimilarCount, metadataLoading,
 }: Props) {
   const listRef = useRef<HTMLDivElement>(null);
+  const [isComposing, setIsComposing] = useState(false);
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: 0 });
@@ -104,7 +105,9 @@ export default function SearchPanel({
           placeholder="曲名・アーティストを入力"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && search()}
+          onCompositionStart={() => setIsComposing(true)}
+          onCompositionEnd={() => setIsComposing(false)}
+          onKeyDown={(e) => e.key === "Enter" && !isComposing && search()}
           style={{ flex: 1, padding: "8px 14px", background: "#222", border: "0.5px solid #444", borderRadius: "8px", color: "#fff", fontSize: "14px", outline: "none" }}
         />
         <button

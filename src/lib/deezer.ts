@@ -80,11 +80,41 @@ async function fetchBpm(trackId: string, artist: string, title: string): Promise
 }
 
 export async function searchTracks(query: string): Promise<Track[]> {
+  const encoded = encodeURIComponent(query);
+  // Deezerはクエリに日本語が含まれる場合、artist/trackフィールドを使うと精度が下がるため
+  // シンプルなqパラメータで検索し、結果をクライアント側で関連性順に並べ替える
   const res = await fetch(
-    `https://api.deezer.com/search?q=${encodeURIComponent(query)}&limit=50`
+    `https://api.deezer.com/search?q=${encoded}&limit=50&order=RELEVANCE`
   );
   const data = (await res.json()) as any;
-  return (data?.data ?? []).map(mapTrack);
+  const tracks: Track[] = (data?.data ?? []).map(mapTrack);
+
+  // クエリの単語が曲名・アーティスト名に含まれるものを上位に
+  const lowerQuery = query.toLowerCase();
+  const words = lowerQuery.split(/\s+/).filter(Boolean);
+  return tracks.sort((a, b) => {
+    const scoreA = relevanceScore(a, words, lowerQuery);
+    const scoreB = relevanceScore(b, words, lowerQuery);
+    return scoreB - scoreA;
+  });
+}
+
+function relevanceScore(track: Track, words: string[], fullQuery: string): number {
+  const title = track.name.toLowerCase();
+  const artist = (track.artists[0]?.name ?? "").toLowerCase();
+  let score = 0;
+  // 完全一致が最高点
+  if (title === fullQuery) score += 100;
+  if (artist === fullQuery) score += 50;
+  // 前方一致
+  if (title.startsWith(fullQuery)) score += 40;
+  if (artist.startsWith(fullQuery)) score += 20;
+  // 部分一致（各ワード）
+  for (const w of words) {
+    if (title.includes(w)) score += 10;
+    if (artist.includes(w)) score += 5;
+  }
+  return score;
 }
 
 export async function getSimilarTracks(artist: string, track: string, limit = 50): Promise<Track[]> {
