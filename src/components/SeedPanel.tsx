@@ -162,7 +162,7 @@ export default function SeedPanel({
             {/* リズム・テンポ */}
             <Section title="リズム・テンポ" />
             <div style={{ fontSize: "11px", color: "#888", marginBottom: "4px" }}>
-              BPM範囲（シード基準）{mainSeed?.bpm > 0 && <span style={{ color: "#1db954", marginLeft: "6px" }}>{mainSeed.bpm} BPM</span>}
+              BPM範囲（シード基準）{(mainSeed?.bpm ?? 0) > 0 && <span style={{ color: "#1db954", marginLeft: "6px" }}>{mainSeed!.bpm} BPM</span>}
             </div>
             <div style={{ display: "flex", gap: "6px" }}>
               {([null, 5, 10] as const).map((v) => (
