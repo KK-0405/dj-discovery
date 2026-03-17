@@ -11,6 +11,31 @@ export type GeminiMetadata = {
 };
 
 const GEMINI_API = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+const MAX_RETRIES = 3;
+
+async function geminiPost(apiKey: string, body: object): Promise<any> {
+  let waitMs = 5000;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const res = await fetch(`${GEMINI_API}?key=${apiKey}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = (await res.json()) as any;
+    if (res.status === 429) {
+      if (attempt === MAX_RETRIES) return { __error: data, __status: 429 };
+      // エラーレスポンスのretryDelayがあればそれを使う、なければ指数バックオフ
+      const retryDelaySec = data?.error?.details?.find((d: any) => d.retryDelay)?.retryDelay;
+      const delayMs = retryDelaySec
+        ? Math.ceil(parseFloat(retryDelaySec) * 1000)
+        : waitMs;
+      await new Promise((r) => setTimeout(r, delayMs));
+      waitMs *= 2;
+      continue;
+    }
+    return { __data: data, __status: res.status, __ok: res.ok };
+  }
+}
 
 function extractText(data: any): string {
   const parts: any[] = data?.candidates?.[0]?.content?.parts ?? [];
@@ -65,16 +90,11 @@ ${list}
 Each object: { bpm: integer, key: string, camelot: string, energy: float 0-1, danceability: float 0-1, is_vocal: boolean, genre_tags: string[], release_year: integer, confidence: "high"|"medium"|"low" }`;
 
   try {
-    const res = await fetch(`${GEMINI_API}?key=${apiKey}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-    });
-    const data = (await res.json()) as any;
-    if (!res.ok || data?.error) {
-      return { results: tracks.map(() => null), error: `HTTP ${res.status}: ${JSON.stringify(data?.error)}` };
+    const result = await geminiPost(apiKey, { contents: [{ parts: [{ text: prompt }] }] });
+    if (!result || !result.__ok || result.__data?.error) {
+      return { results: tracks.map(() => null), error: `HTTP ${result?.__status}: ${JSON.stringify(result?.__data?.error ?? result?.__error)}` };
     }
-    const text = extractText(data);
+    const text = extractText(result.__data);
     const parsed = parseJson(text);
     if (!Array.isArray(parsed)) {
       return { results: tracks.map(() => null), error: "Not a JSON array" };
@@ -119,14 +139,9 @@ Return ONLY a JSON array with full metadata for each song. No explanation.
 Each object must have: title, artist, bpm (integer), key (e.g. "F# minor"), camelot (e.g. "11A"), energy (float 0-1), danceability (float 0-1), is_vocal (boolean), genre_tags (string array max 4), release_year (integer), confidence ("high"/"medium"/"low").`;
 
   try {
-    const res = await fetch(`${GEMINI_API}?key=${apiKey}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-    });
-    const data = (await res.json()) as any;
-    if (!res.ok || data?.error) return [];
-    const text = extractText(data);
+    const result = await geminiPost(apiKey, { contents: [{ parts: [{ text: prompt }] }] });
+    if (!result || !result.__ok || result.__data?.error) return [];
+    const text = extractText(result.__data);
     const parsed = parseJson(text);
     if (!Array.isArray(parsed)) return [];
     return parsed
