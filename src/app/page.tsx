@@ -120,21 +120,36 @@ export default function Home() {
     setLoading(true);
     setMode("similar");
     try {
-      const artist = mainSeed.artists[0].name;
-      const track = mainSeed.name;
-      const res = await fetch(
-        `/api/similar?artist=${encodeURIComponent(artist)}&track=${encodeURIComponent(track)}&limit=${similarCount}`
-      );
+      const res = await fetch("/api/similar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          seed: {
+            title: mainSeed.name,
+            artist: mainSeed.artists[0]?.name ?? "",
+            genre_tags: mainSeed.genre_tags,
+            bpm: mainSeed.bpm,
+            camelot: mainSeed.camelot,
+            energy: mainSeed.energy,
+            danceability: mainSeed.danceability,
+            is_vocal: mainSeed.is_vocal,
+            release_year: mainSeed.release_year,
+          },
+          subSeeds: subSeeds.map((t) => ({
+            title: t.name,
+            artist: t.artists[0]?.name ?? "",
+            genre_tags: t.genre_tags,
+          })),
+          count: similarCount,
+        }),
+      });
       const data = await res.json();
       const fetched: Track[] = data.tracks ?? [];
       setSimilarTracks(fetched);
-      setLoading(false);
-      // Geminiメタデータを非同期で取得（結果表示後に開始）
-      fetchGeminiMetadata(fetched, mainSeed);
     } catch {
       setSimilarTracks([]);
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   const exportToYouTube = async (existingPlaylistId: string | null) => {
