@@ -233,6 +233,10 @@ export default function Home() {
   };
 
   const analyzeSeed = async (track: Track) => {
+    // 既にenrichSearchTracksで解析済みならスキップ
+    if (track.energy !== undefined && track.camelot && track.genre_tags?.length) {
+      return;
+    }
     setSeedAnalyzing(true);
     try {
       const res = await fetch("/api/track-metadata", {
@@ -262,25 +266,30 @@ export default function Home() {
   };
 
   const setAsMainSeed = (track: Track) => {
-    setMainSeed(track);
-    analyzeSeed(track);
+    // tracksステートから最新の解析済みデータを参照する
+    const enriched = tracks.find((t) => t.id === track.id) ?? track;
+    setMainSeed(enriched);
+    analyzeSeed(enriched);
   };
   const addToSubSeed = async (track: Track) => {
     if (subSeeds.find((t) => t.id === track.id)) return;
     if (mainSeed?.id === track.id) return;
-    setSubSeeds((prev) => [...prev, track]);
+    const enriched = tracks.find((t) => t.id === track.id) ?? track;
+    setSubSeeds((prev) => [...prev, enriched]);
+    // 既に解析済みならGemini呼び出し不要
+    if (enriched.energy !== undefined && enriched.camelot && enriched.genre_tags?.length) return;
     try {
       const res = await fetch("/api/track-metadata", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          tracks: [{ id: track.id, title: track.name, artist: track.artists[0]?.name ?? "", preview: track.preview }],
+          tracks: [{ id: enriched.id, title: enriched.name, artist: enriched.artists[0]?.name ?? "", preview: enriched.preview }],
         }),
       });
       const data = await res.json();
       const m = data.metadata?.[0];
       if (m) {
-        setSubSeeds((prev) => prev.map((t) => t.id === track.id ? {
+        setSubSeeds((prev) => prev.map((t) => t.id === enriched.id ? {
           ...t,
           genre_tags: m.genre_tags,
           energy: m.energy,
