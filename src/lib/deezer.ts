@@ -81,8 +81,6 @@ async function fetchBpm(trackId: string, artist: string, title: string): Promise
 
 export async function searchTracks(query: string): Promise<Track[]> {
   const encoded = encodeURIComponent(query);
-  // Deezerはクエリに日本語が含まれる場合、artist/trackフィールドを使うと精度が下がるため
-  // シンプルなqパラメータで検索し、結果をクライアント側で関連性順に並べ替える
   const res = await fetch(
     `https://api.deezer.com/search?q=${encoded}&limit=50&order=RELEVANCE`
   );
@@ -92,11 +90,22 @@ export async function searchTracks(query: string): Promise<Track[]> {
   // クエリの単語が曲名・アーティスト名に含まれるものを上位に
   const lowerQuery = query.toLowerCase();
   const words = lowerQuery.split(/\s+/).filter(Boolean);
-  return tracks.sort((a, b) => {
-    const scoreA = relevanceScore(a, words, lowerQuery);
-    const scoreB = relevanceScore(b, words, lowerQuery);
-    return scoreB - scoreA;
-  });
+  const sorted = tracks.sort((a, b) => relevanceScore(b, words, lowerQuery) - relevanceScore(a, words, lowerQuery));
+
+  // Deezerの個別トラックエンドポイントからBPMを並列取得
+  const withBpm = await Promise.all(
+    sorted.map(async (track) => {
+      if (track.bpm) return track; // 既にBPMあり
+      try {
+        const r = await fetch(`https://api.deezer.com/track/${track.id}`);
+        const d = (await r.json()) as any;
+        if (d?.bpm) return { ...track, bpm: Math.round(d.bpm) };
+      } catch { /* ignore */ }
+      return track;
+    })
+  );
+
+  return withBpm;
 }
 
 function relevanceScore(track: Track, words: string[], fullQuery: string): number {
