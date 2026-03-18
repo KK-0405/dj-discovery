@@ -93,10 +93,48 @@ export default function SearchPanel({
   const [isComposing, setIsComposing] = useState(false);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [suggestions, setSuggestions] = useState<Track[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inputWrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: 0 });
   }, [displayTracks]);
+
+  // 入力中にdebounceで候補取得
+  const handleQueryChange = (value: string) => {
+    setQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (value.trim().length < 2) { setSuggestions([]); setShowSuggestions(false); return; }
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(value)}`);
+        const data = await res.json();
+        const results: Track[] = (data.tracks ?? []).slice(0, 8);
+        setSuggestions(results);
+        setShowSuggestions(results.length > 0);
+      } catch { setSuggestions([]); }
+    }, 300);
+  };
+
+  const selectSuggestion = (track: Track) => {
+    setQuery(`${track.name} ${track.artists[0]?.name ?? ""}`.trim());
+    setShowSuggestions(false);
+    setSuggestions([]);
+    search();
+  };
+
+  // 外側クリックで候補を閉じる
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (inputWrapRef.current && !inputWrapRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const togglePreview = (track: Track) => {
     if (!track.preview) return;
@@ -118,18 +156,42 @@ export default function SearchPanel({
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
       <div style={{ padding: "1.25rem 1.5rem", borderBottom: "0.5px solid #333", display: "flex", gap: "12px", alignItems: "center" }}>
-        <input
-          type="text"
-          placeholder="曲名・アーティストを入力"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onCompositionStart={() => setIsComposing(true)}
-          onCompositionEnd={() => setIsComposing(false)}
-          onKeyDown={(e) => e.key === "Enter" && !isComposing && search()}
-          style={{ flex: 1, padding: "8px 14px", background: "#222", border: "0.5px solid #444", borderRadius: "8px", color: "#fff", fontSize: "14px", outline: "none" }}
-        />
+        <div ref={inputWrapRef} style={{ flex: 1, position: "relative" }}>
+          <input
+            type="text"
+            placeholder="曲名・アーティストを入力"
+            value={query}
+            onChange={(e) => handleQueryChange(e.target.value)}
+            onCompositionStart={() => setIsComposing(true)}
+            onCompositionEnd={() => setIsComposing(false)}
+            onKeyDown={(e) => { if (e.key === "Enter" && !isComposing) { setShowSuggestions(false); search(); } }}
+            onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+            style={{ width: "100%", padding: "8px 14px", background: "#222", border: "0.5px solid #444", borderRadius: "8px", color: "#fff", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
+          />
+          {showSuggestions && (
+            <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#1a1a1a", border: "0.5px solid #444", borderRadius: "8px", marginTop: "4px", zIndex: 100, overflow: "hidden" }}>
+              {suggestions.map((t) => (
+                <div
+                  key={t.id}
+                  onMouseDown={() => selectSuggestion(t)}
+                  style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 12px", cursor: "pointer", borderBottom: "0.5px solid #2a2a2a" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "#2a2a2a")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                >
+                  {t.album.images[0]?.url && (
+                    <img src={t.album.images[0].url} width={32} height={32} style={{ borderRadius: "3px", flexShrink: 0 }} />
+                  )}
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ color: "#fff", fontSize: "13px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>
+                    <div style={{ color: "#888", fontSize: "11px" }}>{t.artists[0]?.name}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         <button
-          onClick={search}
+          onClick={() => { setShowSuggestions(false); search(); }}
           style={{ padding: "8px 20px", background: "#1db954", color: "#fff", border: "none", borderRadius: "8px", fontSize: "14px", fontWeight: 500, cursor: "pointer" }}
         >
           検索
