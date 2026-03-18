@@ -116,7 +116,10 @@ export default function SearchPanel({
   const listRef = useRef<HTMLDivElement>(null);
   const [isComposing, setIsComposing] = useState(false);
   const [playingId, setPlayingId] = useState<string | null>(null);
+  const [playingTrack, setPlayingTrack] = useState<Track | null>(null);
+  const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
   const [progress, setProgress] = useState(0);
+  const [volume, setVolume] = useState(0.6);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [suggestions, setSuggestions] = useState<Track[]>([]);
@@ -186,6 +189,7 @@ export default function SearchPanel({
     audioRef.current?.pause();
     if (progressRef.current) clearInterval(progressRef.current);
     setPlayingId(null);
+    setPlayingTrack(null);
     setProgress(0);
   };
 
@@ -196,17 +200,31 @@ export default function SearchPanel({
     } else {
       stopPreview();
       const audio = new Audio(track.preview);
-      audio.volume = 0.6;
-      audio.onended = () => { setPlayingId(null); setProgress(0); if (progressRef.current) clearInterval(progressRef.current); };
+      audio.volume = volume;
+      audio.onended = () => { setPlayingId(null); setPlayingTrack(null); setProgress(0); if (progressRef.current) clearInterval(progressRef.current); };
       audio.play();
       audioRef.current = audio;
       setPlayingId(track.id);
+      setPlayingTrack(track);
       setProgress(0);
       progressRef.current = setInterval(() => {
         if (!audioRef.current || audioRef.current.duration === 0) return;
         setProgress(audioRef.current.currentTime / audioRef.current.duration);
       }, 200);
     }
+  };
+
+  const handleVolumeChange = (v: number) => {
+    setVolume(v);
+    if (audioRef.current) audioRef.current.volume = v;
+  };
+
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!audioRef.current || !audioRef.current.duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    audioRef.current.currentTime = ratio * audioRef.current.duration;
+    setProgress(ratio);
   };
 
   return (
@@ -505,6 +523,7 @@ export default function SearchPanel({
           return (
             <div
               key={track.id}
+              onClick={() => setSelectedTrack(track)}
               style={{
                 display: "flex", alignItems: "center", gap: "12px",
                 padding: "10px 10px",
@@ -512,6 +531,7 @@ export default function SearchPanel({
                 background: isMain ? C.accDim : "transparent",
                 marginBottom: "2px",
                 transition: "background 0.1s",
+                cursor: "pointer",
               }}
               onMouseEnter={(e) => { if (!isMain) e.currentTarget.style.background = C.s1; }}
               onMouseLeave={(e) => { if (!isMain) e.currentTarget.style.background = "transparent"; }}
@@ -603,7 +623,7 @@ export default function SearchPanel({
               {(mode === "search" || mode === "playlist") && (
                 <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
                   <button
-                    onClick={() => isMain ? removeMainSeed() : setAsMainSeed(track)}
+                    onClick={(e) => { e.stopPropagation(); isMain ? removeMainSeed() : setAsMainSeed(track); }}
                     style={{
                       padding: "5px 10px",
                       background: isMain ? C.acc : C.s1,
@@ -616,7 +636,7 @@ export default function SearchPanel({
                     {isMain ? "★ メイン" : "メイン"}
                   </button>
                   <button
-                    onClick={() => inSubSeed ? removeSubSeed(track.id) : addToSubSeed(track)}
+                    onClick={(e) => { e.stopPropagation(); inSubSeed ? removeSubSeed(track.id) : addToSubSeed(track); }}
                     style={{
                       padding: "5px 10px",
                       background: inSubSeed ? C.greenDim : C.s1,
@@ -629,7 +649,7 @@ export default function SearchPanel({
                     {inSubSeed ? "✓ サブ" : "サブ"}
                   </button>
                   <button
-                    onClick={() => inPlaylist ? removeFromPlaylist(track.id) : addToPlaylist(track)}
+                    onClick={(e) => { e.stopPropagation(); inPlaylist ? removeFromPlaylist(track.id) : addToPlaylist(track); }}
                     style={{
                       padding: "5px 10px",
                       background: inPlaylist ? C.accDim : C.s1,
@@ -645,7 +665,7 @@ export default function SearchPanel({
               )}
               {mode === "similar" && (
                 <button
-                  onClick={() => inPlaylist ? removeFromPlaylist(track.id) : addToPlaylist(track)}
+                  onClick={(e) => { e.stopPropagation(); inPlaylist ? removeFromPlaylist(track.id) : addToPlaylist(track); }}
                   style={{
                     padding: "5px 12px",
                     background: inPlaylist ? C.accDim : C.s1,
@@ -686,6 +706,281 @@ export default function SearchPanel({
           </div>
         )}
       </div>
+
+      {/* ミニプレーヤーバー */}
+      {playingId && playingTrack && (
+        <div style={{
+          borderTop: `1px solid ${C.sep}`,
+          background: C.s1,
+          padding: "10px 14px 12px",
+          flexShrink: 0,
+        }}>
+          {/* シークバー */}
+          <div
+            onClick={handleSeek}
+            style={{
+              height: "4px", borderRadius: "2px", background: C.s3,
+              cursor: "pointer", marginBottom: "10px", position: "relative",
+            }}
+          >
+            <div style={{ height: "100%", width: `${progress * 100}%`, borderRadius: "2px", background: C.acc, transition: "width 0.2s linear" }} />
+          </div>
+
+          {/* コントロール行 */}
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            {/* アルバムアート */}
+            <img
+              src={playingTrack.album.images[0]?.url}
+              alt={playingTrack.album.name}
+              style={{ width: 32, height: 32, borderRadius: "6px", flexShrink: 0, objectFit: "cover" }}
+            />
+
+            {/* 曲情報 */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: "12px", fontWeight: 600, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {playingTrack.name}
+              </div>
+              <div style={{ fontSize: "11px", color: C.t2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {playingTrack.artists.map((a) => a.name).join(", ")}
+              </div>
+            </div>
+
+            {/* 再生/停止 */}
+            <button
+              onClick={() => togglePreview(playingTrack)}
+              style={{
+                width: 30, height: 30,
+                background: C.acc, border: "none", borderRadius: "50%",
+                color: "#fff", fontSize: "13px",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: "pointer", flexShrink: 0,
+              }}
+            >
+              ⏸
+            </button>
+
+            {/* 音量 */}
+            <div style={{ display: "flex", alignItems: "center", gap: "5px", flexShrink: 0 }}>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke={volume === 0 ? C.t3 : C.t2} strokeWidth="1.6" strokeLinecap="round">
+                <path d="M2 5.5h2.5l4-3v11l-4-3H2z"/>
+                {volume > 0 && <path d="M11 5.5a3 3 0 0 1 0 5"/>}
+                {volume > 0.5 && <path d="M12.5 3.5a5.5 5.5 0 0 1 0 9"/>}
+              </svg>
+              <input
+                type="range"
+                min={0} max={1} step={0.02}
+                value={volume}
+                onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+                style={{ width: "72px", cursor: "pointer", accentColor: C.acc }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* トラック詳細モーダル */}
+      {selectedTrack && (
+        <div
+          onClick={() => setSelectedTrack(null)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 1000,
+            background: "rgba(0,0,0,0.45)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: "20px",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: C.bg, borderRadius: "16px",
+              width: "100%", maxWidth: "420px",
+              overflow: "hidden",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.07)",
+            }}
+          >
+            {/* ヘッダー：アルバムアート + 基本情報 */}
+            <div style={{ display: "flex", gap: "14px", padding: "20px 20px 16px", alignItems: "flex-start" }}>
+              <img
+                src={selectedTrack.album.images[0]?.url}
+                alt={selectedTrack.album.name}
+                style={{ width: 96, height: 96, borderRadius: "10px", flexShrink: 0, objectFit: "cover", boxShadow: "0 4px 16px rgba(0,0,0,0.2)" }}
+              />
+              <div style={{ flex: 1, minWidth: 0, paddingTop: "2px" }}>
+                <div style={{ fontSize: "16px", fontWeight: 700, color: C.t1, lineHeight: 1.3, marginBottom: "5px" }}>
+                  {selectedTrack.name}
+                </div>
+                <div style={{ fontSize: "13px", color: C.t2, marginBottom: "3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {selectedTrack.artists.map((a) => a.name).join(", ")}
+                </div>
+                <div style={{ fontSize: "11px", color: C.t3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {selectedTrack.album.name}
+                  {selectedTrack.release_year && ` · ${selectedTrack.release_year}`}
+                </div>
+                {selectedTrack.is_vocal !== undefined && (
+                  <div style={{ marginTop: "6px" }}>
+                    <span style={{
+                      fontSize: "10px", fontWeight: 600, padding: "2px 8px", borderRadius: "20px",
+                      background: selectedTrack.is_vocal ? C.purpleDim : C.s2,
+                      color: selectedTrack.is_vocal ? C.purple : C.t3,
+                    }}>
+                      {selectedTrack.is_vocal ? "ボーカルあり" : "インスト"}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => setSelectedTrack(null)}
+                style={{
+                  background: C.s1, border: "none", borderRadius: "50%",
+                  width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center",
+                  cursor: "pointer", color: C.t2, fontSize: "16px", flexShrink: 0, lineHeight: 1,
+                }}
+              >×</button>
+            </div>
+
+            {/* スタット */}
+            <div style={{ padding: "0 20px 16px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", marginBottom: "12px" }}>
+                <div style={{ background: C.s1, borderRadius: "10px", padding: "10px 12px" }}>
+                  <div style={{ fontSize: "10px", color: C.t3, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "4px" }}>BPM</div>
+                  <div style={{ fontSize: "20px", fontWeight: 700, color: selectedTrack.bpm ? "#1b7a34" : C.t3 }}>
+                    {selectedTrack.bpm || "—"}
+                  </div>
+                </div>
+                <div style={{ background: C.s1, borderRadius: "10px", padding: "10px 12px" }}>
+                  <div style={{ fontSize: "10px", color: C.t3, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "4px" }}>Key</div>
+                  <div style={{ fontSize: "20px", fontWeight: 700, color: selectedTrack.camelot ? C.blue : C.t3 }}>
+                    {selectedTrack.camelot || "—"}
+                  </div>
+                  {selectedTrack.key && <div style={{ fontSize: "10px", color: C.t3, marginTop: "1px" }}>{selectedTrack.key}</div>}
+                </div>
+                <div style={{ background: C.s1, borderRadius: "10px", padding: "10px 12px" }}>
+                  <div style={{ fontSize: "10px", color: C.t3, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "4px" }}>Energy</div>
+                  <div style={{ fontSize: "20px", fontWeight: 700, color: selectedTrack.energy !== undefined ? C.acc : C.t3 }}>
+                    {selectedTrack.energy !== undefined ? `${Math.round(selectedTrack.energy * 100)}` : "—"}
+                    {selectedTrack.energy !== undefined && <span style={{ fontSize: "11px", fontWeight: 500, color: C.t3 }}>%</span>}
+                  </div>
+                </div>
+              </div>
+
+              {/* エネルギー・ダンサビリティ バー */}
+              {(selectedTrack.energy !== undefined || selectedTrack.danceability !== undefined) && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "14px" }}>
+                  {selectedTrack.energy !== undefined && (
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "5px" }}>
+                        <span style={{ fontSize: "11px", color: C.t3 }}>エネルギー</span>
+                        <span style={{ fontSize: "11px", color: C.t2, fontWeight: 600 }}>{Math.round(selectedTrack.energy * 100)}%</span>
+                      </div>
+                      <div style={{ height: "4px", borderRadius: "2px", background: C.s2, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${selectedTrack.energy * 100}%`, borderRadius: "2px", background: C.acc }} />
+                      </div>
+                    </div>
+                  )}
+                  {selectedTrack.danceability !== undefined && (
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "5px" }}>
+                        <span style={{ fontSize: "11px", color: C.t3 }}>ダンサビリティ</span>
+                        <span style={{ fontSize: "11px", color: C.t2, fontWeight: 600 }}>{Math.round(selectedTrack.danceability * 100)}%</span>
+                      </div>
+                      <div style={{ height: "4px", borderRadius: "2px", background: C.s2, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${selectedTrack.danceability * 100}%`, borderRadius: "2px", background: C.orange }} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ジャンルタグ */}
+              {selectedTrack.genre_tags && selectedTrack.genre_tags.length > 0 && (
+                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "4px" }}>
+                  {selectedTrack.genre_tags.map((g, i) => (
+                    <span key={i} style={{
+                      padding: "3px 10px", borderRadius: "20px",
+                      background: C.orangeDim, color: "#b06c00",
+                      fontSize: "11px", fontWeight: 500,
+                    }}>{g}</span>
+                  ))}
+                </div>
+              )}
+
+              {/* 未解析メッセージ */}
+              {selectedTrack.energy === undefined && (
+                <div style={{ fontSize: "11px", color: C.t3, textAlign: "center", padding: "6px 0", fontStyle: "italic" }}>
+                  ✦ Seed に設定するとメタデータを自動解析
+                </div>
+              )}
+            </div>
+
+            {/* アクションボタン */}
+            <div style={{ padding: "12px 20px 18px", borderTop: `1px solid ${C.sep}`, display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              {selectedTrack.preview && (
+                <button
+                  onClick={() => togglePreview(selectedTrack)}
+                  style={{
+                    padding: "7px 14px", borderRadius: "8px", fontSize: "12px", fontWeight: 600,
+                    background: playingId === selectedTrack.id ? C.acc : C.s1,
+                    border: `1px solid ${playingId === selectedTrack.id ? C.acc : C.s2}`,
+                    color: playingId === selectedTrack.id ? "#fff" : C.t2,
+                    cursor: "pointer", flexShrink: 0,
+                  }}
+                >
+                  {playingId === selectedTrack.id ? "⏸ 停止" : "▶ プレビュー"}
+                </button>
+              )}
+              {(mode === "search" || mode === "playlist") && (() => {
+                const isMain = mainSeed?.id === selectedTrack.id;
+                const inSub = !!subSeeds.find((t) => t.id === selectedTrack.id);
+                return (
+                  <>
+                    <button
+                      onClick={() => { isMain ? removeMainSeed() : setAsMainSeed(selectedTrack); }}
+                      style={{
+                        padding: "7px 14px", borderRadius: "8px", fontSize: "12px", fontWeight: 600,
+                        background: isMain ? C.acc : C.s1,
+                        border: `1px solid ${isMain ? C.acc : C.s2}`,
+                        color: isMain ? "#fff" : C.t2,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {isMain ? "★ メイン" : "メイン"}
+                    </button>
+                    <button
+                      onClick={() => { inSub ? removeSubSeed(selectedTrack.id) : addToSubSeed(selectedTrack); }}
+                      style={{
+                        padding: "7px 14px", borderRadius: "8px", fontSize: "12px", fontWeight: 600,
+                        background: inSub ? C.greenDim : C.s1,
+                        border: `1px solid ${inSub ? C.green : C.s2}`,
+                        color: inSub ? "#1b7a34" : C.t2,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {inSub ? "✓ サブ" : "サブ"}
+                    </button>
+                  </>
+                );
+              })()}
+              {(() => {
+                const inPl = isInPlaylist(selectedTrack);
+                return (
+                  <button
+                    onClick={() => { inPl ? removeFromPlaylist(selectedTrack.id) : addToPlaylist(selectedTrack); }}
+                    style={{
+                      padding: "7px 14px", borderRadius: "8px", fontSize: "12px", fontWeight: 600,
+                      background: inPl ? C.accDim : C.s1,
+                      border: `1px solid ${inPl ? C.acc : C.s2}`,
+                      color: inPl ? C.acc : C.t2,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {inPl ? "✓ リスト" : "リスト"}
+                  </button>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

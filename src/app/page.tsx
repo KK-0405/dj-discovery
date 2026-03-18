@@ -55,7 +55,7 @@ const DEFAULT_FILTERS: SimilarFilters = {
 };
 
 export default function Home() {
-  const { session, userProfile, signOut, refreshProfile } = useAuth();
+  const { session, userProfile, loading: authLoading, signOut, refreshProfile } = useAuth();
   const [query, setQuery] = useState("");
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -503,7 +503,13 @@ export default function Home() {
 
         {/* フッター: 認証UI */}
         <div style={{ padding: "12px 10px", borderTop: "1px solid rgba(0,0,0,0.07)" }}>
-          {session ? (
+          {authLoading ? (
+            /* プロフィール取得中はスケルトン表示（"No ID" 防止） */
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "7px 10px" }}>
+              <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(0,0,0,0.08)", flexShrink: 0 }} />
+              <div style={{ flex: 1, height: 12, borderRadius: "6px", background: "rgba(0,0,0,0.08)" }} />
+            </div>
+          ) : session ? (
             <div style={{ position: "relative" }}>
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
