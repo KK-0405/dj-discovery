@@ -118,6 +118,11 @@ Each object: { bpm: integer, key: string, camelot: string, energy: float 0-1, da
 
 export type TrackSuggestion = { title: string; artist: string } & Partial<GeminiMetadata>;
 
+export type SimilarResult = {
+  suggestions: TrackSuggestion[];
+  error?: string;
+};
+
 export async function getSimilarTrackSuggestions(
   seed: {
     title: string;
@@ -131,7 +136,7 @@ export async function getSimilarTrackSuggestions(
   },
   subSeeds: { title: string; artist: string; genre_tags?: string[] }[],
   count: number
-): Promise<TrackSuggestion[]> {
+): Promise<SimilarResult> {
   if (process.env.GEMINI_MOCK === "true") {
     const mockSongs = [
       { title: "Get Lucky", artist: "Daft Punk" },
@@ -145,10 +150,10 @@ export async function getSimilarTrackSuggestions(
       { title: "Boogie Wonderland", artist: "Earth Wind & Fire" },
       { title: "I Feel Love", artist: "Donna Summer" },
     ];
-    return mockSongs.slice(0, count).map((s) => ({ ...s, ...mockMetadata(s.title) }));
+    return { suggestions: mockSongs.slice(0, count).map((s) => ({ ...s, ...mockMetadata(s.title) })) };
   }
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return [];
+  if (!apiKey) return { suggestions: [], error: "GEMINI_API_KEY not set" };
 
   const genres = seed.genre_tags?.join(", ") || "unknown";
   const subGenreStr = subSeeds.flatMap((s) => s.genre_tags ?? []).filter(Boolean);
@@ -162,18 +167,22 @@ Each object must have: title, artist, bpm (integer), key (e.g. "F# minor"), came
 
   try {
     const result = await geminiPost(apiKey, { contents: [{ parts: [{ text: prompt }] }] });
-    if (!result || !result.__ok || result.__data?.error) return [];
+    if (!result || !result.__ok || result.__data?.error) {
+      const errMsg = `HTTP ${result?.__status}: ${JSON.stringify(result?.__data?.error ?? result?.__data)}`;
+      return { suggestions: [], error: errMsg };
+    }
     const text = extractText(result.__data);
     const parsed = parseJson(text);
-    if (!Array.isArray(parsed)) return [];
-    return parsed
+    if (!Array.isArray(parsed)) return { suggestions: [], error: `JSONパース失敗: ${text.slice(0, 200)}` };
+    const suggestions = parsed
       .map((m: any) => {
         if (!m.title || !m.artist) return null;
         const meta = (() => { try { return sanitize(m); } catch { return null; } })();
         return { title: String(m.title), artist: String(m.artist), ...meta };
       })
       .filter(Boolean) as TrackSuggestion[];
-  } catch {
-    return [];
+    return { suggestions };
+  } catch (e) {
+    return { suggestions: [], error: String(e) };
   }
 }

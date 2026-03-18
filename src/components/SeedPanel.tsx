@@ -127,7 +127,7 @@ export default function SeedPanel({
                 {mainSeed.energy !== undefined && <span style={{ fontSize: "10px", color: C.t3 }}>E:{Math.round(mainSeed.energy * 10)}</span>}
                 {mainSeed.release_year && <span style={{ fontSize: "10px", color: C.t3 }}>{mainSeed.release_year}</span>}
                 {seedAnalyzing && <span style={{ fontSize: "10px", color: C.acc, fontWeight: 500 }}>✦ 解析中...</span>}
-                {seedError && <span style={{ fontSize: "9px", color: "#ff3b30" }}>ERR</span>}
+                {seedError && <span style={{ fontSize: "9px", color: "#ff3b30", fontWeight: 700 }}>⚠ ERR</span>}
               </div>
             </div>
             <button onClick={() => setMainSeed(null)} style={{ background: "none", border: "none", color: C.t3, fontSize: "18px", cursor: "pointer", flexShrink: 0, lineHeight: 1 }}>×</button>
@@ -138,6 +138,29 @@ export default function SeedPanel({
           </div>
         )}
       </div>
+
+      {/* Gemini エラー表示 */}
+      {seedError && (
+        <div style={{
+          marginBottom: "14px",
+          padding: "10px 12px",
+          background: "rgba(255,59,48,0.06)",
+          border: "1px solid rgba(255,59,48,0.25)",
+          borderRadius: "10px",
+        }}>
+          <div style={{ fontSize: "10px", fontWeight: 700, color: "#ff3b30", marginBottom: "5px", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+            ⚠ Gemini エラー
+          </div>
+          <div style={{
+            fontSize: "11px", color: "#c0392b",
+            wordBreak: "break-all", whiteSpace: "pre-wrap",
+            maxHeight: "120px", overflowY: "auto",
+            lineHeight: 1.6,
+          }}>
+            {seedError}
+          </div>
+        </div>
+      )}
 
       {/* サブ Seed */}
       <div style={{ marginBottom: "14px" }}>

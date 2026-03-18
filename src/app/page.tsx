@@ -120,8 +120,10 @@ export default function Home() {
       });
       const data = await res.json();
       setSimilarTracks(data.tracks ?? []);
-    } catch {
+      if (data._debug) setSeedError(String(data._debug));
+    } catch (e) {
       setSimilarTracks([]);
+      setSeedError(String(e));
     }
     setLoading(false);
   };

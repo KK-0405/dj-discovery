@@ -44,9 +44,9 @@ export async function POST(request: NextRequest) {
     const cap = Math.min(count, 30);
 
     // Step1: Geminiに類似曲の提案＋メタデータを1回で取得
-    const suggestions = await getSimilarTrackSuggestions(seed, subSeeds, cap);
+    const { suggestions, error: geminiError } = await getSimilarTrackSuggestions(seed, subSeeds, cap);
     if (suggestions.length === 0) {
-      return NextResponse.json({ tracks: [] });
+      return NextResponse.json({ tracks: [], _debug: geminiError ?? "Gemini returned 0 suggestions" });
     }
 
     // Step2: 各提案をDeezerで並列検索
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
       })
       .filter(Boolean);
 
-    return NextResponse.json({ tracks: tracksWithMeta });
+    return NextResponse.json({ tracks: tracksWithMeta, _debug: geminiError });
   } catch (error) {
     console.error("Similar error:", error);
     return NextResponse.json({ error: String(error) }, { status: 500 });
