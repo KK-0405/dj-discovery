@@ -179,6 +179,15 @@ export default function Home() {
     loadPlaylists();
   };
 
+  const togglePublic = async (id: string, isPublic: boolean) => {
+    await fetch("/api/playlist", {
+      method: "PATCH",
+      headers: authHeaders(),
+      body: JSON.stringify({ id, is_public: isPublic }),
+    });
+    loadPlaylists();
+  };
+
   const analyzeSeed = async (track: Track) => {
     setSeedAnalyzing(true);
     setSeedError(null);
@@ -319,6 +328,21 @@ export default function Home() {
             <span style={{ fontSize: "13px", fontWeight: 600, color: "#534AB7" }}>Search</span>
           </div>
 
+          {/* Explore リンク */}
+          <a
+            href="/explore"
+            style={{
+              display: "flex", alignItems: "center", gap: "8px",
+              padding: "8px 10px", borderRadius: "8px",
+              color: "#6e6e73", textDecoration: "none", marginBottom: "4px",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(0,0,0,0.04)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
+          >
+            <span style={{ fontSize: "15px" }}>🌐</span>
+            <span style={{ fontSize: "13px", fontWeight: 500, color: "#6e6e73" }}>Explore</span>
+          </a>
+
           <div style={{ fontSize: "10px", color: "#aeaeb2", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", padding: "12px 8px 6px" }}>
             Playlist
           </div>
@@ -445,6 +469,7 @@ export default function Home() {
           savedPlaylists={savedPlaylists} playlistName={playlistName}
           setPlaylistName={setPlaylistName} savePlaylist={savePlaylist}
           deletePlaylist={deletePlaylist} setPlaylist={setPlaylist}
+          togglePublic={togglePublic}
         />
       </div>
     </div>

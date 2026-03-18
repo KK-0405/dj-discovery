@@ -28,6 +28,10 @@ export type SavedPlaylist = {
   id: string;
   name: string;
   tracks: Track[];
+  is_public: boolean;
+  slug: string | null;
+  created_at?: string;
+  created_by?: string;
 };
 
 export type YoutubePlaylist = {

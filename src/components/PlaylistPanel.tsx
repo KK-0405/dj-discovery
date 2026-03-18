@@ -20,6 +20,8 @@ const C = {
   redDim: "rgba(255,59,48,0.08)",
 } as const;
 
+const BASE_URL = "https://dj-discovery-ihhs.vercel.app";
+
 type Props = {
   playlist: Track[];
   removeFromPlaylist: (id: string) => void;
@@ -29,12 +31,13 @@ type Props = {
   savePlaylist: () => void;
   deletePlaylist: (id: string) => void;
   setPlaylist: (tracks: Track[]) => void;
+  togglePublic: (id: string, isPublic: boolean) => Promise<void>;
 };
 
 export default function PlaylistPanel({
   playlist, removeFromPlaylist, savedPlaylists,
   playlistName, setPlaylistName, savePlaylist, deletePlaylist,
-  setPlaylist,
+  setPlaylist, togglePublic,
 }: Props) {
   const { session } = useAuth();
   const [showSaved, setShowSaved] = useState(true);
@@ -44,6 +47,8 @@ export default function PlaylistPanel({
   const [exporting, setExporting] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [expandedPlaylist, setExpandedPlaylist] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const dragIndexRef = useRef<number | null>(null);
 
   type SavedExportState = {
@@ -141,6 +146,23 @@ export default function PlaylistPanel({
       if (data.url) window.open(data.url, "_blank");
     } catch { /* ignore */ }
     setSavedExport(null);
+  };
+
+  const handleTogglePublic = async (p: SavedPlaylist) => {
+    setTogglingId(p.id);
+    try {
+      await togglePublic(p.id, !p.is_public);
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  const handleCopyUrl = async (slug: string | null) => {
+    if (!slug) return;
+    const url = `${BASE_URL}/playlist/${slug}`;
+    await navigator.clipboard.writeText(url);
+    setCopiedId(slug);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   return (
@@ -294,23 +316,77 @@ export default function PlaylistPanel({
                   </div>
                 ) : (
                   savedPlaylists.map((p) => (
-                    <div key={p.id} style={{ background: "#fff", border: `1px solid ${C.sep}`, borderRadius: "10px", overflow: "hidden" }}>
+                    <div key={p.id} style={{ background: "#fff", border: `1px solid ${p.is_public ? "rgba(83,74,183,0.3)" : C.sep}`, borderRadius: "10px", overflow: "hidden" }}>
                       {/* プレイリストヘッダー */}
                       <div
                         style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", cursor: "pointer" }}
                         onClick={() => setExpandedPlaylist(expandedPlaylist === p.id ? null : p.id)}
                       >
-                        {/* サムネイル（先頭4曲のアルバムアート） */}
+                        {/* サムネイル */}
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1px", width: 32, height: 32, borderRadius: "6px", overflow: "hidden", flexShrink: 0 }}>
                           {p.tracks.slice(0, 4).map((t, i) => (
                             <img key={i} src={t.album.images[0]?.url} alt="" width={16} height={16} style={{ display: "block", objectFit: "cover", width: "100%", height: "100%" }} />
                           ))}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ color: C.t1, fontSize: "12px", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                            <div style={{ color: C.t1, fontSize: "12px", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
+                            {p.is_public && (
+                              <span style={{ flexShrink: 0, fontSize: "9px", fontWeight: 700, color: C.acc, background: C.accDim, padding: "1px 5px", borderRadius: "4px", letterSpacing: "0.02em" }}>
+                                公開中
+                              </span>
+                            )}
+                          </div>
                           <div style={{ color: C.t3, fontSize: "10px", marginTop: "1px" }}>{p.tracks.length}曲</div>
                         </div>
-                        <span style={{ fontSize: "10px", color: C.t3 }}>{expandedPlaylist === p.id ? "▲" : "▼"}</span>
+                        <span style={{ fontSize: "10px", color: C.t3, flexShrink: 0 }}>{expandedPlaylist === p.id ? "▲" : "▼"}</span>
+                      </div>
+
+                      {/* 公開設定バー（常時表示） */}
+                      <div style={{
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                        padding: "6px 12px",
+                        background: p.is_public ? "rgba(83,74,183,0.04)" : C.s1,
+                        borderTop: `1px solid ${C.sep}`,
+                      }}>
+                        <span style={{ fontSize: "10px", color: C.t3 }}>
+                          {p.is_public ? "🌐 公開中" : "🔒 非公開"}
+                        </span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          {/* 公開URLコピーボタン */}
+                          {p.is_public && p.slug && (
+                            <button
+                              onClick={() => handleCopyUrl(p.slug)}
+                              style={{
+                                padding: "3px 8px",
+                                background: copiedId === p.slug ? C.greenDim : C.s2,
+                                border: `1px solid ${copiedId === p.slug ? C.green : C.sep}`,
+                                borderRadius: "5px",
+                                color: copiedId === p.slug ? C.green : C.t2,
+                                fontSize: "10px", fontWeight: 600, cursor: "pointer",
+                              }}
+                            >
+                              {copiedId === p.slug ? "✓ コピー済み" : "🔗 URLコピー"}
+                            </button>
+                          )}
+                          {/* 公開トグル */}
+                          <button
+                            onClick={() => handleTogglePublic(p)}
+                            disabled={togglingId === p.id}
+                            style={{
+                              padding: "3px 10px",
+                              background: p.is_public ? C.redDim : C.accDim,
+                              border: `1px solid ${p.is_public ? "rgba(255,59,48,0.2)" : "rgba(83,74,183,0.2)"}`,
+                              borderRadius: "5px",
+                              color: p.is_public ? C.red : C.acc,
+                              fontSize: "10px", fontWeight: 600,
+                              cursor: togglingId === p.id ? "default" : "pointer",
+                              opacity: togglingId === p.id ? 0.5 : 1,
+                            }}
+                          >
+                            {togglingId === p.id ? "..." : p.is_public ? "非公開にする" : "公開する"}
+                          </button>
+                        </div>
                       </div>
 
                       {/* 展開時: トラックリスト */}
@@ -333,7 +409,6 @@ export default function PlaylistPanel({
                           {savedExport?.playlistId === p.id && (
                             <div style={{ borderTop: `1px solid ${C.sep}`, padding: "10px 12px", background: "#fff", display: "flex", flexDirection: "column", gap: "8px" }}>
                               <div style={{ fontSize: "10px", fontWeight: 700, color: C.t2, textTransform: "uppercase", letterSpacing: "0.05em" }}>YouTube書き出し</div>
-                              {/* トラック選択 */}
                               <div style={{ display: "flex", flexDirection: "column", gap: "4px", maxHeight: "120px", overflowY: "auto" }}>
                                 {p.tracks.map((t) => (
                                   <label key={t.id} style={{ display: "flex", alignItems: "center", gap: "7px", cursor: "pointer", fontSize: "11px", color: C.t1 }}>
@@ -351,7 +426,6 @@ export default function PlaylistPanel({
                                   </label>
                                 ))}
                               </div>
-                              {/* YouTube書き出し先 */}
                               <select
                                 value={savedExport.ytDest}
                                 onChange={(e) => setSavedExport((prev) => prev ? { ...prev, ytDest: e.target.value } : null)}
