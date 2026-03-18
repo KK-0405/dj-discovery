@@ -357,7 +357,9 @@ export default function Home() {
             onMouseEnter={(e) => { if (!(mode === "search" && !viewingPlaylist)) e.currentTarget.style.background = "rgba(0,0,0,0.04)"; }}
             onMouseLeave={(e) => { if (!(mode === "search" && !viewingPlaylist)) e.currentTarget.style.background = "none"; }}
           >
-            <span style={{ fontSize: "15px" }}>🔍</span>
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke={mode === "search" && !viewingPlaylist ? "#534AB7" : "#6e6e73"} strokeWidth="1.6" strokeLinecap="round">
+              <circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/>
+            </svg>
             <span style={{ fontSize: "13px", fontWeight: 600, color: mode === "search" && !viewingPlaylist ? "#534AB7" : "#6e6e73" }}>Search</span>
           </div>
 

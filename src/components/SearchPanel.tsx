@@ -199,10 +199,9 @@ export default function SearchPanel({
       <div style={{ padding: "16px 20px 14px", borderBottom: `1px solid ${C.sep}`, background: C.bg }}>
         <div style={{ display: "flex", gap: "8px" }}>
           <div ref={inputWrapRef} style={{ flex: 1, position: "relative" }}>
-            <span style={{
-              position: "absolute", left: "13px", top: "50%", transform: "translateY(-50%)",
-              color: C.t3, fontSize: "14px", pointerEvents: "none",
-            }}>🔍</span>
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke={C.t3} strokeWidth="1.6" strokeLinecap="round" style={{ position: "absolute", left: "13px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
+              <circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/>
+            </svg>
             <input
               type="text"
               placeholder="曲名・アーティストを入力..."
