@@ -53,6 +53,31 @@ async function itunesSearch(term: string, attribute: string, locale: string, lim
   }
 }
 
+export type ArtistSuggestion = {
+  id: string;
+  name: string;
+  genre?: string;
+};
+
+export async function searchArtists(query: string): Promise<ArtistSuggestion[]> {
+  const locale = isJapanese(query) ? "country=JP&lang=ja_jp" : "country=US&lang=en_us";
+  try {
+    const res = await fetch(
+      `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=musicArtist&${locale}&limit=4`
+    );
+    const data = (await res.json()) as any;
+    return (data?.results ?? [])
+      .filter((r: any) => r.artistId && r.artistName)
+      .map((r: any) => ({
+        id: `artist_${r.artistId}`,
+        name: r.artistName as string,
+        genre: r.primaryGenreName as string | undefined,
+      }));
+  } catch {
+    return [];
+  }
+}
+
 export async function searchTracks(query: string): Promise<Track[]> {
   const locale = isJapanese(query) ? "country=JP&lang=ja_jp" : "country=US&lang=en_us";
 

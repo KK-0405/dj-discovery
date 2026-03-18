@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { type Track, type Mode } from "@/types";
+import { type ArtistSuggestion } from "@/lib/itunes";
 
 const C = {
   bg: "#ffffff",
@@ -107,6 +108,7 @@ export default function SearchPanel({
   const [playingId, setPlayingId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [suggestions, setSuggestions] = useState<Track[]>([]);
+  const [artistSuggestions, setArtistSuggestions] = useState<ArtistSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputWrapRef = useRef<HTMLDivElement>(null);
@@ -116,15 +118,17 @@ export default function SearchPanel({
   const handleQueryChange = (value: string) => {
     setQuery(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (value.trim().length < 2) { setSuggestions([]); setShowSuggestions(false); return; }
+    if (value.trim().length < 2) { setSuggestions([]); setArtistSuggestions([]); setShowSuggestions(false); return; }
     debounceRef.current = setTimeout(async () => {
       try {
         const res = await fetch(`/api/search?q=${encodeURIComponent(value)}`);
         const data = await res.json();
-        const results: Track[] = (data.tracks ?? []).slice(0, 7);
-        setSuggestions(results);
-        setShowSuggestions(results.length > 0);
-      } catch { setSuggestions([]); }
+        const tracks: Track[] = (data.tracks ?? []).slice(0, 6);
+        const artists: ArtistSuggestion[] = (data.artists ?? []).slice(0, 3);
+        setSuggestions(tracks);
+        setArtistSuggestions(artists);
+        setShowSuggestions(tracks.length > 0 || artists.length > 0);
+      } catch { setSuggestions([]); setArtistSuggestions([]); }
     }, 300);
   };
 
@@ -132,6 +136,15 @@ export default function SearchPanel({
     setQuery(`${track.name} ${track.artists[0]?.name ?? ""}`.trim());
     setShowSuggestions(false);
     setSuggestions([]);
+    setArtistSuggestions([]);
+    search();
+  };
+
+  const selectArtist = (artist: ArtistSuggestion) => {
+    setQuery(artist.name);
+    setShowSuggestions(false);
+    setSuggestions([]);
+    setArtistSuggestions([]);
     search();
   };
 
@@ -202,6 +215,47 @@ export default function SearchPanel({
                 zIndex: 100,
                 overflow: "hidden",
               }}>
+                {/* アーティスト候補 */}
+                {artistSuggestions.length > 0 && (
+                  <>
+                    <div style={{ padding: "6px 14px 4px", fontSize: "10px", fontWeight: 600, color: C.t3, textTransform: "uppercase", letterSpacing: "0.05em", background: C.s1 }}>
+                      アーティスト
+                    </div>
+                    {artistSuggestions.map((a, idx) => (
+                      <div
+                        key={a.id}
+                        onMouseDown={() => selectArtist(a)}
+                        style={{
+                          display: "flex", alignItems: "center", gap: "10px",
+                          padding: "8px 14px", cursor: "pointer",
+                          background: C.s1,
+                          borderBottom: idx < artistSuggestions.length - 1 ? `1px solid ${C.sep}` : `1px solid ${C.sep}`,
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = C.s2)}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = C.s1)}
+                      >
+                        <div style={{
+                          width: 32, height: 32, borderRadius: "50%",
+                          background: C.accDim,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: "14px", flexShrink: 0,
+                        }}>👤</div>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ color: C.t1, fontSize: "13px", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.name}</div>
+                          {a.genre && <div style={{ color: C.t3, fontSize: "11px", marginTop: "1px" }}>{a.genre}</div>}
+                        </div>
+                        <span style={{ marginLeft: "auto", fontSize: "10px", color: C.acc, fontWeight: 600, flexShrink: 0 }}>アーティスト</span>
+                      </div>
+                    ))}
+                    {suggestions.length > 0 && (
+                      <div style={{ padding: "6px 14px 4px", fontSize: "10px", fontWeight: 600, color: C.t3, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                        曲
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* 曲候補 */}
                 {suggestions.map((t, idx) => (
                   <div
                     key={t.id}
