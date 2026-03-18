@@ -28,7 +28,7 @@ type Props = {
   savedPlaylists: SavedPlaylist[];
   playlistName: string;
   setPlaylistName: (v: string) => void;
-  savePlaylist: () => void;
+  savePlaylist: () => Promise<string | null>;
   deletePlaylist: (id: string) => void;
   setPlaylist: (tracks: Track[]) => void;
   togglePublic: (id: string, isPublic: boolean) => Promise<void>;
@@ -46,6 +46,7 @@ export default function PlaylistPanel({
   const [selectedYoutubePlaylist, setSelectedYoutubePlaylist] = useState("new");
   const [exporting, setExporting] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [expandedPlaylist, setExpandedPlaylist] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -74,13 +75,16 @@ export default function PlaylistPanel({
   const handleSave = async () => {
     if (playlist.length === 0) return;
     setSaveStatus("saving");
+    setSaveError(null);
     try {
       await savePlaylist();
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 2500);
-    } catch {
+    } catch (e: any) {
+      const msg = e?.message ?? "不明なエラー";
+      setSaveError(msg);
       setSaveStatus("error");
-      setTimeout(() => setSaveStatus("idle"), 2500);
+      setTimeout(() => { setSaveStatus("idle"); setSaveError(null); }, 6000);
     }
   };
 
@@ -252,6 +256,13 @@ export default function PlaylistPanel({
           >
             {saveStatus === "saving" ? "保存中..." : saveStatus === "saved" ? "✓ 保存しました" : saveStatus === "error" ? "保存に失敗しました" : "プレイリストを保存"}
           </button>
+
+          {/* 保存エラー詳細 */}
+          {saveStatus === "error" && saveError && (
+            <div style={{ fontSize: "10px", color: C.red, background: C.redDim, border: `1px solid rgba(255,59,48,0.2)`, borderRadius: "7px", padding: "6px 10px", wordBreak: "break-all" }}>
+              エラー: {saveError}
+            </div>
+          )}
 
           {/* YouTube 書き出し（Googleログイン時のみ） */}
           {googleToken && (

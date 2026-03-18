@@ -162,16 +162,21 @@ export default function Home() {
     await updateSavedPlaylist(playlistId, [...target.tracks, track]);
   };
 
-  const savePlaylist = async () => {
-    if (playlist.length === 0) return;
+  const savePlaylist = async (): Promise<string | null> => {
+    if (playlist.length === 0) return null;
+    console.log("[savePlaylist] session:", session ? "exists" : "null", "access_token:", session?.access_token ? "set" : "empty");
     const res = await fetch("/api/playlist", {
       method: "POST",
       headers: authHeaders(),
       body: JSON.stringify({ name: playlistName, tracks: playlist }),
     });
-    const data = await res.json();
+    const text = await res.text();
+    console.log("[savePlaylist] status:", res.status, "body:", text);
+    let data: any;
+    try { data = JSON.parse(text); } catch { throw new Error(`レスポンス解析失敗: ${text.slice(0, 100)}`); }
     if (data.error) throw new Error(data.error);
     if (data.playlist) loadPlaylists();
+    return null;
   };
 
   const loadPlaylists = async () => {
