@@ -51,6 +51,7 @@ const DEFAULT_FILTERS: SimilarFilters = {
   sameArtist: false,
   decade: null,
   vocalType: null,
+  excludePlaylist: false,
 };
 
 export default function Home() {
@@ -242,6 +243,7 @@ export default function Home() {
     if (filters.decade && track.release_year) {
       if (`${Math.floor(track.release_year / 10) * 10}s` !== filters.decade) return false;
     }
+    if (filters.excludePlaylist && playlist.find((t) => t.id === track.id)) return false;
     return true;
   });
 
@@ -350,6 +352,7 @@ export default function Home() {
           filters={filters} setFilters={setFilters}
           similarCount={similarCount} setSimilarCount={setSimilarCount}
           seedAnalyzing={seedAnalyzing} seedError={seedError}
+          playlistCount={playlist.length}
         />
         <div style={{ height: "1px", background: "rgba(0,0,0,0.07)", margin: "0 16px" }} />
         <PlaylistPanel

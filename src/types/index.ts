@@ -20,6 +20,8 @@ export type SimilarFilters = {
   decade: string | null; // e.g. "2010s"
   // サウンド特性
   vocalType: null | "vocal" | "instrumental";
+  // プレイリスト除外
+  excludePlaylist: boolean;
 };
 
 export type SavedPlaylist = {

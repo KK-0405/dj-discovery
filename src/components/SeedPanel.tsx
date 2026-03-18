@@ -37,6 +37,7 @@ type Props = {
   setSimilarCount: (n: 10 | 20 | 30) => void;
   seedAnalyzing: boolean;
   seedError: string | null;
+  playlistCount: number;
 };
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -85,7 +86,7 @@ const DECADES = ["1970s", "1980s", "1990s", "2000s", "2010s", "2020s"];
 
 export default function SeedPanel({
   mainSeed, setMainSeed, subSeeds, removeSubSeed, exploreSimilar,
-  filters, setFilters, similarCount, setSimilarCount, seedAnalyzing, seedError,
+  filters, setFilters, similarCount, setSimilarCount, seedAnalyzing, seedError, playlistCount,
 }: Props) {
   const [showFilters, setShowFilters] = useState(false);
   const set = (patch: Partial<SimilarFilters>) => setFilters({ ...filters, ...patch });
@@ -94,6 +95,7 @@ export default function SeedPanel({
     filters.bpmRange !== null, filters.sameKey, filters.camelotAdjacent,
     filters.genreMatch, filters.energyLevel !== null, filters.danceabilityHigh,
     filters.sameArtist, filters.decade !== null, filters.vocalType !== null,
+    filters.excludePlaylist,
   ].filter(Boolean).length;
 
   const hasGemini = mainSeed?.energy !== undefined;
@@ -278,6 +280,31 @@ export default function SeedPanel({
               </div>
               {!hasGemini && <div style={{ fontSize: "10px", color: C.t3, marginTop: "2px" }}>※ Gemini 解析後に使用可</div>}
             </div>
+
+            {/* プレイリスト除外 */}
+            <div style={{ marginTop: "10px", paddingTop: "10px", borderTop: `1px solid ${C.sep}` }}>
+              <div style={{ fontSize: "11px", color: C.t3, marginBottom: "4px" }}>プレイリスト</div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "5px 0", opacity: playlistCount > 0 ? 1 : 0.4 }}>
+                <div style={{ display: "flex", alignItems: "baseline", gap: "5px" }}>
+                  <span style={{ fontSize: "12px", color: C.t2 }}>追加済みの曲を除外</span>
+                  {playlistCount > 0 && (
+                    <span style={{ fontSize: "10px", color: C.acc, fontWeight: 600 }}>{playlistCount}曲</span>
+                  )}
+                </div>
+                <div style={{ marginLeft: "8px", flexShrink: 0, pointerEvents: playlistCount > 0 ? "auto" : "none" }}>
+                  <input
+                    type="checkbox"
+                    checked={filters.excludePlaylist}
+                    onChange={(e) => set({ excludePlaylist: e.target.checked })}
+                    style={{ accentColor: C.acc, cursor: "pointer", width: 14, height: 14 }}
+                  />
+                </div>
+              </div>
+              {playlistCount === 0 && (
+                <div style={{ fontSize: "10px", color: C.t3, marginTop: "2px" }}>※ プレイリストに曲を追加後に使用可</div>
+              )}
+            </div>
+
           </div>
         )}
       </div>
