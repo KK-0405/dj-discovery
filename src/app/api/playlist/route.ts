@@ -27,13 +27,13 @@ function generateSlug(): string {
 
 export async function GET(request: NextRequest) {
   const ctx = await getAuthContext(request);
-  if (!ctx?.user?.email) return NextResponse.json({ playlists: [] });
+  if (!ctx?.user) return NextResponse.json({ playlists: [] });
   const { user, db } = ctx;
 
   const { data, error } = await db
     .from("playlists")
     .select("*")
-    .eq("user_email", user.email)
+    .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -42,30 +42,21 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const ctx = await getAuthContext(request);
-  if (!ctx?.user?.email) return NextResponse.json({ error: "ログインが必要です" }, { status: 401 });
+  if (!ctx?.user) return NextResponse.json({ error: "ログインが必要です" }, { status: 401 });
   const { user, db } = ctx;
 
   const { name, tracks, is_public } = await request.json();
   if (!name || !tracks) return NextResponse.json({ error: "name and tracks are required" }, { status: 400 });
-
-  // 作成者の表示IDを取得
-  const { data: profile } = await db
-    .from("users")
-    .select("user_id")
-    .eq("id", user.id)
-    .single();
-  const createdBy = profile?.user_id ?? (user.email ?? "user").split("@")[0];
 
   const { data, error } = await db
     .from("playlists")
     .insert({
       name,
       tracks,
-      user_email: user.email,
+      user_email: user.email ?? null,
       user_id: user.id,
       is_public: is_public ?? false,
       slug: generateSlug(),
-      created_by: createdBy,
     })
     .select()
     .single();
@@ -76,7 +67,7 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   const ctx = await getAuthContext(request);
-  if (!ctx?.user?.email) return NextResponse.json({ error: "ログインが必要です" }, { status: 401 });
+  if (!ctx?.user) return NextResponse.json({ error: "ログインが必要です" }, { status: 401 });
   const { user, db } = ctx;
 
   const body = await request.json();
@@ -90,7 +81,7 @@ export async function PATCH(request: NextRequest) {
     .from("playlists")
     .update(updates)
     .eq("id", id)
-    .eq("user_email", user.email)
+    .eq("user_id", user.id)
     .select()
     .single();
 
@@ -100,7 +91,7 @@ export async function PATCH(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   const ctx = await getAuthContext(request);
-  if (!ctx?.user?.email) return NextResponse.json({ error: "ログインが必要です" }, { status: 401 });
+  if (!ctx?.user) return NextResponse.json({ error: "ログインが必要です" }, { status: 401 });
   const { user, db } = ctx;
 
   const { id } = await request.json();
@@ -109,7 +100,7 @@ export async function DELETE(request: NextRequest) {
     .from("playlists")
     .delete()
     .eq("id", id)
-    .eq("user_email", user.email);
+    .eq("user_id", user.id);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ success: true });
