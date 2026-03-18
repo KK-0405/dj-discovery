@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { useAuth } from "@/lib/auth-context";
 import { type Track, type Mode, type SavedPlaylist, type SimilarFilters } from "@/types";
+import AuthModal from "@/components/AuthModal";
 import SearchPanel from "@/components/SearchPanel";
 import SeedPanel from "@/components/SeedPanel";
 import PlaylistPanel from "@/components/PlaylistPanel";
@@ -55,8 +56,10 @@ const DEFAULT_FILTERS: SimilarFilters = {
 };
 
 export default function Home() {
-  const { data: session } = useSession();
+  const { session, userProfile, signOut } = useAuth();
   const [query, setQuery] = useState("");
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(false);
   const [mainSeed, setMainSeed] = useState<Track | null>(null);
@@ -123,23 +126,34 @@ export default function Home() {
     setLoading(false);
   };
 
-  const exportToYouTube = async (existingPlaylistId: string | null) => {
-    if (playlist.length === 0) return;
-    const res = await fetch("/api/youtube/playlist", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: playlistName, tracks: playlist, existingPlaylistId }),
+  const authHeaders = () => ({
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${session?.access_token ?? ""}`,
+  });
+
+  const updateSavedPlaylist = async (id: string, tracks: Track[]) => {
+    const res = await fetch("/api/playlist", {
+      method: "PATCH",
+      headers: authHeaders(),
+      body: JSON.stringify({ id, tracks }),
     });
     const data = await res.json();
-    if (data.url) window.open(data.url, "_blank");
-    else alert("エラーが発生しました");
+    if (data.error) throw new Error(data.error);
+    loadPlaylists();
+  };
+
+  const addTrackToSavedPlaylist = async (playlistId: string, track: Track) => {
+    const target = savedPlaylists.find((p) => p.id === playlistId);
+    if (!target) return;
+    if (target.tracks.find((t) => t.id === track.id)) return;
+    await updateSavedPlaylist(playlistId, [...target.tracks, track]);
   };
 
   const savePlaylist = async () => {
     if (playlist.length === 0) return;
     const res = await fetch("/api/playlist", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders(),
       body: JSON.stringify({ name: playlistName, tracks: playlist }),
     });
     const data = await res.json();
@@ -148,7 +162,10 @@ export default function Home() {
   };
 
   const loadPlaylists = async () => {
-    const res = await fetch("/api/playlist");
+    if (!session?.access_token) return;
+    const res = await fetch("/api/playlist", {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
     const data = await res.json();
     setSavedPlaylists(data.playlists ?? []);
   };
@@ -156,7 +173,7 @@ export default function Home() {
   const deletePlaylist = async (id: string) => {
     await fetch("/api/playlist", {
       method: "DELETE",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders(),
       body: JSON.stringify({ id }),
     });
     loadPlaylists();
@@ -249,10 +266,11 @@ export default function Home() {
 
   const displayTracks = mode === "similar" ? filteredSimilar : tracks;
 
-  useEffect(() => { loadPlaylists(); }, []);
+  useEffect(() => { loadPlaylists(); }, [session?.access_token]);
 
   return (
     <div style={{ display: "flex", height: "100vh", background: "#fff", overflow: "hidden" }}>
+      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
 
       {/* サイドバー */}
       <div style={{
@@ -316,14 +334,70 @@ export default function Home() {
           </div>
         </nav>
 
-        {/* フッター */}
-        {session && (
-          <div style={{ padding: "12px 16px", borderTop: "1px solid rgba(0,0,0,0.07)" }}>
-            <div style={{ fontSize: "11px", color: "#aeaeb2", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {session.user?.email}
+        {/* フッター: 認証UI */}
+        <div style={{ padding: "12px 10px", borderTop: "1px solid rgba(0,0,0,0.07)" }}>
+          {session ? (
+            <div style={{ position: "relative" }}>
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                style={{
+                  width: "100%", display: "flex", alignItems: "center", gap: "8px",
+                  padding: "7px 10px", borderRadius: "9px",
+                  background: showUserMenu ? "rgba(88,86,214,0.08)" : "none",
+                  border: "none", cursor: "pointer",
+                  transition: "background 0.15s",
+                }}
+                onMouseEnter={(e) => { if (!showUserMenu) e.currentTarget.style.background = "rgba(0,0,0,0.04)"; }}
+                onMouseLeave={(e) => { if (!showUserMenu) e.currentTarget.style.background = "none"; }}
+              >
+                <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(88,86,214,0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", flexShrink: 0, color: "#5856d6", fontWeight: 700 }}>
+                  {(userProfile?.user_id ?? "?")[0].toUpperCase()}
+                </div>
+                <span style={{ fontSize: "12px", fontWeight: 500, color: "#1d1d1f", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, textAlign: "left" as const }}>
+                  {userProfile?.user_id ?? "…"}
+                </span>
+                <span style={{ fontSize: "10px", color: "#aeaeb2" }}>⋯</span>
+              </button>
+
+              {showUserMenu && (
+                <>
+                  <div onClick={() => setShowUserMenu(false)} style={{ position: "fixed", inset: 0, zIndex: 50 }} />
+                  <div style={{ position: "absolute", bottom: "calc(100% + 6px)", left: 0, right: 0, background: "#fff", borderRadius: "10px", boxShadow: "0 4px 20px rgba(0,0,0,0.14), 0 0 0 1px rgba(0,0,0,0.06)", zIndex: 51, overflow: "hidden" }}>
+                    <div style={{ padding: "10px 14px 8px", borderBottom: "1px solid rgba(0,0,0,0.07)" }}>
+                      <div style={{ fontSize: "12px", fontWeight: 600, color: "#1d1d1f" }}>{userProfile?.user_id}</div>
+                      <div style={{ fontSize: "11px", color: "#aeaeb2", marginTop: "1px" }}>{session.user?.email}</div>
+                    </div>
+                    <button
+                      onClick={() => { signOut(); setShowUserMenu(false); }}
+                      style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", color: "#ff3b30", fontSize: "13px", fontWeight: 500, cursor: "pointer", textAlign: "left" as const }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,59,48,0.06)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
+                    >
+                      ログアウト
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
-          </div>
-        )}
+          ) : (
+            <button
+              onClick={() => setShowAuthModal(true)}
+              style={{
+                width: "100%", padding: "9px 10px",
+                background: "rgba(88,86,214,0.08)",
+                border: "1px solid rgba(88,86,214,0.18)",
+                borderRadius: "9px",
+                color: "#5856d6",
+                fontSize: "13px", fontWeight: 600,
+                cursor: "pointer",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(88,86,214,0.14)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(88,86,214,0.08)")}
+            >
+              新規登録 / ログイン
+            </button>
+          )}
+        </div>
       </div>
 
       {/* メインコンテンツ */}
@@ -333,6 +407,7 @@ export default function Home() {
         subSeeds={subSeeds} setAsMainSeed={setAsMainSeed} addToSubSeed={addToSubSeed}
         addToPlaylist={addToPlaylist} isInPlaylist={isInPlaylist}
         filteredSimilarCount={filteredSimilar.length} metadataLoading={metadataLoading}
+        savedPlaylists={savedPlaylists} addTrackToSavedPlaylist={addTrackToSavedPlaylist}
       />
 
       {/* 右パネル */}
@@ -356,11 +431,10 @@ export default function Home() {
         />
         <div style={{ height: "1px", background: "rgba(0,0,0,0.07)", margin: "0 16px" }} />
         <PlaylistPanel
-          session={session} playlist={playlist} removeFromPlaylist={removeFromPlaylist}
+          playlist={playlist} removeFromPlaylist={removeFromPlaylist}
           savedPlaylists={savedPlaylists} playlistName={playlistName}
           setPlaylistName={setPlaylistName} savePlaylist={savePlaylist}
           deletePlaylist={deletePlaylist} setPlaylist={setPlaylist}
-          exportToYouTube={exportToYouTube}
         />
       </div>
     </div>

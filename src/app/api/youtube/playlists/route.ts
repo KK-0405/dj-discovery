@@ -1,16 +1,15 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
+import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
 
-export async function GET() {
-  const session = await getServerSession();
+export async function GET(request: NextRequest) {
+  const googleToken = request.headers.get("X-Google-Token");
 
-  if (!session?.accessToken) {
-    return NextResponse.json({ error: "ログインが必要です" }, { status: 401 });
+  if (!googleToken) {
+    return NextResponse.json({ error: "GoogleログインのアクセストークンがありItまりません" }, { status: 401 });
   }
 
   const auth = new google.auth.OAuth2();
-  auth.setCredentials({ access_token: session.accessToken });
+  auth.setCredentials({ access_token: googleToken });
   const youtube = google.youtube({ version: "v3", auth });
 
   try {

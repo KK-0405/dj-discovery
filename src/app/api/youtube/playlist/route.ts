@@ -1,36 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { google } from "googleapis";
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession();
+  const { title, tracks, existingPlaylistId, googleToken } = await request.json();
 
-  if (!session?.accessToken) {
-    return NextResponse.json({ error: "ログインが必要です" }, { status: 401 });
+  if (!googleToken) {
+    return NextResponse.json({ error: "Googleログインのアクセストークンがありません" }, { status: 401 });
   }
 
-  const { title, tracks } = await request.json();
-
   const auth = new google.auth.OAuth2();
-  auth.setCredentials({ access_token: session.accessToken });
-
+  auth.setCredentials({ access_token: googleToken });
   const youtube = google.youtube({ version: "v3", auth });
 
   try {
-    const playlist = await youtube.playlists.insert({
-      part: ["snippet", "status"],
-      requestBody: {
-        snippet: {
-          title: title || "DJ Discovery Playlist",
-          description: "Created by DJ Discovery",
-        },
-        status: {
-          privacyStatus: "private",
-        },
-      },
-    });
+    let playlistId: string;
 
-    const playlistId = playlist.data.id!;
+    if (existingPlaylistId) {
+      playlistId = existingPlaylistId;
+    } else {
+      const playlist = await youtube.playlists.insert({
+        part: ["snippet", "status"],
+        requestBody: {
+          snippet: {
+            title: title || "DJ Discovery Playlist",
+            description: "Created by DJ Discovery",
+          },
+          status: { privacyStatus: "private" },
+        },
+      });
+      playlistId = playlist.data.id!;
+    }
 
     for (const track of tracks) {
       const searchRes = await youtube.search.list({
@@ -48,16 +47,16 @@ export async function POST(request: NextRequest) {
         requestBody: {
           snippet: {
             playlistId,
-            resourceId: {
-              kind: "youtube#video",
-              videoId,
-            },
+            resourceId: { kind: "youtube#video", videoId },
           },
         },
       });
     }
 
-    return NextResponse.json({ playlistId, url: `https://music.youtube.com/playlist?list=${playlistId}` });
+    return NextResponse.json({
+      playlistId,
+      url: `https://music.youtube.com/playlist?list=${playlistId}`,
+    });
   } catch (error) {
     console.error("YouTube error:", error);
     return NextResponse.json({ error: String(error) }, { status: 500 });

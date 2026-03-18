@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { signIn } from "next-auth/react";
+import { useAuth } from "@/lib/auth-context";
+import AuthModal from "./AuthModal";
 import { type Track, type SavedPlaylist, type YoutubePlaylist } from "@/types";
 
 const C = {
@@ -21,7 +22,6 @@ const C = {
 } as const;
 
 type Props = {
-  session: any;
   playlist: Track[];
   removeFromPlaylist: (id: string) => void;
   savedPlaylists: SavedPlaylist[];
@@ -30,14 +30,15 @@ type Props = {
   savePlaylist: () => void;
   deletePlaylist: (id: string) => void;
   setPlaylist: (tracks: Track[]) => void;
-  exportToYouTube: (existingPlaylistId: string | null) => void;
 };
 
 export default function PlaylistPanel({
-  session, playlist, removeFromPlaylist, savedPlaylists,
+  playlist, removeFromPlaylist, savedPlaylists,
   playlistName, setPlaylistName, savePlaylist, deletePlaylist,
-  setPlaylist, exportToYouTube,
+  setPlaylist,
 }: Props) {
+  const { session } = useAuth();
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [showSaved, setShowSaved] = useState(true);
   const [showYoutubeSelect, setShowYoutubeSelect] = useState(false);
   const [youtubePlaylists, setYoutubePlaylists] = useState<YoutubePlaylist[]>([]);
@@ -46,6 +47,15 @@ export default function PlaylistPanel({
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [expandedPlaylist, setExpandedPlaylist] = useState<string | null>(null);
   const dragIndexRef = useRef<number | null>(null);
+
+  type SavedExportState = {
+    playlistId: string;
+    selectedIds: Set<string>;
+    ytDest: string;
+    ytPlaylists: YoutubePlaylist[];
+    exporting: boolean;
+  };
+  const [savedExport, setSavedExport] = useState<SavedExportState | null>(null);
 
   const handleDragStart = (index: number) => { dragIndexRef.current = index; };
   const handleDrop = (index: number) => {
@@ -71,9 +81,13 @@ export default function PlaylistPanel({
     }
   };
 
+  const googleToken = session?.provider_token ?? null;
+
   const handleYoutubeExportClick = async () => {
     if (playlist.length === 0) return;
-    const res = await fetch("/api/youtube/playlists");
+    const res = await fetch("/api/youtube/playlists", {
+      headers: { "X-Google-Token": googleToken ?? "" },
+    });
     const data = await res.json();
     setYoutubePlaylists(data.playlists ?? []);
     setShowYoutubeSelect(true);
@@ -81,9 +95,54 @@ export default function PlaylistPanel({
 
   const handleExport = async () => {
     setExporting(true);
-    await exportToYouTube(selectedYoutubePlaylist === "new" ? null : selectedYoutubePlaylist);
+    const existingId = selectedYoutubePlaylist === "new" ? null : selectedYoutubePlaylist;
+    const res = await fetch("/api/youtube/playlist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: playlistName, tracks: playlist, existingPlaylistId: existingId, googleToken }),
+    });
+    const data = await res.json();
+    if (data.url) window.open(data.url, "_blank");
     setExporting(false);
     setShowYoutubeSelect(false);
+  };
+
+  const openSavedExport = async (sp: { id: string; tracks: Track[] }) => {
+    const res = await fetch("/api/youtube/playlists", {
+      headers: { "X-Google-Token": googleToken ?? "" },
+    });
+    const data = await res.json();
+    setSavedExport({
+      playlistId: sp.id,
+      selectedIds: new Set(sp.tracks.map((t) => t.id)),
+      ytDest: "new",
+      ytPlaylists: data.playlists ?? [],
+      exporting: false,
+    });
+  };
+
+  const handleSavedExport = async () => {
+    if (!savedExport) return;
+    const sp = savedPlaylists.find((p) => p.id === savedExport.playlistId);
+    if (!sp) return;
+    const tracks = sp.tracks.filter((t) => savedExport.selectedIds.has(t.id));
+    if (tracks.length === 0) return;
+    setSavedExport((prev) => prev ? { ...prev, exporting: true } : null);
+    try {
+      const res = await fetch("/api/youtube/playlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: sp.name,
+          tracks,
+          existingPlaylistId: savedExport.ytDest === "new" ? null : savedExport.ytDest,
+          googleToken,
+        }),
+      });
+      const data = await res.json();
+      if (data.url) window.open(data.url, "_blank");
+    } catch { /* ignore */ }
+    setSavedExport(null);
   };
 
   return (
@@ -131,6 +190,8 @@ export default function PlaylistPanel({
         )}
       </div>
 
+      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
+
       {/* ログインしていない場合 */}
       {!session ? (
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -138,10 +199,10 @@ export default function PlaylistPanel({
             ログインするとプレイリストを<br />保存・管理できます
           </div>
           <button
-            onClick={() => signIn("google")}
-            style={{ width: "100%", padding: "11px", background: "#4285f4", border: "none", borderRadius: "10px", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
+            onClick={() => setShowAuthModal(true)}
+            style={{ width: "100%", padding: "11px", background: C.acc, border: "none", borderRadius: "10px", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer" }}
           >
-            <span>G</span> Google でログイン
+            ログイン / 新規登録
           </button>
         </div>
       ) : (
@@ -174,14 +235,16 @@ export default function PlaylistPanel({
             {saveStatus === "saving" ? "保存中..." : saveStatus === "saved" ? "✓ 保存しました" : saveStatus === "error" ? "保存に失敗しました" : "プレイリストを保存"}
           </button>
 
-          {/* YouTube 書き出し */}
-          <button
-            onClick={handleYoutubeExportClick}
-            disabled={playlist.length === 0}
-            style={{ width: "100%", padding: "10px", background: playlist.length > 0 ? "#ff0000" : C.s1, border: `1px solid ${playlist.length > 0 ? "#ff0000" : C.sep}`, borderRadius: "10px", color: playlist.length > 0 ? "#fff" : C.t3, fontSize: "13px", fontWeight: 700, cursor: playlist.length > 0 ? "pointer" : "default" }}
-          >
-            YouTube に書き出し
-          </button>
+          {/* YouTube 書き出し（Googleログイン時のみ） */}
+          {googleToken && (
+            <button
+              onClick={handleYoutubeExportClick}
+              disabled={playlist.length === 0}
+              style={{ width: "100%", padding: "10px", background: playlist.length > 0 ? "#ff0000" : C.s1, border: `1px solid ${playlist.length > 0 ? "#ff0000" : C.sep}`, borderRadius: "10px", color: playlist.length > 0 ? "#fff" : C.t3, fontSize: "13px", fontWeight: 700, cursor: playlist.length > 0 ? "pointer" : "default" }}
+            >
+              YouTube に書き出し
+            </button>
+          )}
 
           {/* YouTube 書き出し先選択 */}
           {showYoutubeSelect && (
@@ -270,6 +333,57 @@ export default function PlaylistPanel({
                             ))}
                           </div>
 
+                          {/* YouTube書き出しUI */}
+                          {savedExport?.playlistId === p.id && (
+                            <div style={{ borderTop: `1px solid ${C.sep}`, padding: "10px 12px", background: "#fff", display: "flex", flexDirection: "column", gap: "8px" }}>
+                              <div style={{ fontSize: "10px", fontWeight: 700, color: C.t2, textTransform: "uppercase", letterSpacing: "0.05em" }}>YouTube書き出し</div>
+                              {/* トラック選択 */}
+                              <div style={{ display: "flex", flexDirection: "column", gap: "4px", maxHeight: "120px", overflowY: "auto" }}>
+                                {p.tracks.map((t) => (
+                                  <label key={t.id} style={{ display: "flex", alignItems: "center", gap: "7px", cursor: "pointer", fontSize: "11px", color: C.t1 }}>
+                                    <input
+                                      type="checkbox"
+                                      checked={savedExport.selectedIds.has(t.id)}
+                                      onChange={(e) => {
+                                        const next = new Set(savedExport.selectedIds);
+                                        if (e.target.checked) next.add(t.id); else next.delete(t.id);
+                                        setSavedExport((prev) => prev ? { ...prev, selectedIds: next } : null);
+                                      }}
+                                    />
+                                    <img src={t.album.images[0]?.url} alt="" width={18} height={18} style={{ borderRadius: "3px", flexShrink: 0 }} />
+                                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
+                                  </label>
+                                ))}
+                              </div>
+                              {/* YouTube書き出し先 */}
+                              <select
+                                value={savedExport.ytDest}
+                                onChange={(e) => setSavedExport((prev) => prev ? { ...prev, ytDest: e.target.value } : null)}
+                                style={{ width: "100%", padding: "6px 8px", background: C.s1, border: `1px solid ${C.sep}`, borderRadius: "7px", color: C.t1, fontSize: "11px", outline: "none" }}
+                              >
+                                <option value="new">新規プレイリストを作成</option>
+                                {savedExport.ytPlaylists.map((yp) => (
+                                  <option key={yp.id} value={yp.id}>{yp.snippet.title}</option>
+                                ))}
+                              </select>
+                              <div style={{ display: "flex", gap: "6px" }}>
+                                <button
+                                  onClick={handleSavedExport}
+                                  disabled={savedExport.exporting || savedExport.selectedIds.size === 0}
+                                  style={{ flex: 1, padding: "6px", background: savedExport.selectedIds.size === 0 ? C.s2 : "#ff0000", border: "none", borderRadius: "7px", color: savedExport.selectedIds.size === 0 ? C.t3 : "#fff", fontSize: "11px", fontWeight: 600, cursor: savedExport.selectedIds.size > 0 ? "pointer" : "default" }}
+                                >
+                                  {savedExport.exporting ? "書き出し中..." : `書き出す (${savedExport.selectedIds.size}曲)`}
+                                </button>
+                                <button
+                                  onClick={() => setSavedExport(null)}
+                                  style={{ padding: "6px 10px", background: C.s2, border: "none", borderRadius: "7px", color: C.t2, fontSize: "11px", cursor: "pointer" }}
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
                           {/* アクションボタン */}
                           <div style={{ display: "flex", gap: "6px", padding: "8px 12px", borderTop: `1px solid ${C.sep}`, background: C.s1 }}>
                             <button
@@ -277,6 +391,13 @@ export default function PlaylistPanel({
                               style={{ flex: 1, padding: "6px", background: C.acc, border: "none", borderRadius: "7px", color: "#fff", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}
                             >
                               読み込む
+                            </button>
+                            <button
+                              onClick={() => openSavedExport(p)}
+                              style={{ padding: "6px 8px", background: savedExport?.playlistId === p.id ? "#ff0000" : C.s2, border: "none", borderRadius: "7px", color: savedExport?.playlistId === p.id ? "#fff" : C.t2, fontSize: "11px", fontWeight: 600, cursor: "pointer" }}
+                              title="YouTube Music に書き出し"
+                            >
+                              ▶YT
                             </button>
                             <button
                               onClick={() => deletePlaylist(p.id)}
@@ -297,6 +418,9 @@ export default function PlaylistPanel({
           {/* ユーザー情報 */}
           <div style={{ fontSize: "11px", color: C.t3, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingTop: "4px" }}>
             {session.user?.email}
+            {!googleToken && (
+              <div style={{ fontSize: "10px", color: C.t3, marginTop: "2px" }}>YouTube書き出しはGoogleログインが必要です</div>
+            )}
           </div>
         </div>
       )}
