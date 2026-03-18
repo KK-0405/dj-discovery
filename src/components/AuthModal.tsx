@@ -19,6 +19,7 @@ const C = {
 
 type Mode = "login" | "register";
 type LoginTab = "email" | "userid";
+type RegisterTab = "email" | "userid";
 
 type Props = {
   onClose: () => void;
@@ -27,6 +28,7 @@ type Props = {
 export default function AuthModal({ onClose }: Props) {
   const [mode, setMode] = useState<Mode>("login");
   const [loginTab, setLoginTab] = useState<LoginTab>("email");
+  const [regTab, setRegTab] = useState<RegisterTab>("email");
 
   // Login fields
   const [loginEmail, setLoginEmail] = useState("");
@@ -102,49 +104,54 @@ export default function AuthModal({ onClose }: Props) {
 
   const handleRegister = async () => {
     resetError();
-    if (!regUserId || !regEmail || !regPassword || !regConfirm) {
-      setError("すべての項目を入力してください"); return;
-    }
-    if (!/^[a-zA-Z0-9_]{3,20}$/.test(regUserId)) {
-      setError("ユーザーIDは英数字・アンダーバー 3〜20文字で入力してください"); return;
-    }
-    if (regPassword !== regConfirm) {
-      setError("パスワードが一致しません"); return;
-    }
-    if (regPassword.length < 6) {
-      setError("パスワードは6文字以上にしてください"); return;
+    if (!regPassword || !regConfirm) { setError("パスワードを入力してください"); return; }
+    if (regPassword !== regConfirm) { setError("パスワードが一致しません"); return; }
+    if (regPassword.length < 6) { setError("パスワードは6文字以上にしてください"); return; }
+
+    let authEmail: string;
+    let userId: string;
+
+    if (regTab === "email") {
+      // メールアドレスで登録 → userIdは自動生成
+      if (!regEmail) { setError("メールアドレスを入力してください"); return; }
+      authEmail = regEmail;
+      // メール前半から初期userIdを生成
+      const prefix = regEmail.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "") || "user";
+      let candidate = prefix;
+      let suffix = 0;
+      while (true) {
+        const { data: conflict } = await supabase.from("users").select("id").eq("user_id", candidate).single();
+        if (!conflict) break;
+        suffix++;
+        candidate = `${prefix}${suffix}`;
+      }
+      userId = candidate;
+    } else {
+      // ユーザーIDで登録 → メールは内部生成
+      if (!regUserId) { setError("ユーザーIDを入力してください"); return; }
+      if (!/^[a-zA-Z0-9_]{3,20}$/.test(regUserId)) {
+        setError("ユーザーIDは英数字・アンダーバー 3〜20文字で入力してください"); return;
+      }
+      // ユーザーIDの重複チェック
+      const { data: existing } = await supabase.from("users").select("id").eq("user_id", regUserId).single();
+      if (existing) { setError("このユーザーIDはすでに使用されています"); return; }
+      userId = regUserId;
+      authEmail = `${regUserId}@djd.internal`;
     }
 
     setLoading(true);
 
-    // ユーザーIDの重複チェック
-    const { data: existing } = await supabase
-      .from("users")
-      .select("id")
-      .eq("user_id", regUserId)
-      .single();
-    if (existing) {
-      setLoading(false);
-      setError("このユーザーIDはすでに使用されています");
-      return;
-    }
-
-    // Supabase Auth にサインアップ
-    const { data, error } = await supabase.auth.signUp({
-      email: regEmail,
-      password: regPassword,
-    });
+    const { data, error } = await supabase.auth.signUp({ email: authEmail, password: regPassword });
     if (error || !data.user) {
       setLoading(false);
       setError(error?.message ?? "登録に失敗しました");
       return;
     }
 
-    // usersテーブルにレコード作成
     const { error: insertError } = await supabase.from("users").insert({
       id: data.user.id,
-      user_id: regUserId,
-      email: regEmail,
+      user_id: userId,
+      email: authEmail,
       avatar_url: null,
     });
     setLoading(false);
@@ -155,7 +162,6 @@ export default function AuthModal({ onClose }: Props) {
     }
 
     if (data.session) {
-      // メール確認不要の場合は即ログイン
       onClose();
     } else {
       setSuccess("確認メールを送信しました。メールを確認してログインしてください。");
@@ -343,20 +349,43 @@ export default function AuthModal({ onClose }: Props) {
               <Divider />
 
               <GoogleButton onClick={handleGoogleLogin} label="Google でログイン" />
-
-              <button
-                onClick={() => { setMode("register"); resetError(); }}
-                style={{ background: "none", border: "none", color: C.acc, fontSize: "13px", cursor: "pointer", textAlign: "center" as const, padding: "2px" }}
-              >
-                アカウントをお持ちでない方はこちら
-              </button>
             </>
           )}
 
           {/* ── 新規登録フォーム ── */}
           {mode === "register" && (
             <>
-              <div>
+              {/* 登録方法タブ */}
+              <div style={{ display: "flex", background: C.s1, borderRadius: "9px", padding: "3px" }}>
+                {(["email", "userid"] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => { setRegTab(t); resetError(); }}
+                    style={{
+                      flex: 1, padding: "7px",
+                      background: regTab === t ? "#fff" : "transparent",
+                      border: "none", borderRadius: "7px",
+                      color: regTab === t ? C.t1 : C.t2,
+                      fontSize: "13px", fontWeight: regTab === t ? 600 : 400,
+                      cursor: "pointer",
+                      boxShadow: regTab === t ? "0 1px 4px rgba(0,0,0,0.1)" : "none",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    {t === "email" ? "メールアドレス" : "ユーザーID"}
+                  </button>
+                ))}
+              </div>
+
+              {regTab === "email" ? (
+                <input
+                  type="email"
+                  placeholder="メールアドレス"
+                  value={regEmail}
+                  onChange={(e) => setRegEmail(e.target.value)}
+                  style={inputStyle}
+                />
+              ) : (
                 <input
                   type="text"
                   placeholder="ユーザーID（英数字・アンダーバー 3〜20文字）"
@@ -364,14 +393,8 @@ export default function AuthModal({ onClose }: Props) {
                   onChange={(e) => setRegUserId(e.target.value)}
                   style={inputStyle}
                 />
-              </div>
-              <input
-                type="email"
-                placeholder="メールアドレス"
-                value={regEmail}
-                onChange={(e) => setRegEmail(e.target.value)}
-                style={inputStyle}
-              />
+              )}
+
               <input
                 type="password"
                 placeholder="パスワード（6文字以上）"
@@ -388,24 +411,13 @@ export default function AuthModal({ onClose }: Props) {
                 onKeyDown={(e) => e.key === "Enter" && handleRegister()}
               />
 
-              <button
-                onClick={handleRegister}
-                disabled={loading}
-                style={primaryBtnStyle(loading)}
-              >
+              <button onClick={handleRegister} disabled={loading} style={primaryBtnStyle(loading)}>
                 {loading ? "登録中..." : "登録"}
               </button>
 
               <Divider />
 
               <GoogleButton onClick={handleGoogleLogin} label="Google で登録" />
-
-              <button
-                onClick={() => { setMode("login"); resetError(); }}
-                style={{ background: "none", border: "none", color: C.acc, fontSize: "13px", cursor: "pointer", textAlign: "center" as const, padding: "2px" }}
-              >
-                ログインはこちら
-              </button>
             </>
           )}
         </div>
