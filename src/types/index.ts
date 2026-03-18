@@ -21,6 +21,14 @@ export type SimilarFilters = {
   excludePlaylist: boolean;
 };
 
+export type HistoryEntry = {
+  id: string;          // = mainSeed.id (dedup key)
+  savedAt: number;     // Date.now()
+  mainSeed: Track;
+  subSeeds: Track[];
+  similarTracks: Track[];
+};
+
 export type SavedPlaylist = {
   id: string;
   name: string;

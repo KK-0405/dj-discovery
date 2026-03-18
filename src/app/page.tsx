@@ -3,11 +3,27 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
-import { type Track, type Mode, type SavedPlaylist, type SimilarFilters } from "@/types";
+import { type Track, type Mode, type SavedPlaylist, type SimilarFilters, type HistoryEntry } from "@/types";
 import AuthModal from "@/components/AuthModal";
 import SearchPanel from "@/components/SearchPanel";
 import SeedPanel from "@/components/SeedPanel";
 import PlaylistPanel from "@/components/PlaylistPanel";
+
+const HISTORY_KEY = "dj_history_v1";
+const HISTORY_MAX = 20;
+function readHistory(): HistoryEntry[] {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) ?? "[]"); } catch { return []; }
+}
+function writeHistory(entries: HistoryEntry[]) {
+  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(entries)); } catch { /* quota */ }
+}
+function pushHistory(entry: HistoryEntry): HistoryEntry[] {
+  const existing = readHistory();
+  const filtered = existing.filter((e) => e.id !== entry.id);
+  const updated = [entry, ...filtered].slice(0, HISTORY_MAX);
+  writeHistory(updated);
+  return updated;
+}
 
 const CACHE_KEY = "dj_gemini_v1";
 function cacheKey(title: string, artist: string) {
@@ -90,6 +106,9 @@ export default function Home() {
   const [savedPlaylists, setSavedPlaylists] = useState<SavedPlaylist[]>([]);
   const [playlistName, setPlaylistName] = useState("Playlist");
   const [viewingPlaylist, setViewingPlaylist] = useState<SavedPlaylist | null>(null);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+
+  useEffect(() => { setHistory(readHistory()); }, []);
 
   const search = async () => {
     if (!query) return;
@@ -138,6 +157,15 @@ export default function Home() {
       const data = await res.json();
       setSimilarTracks(data.tracks ?? []);
       if (data._debug) setSeedError(String(data._debug));
+      if (data.tracks?.length > 0) {
+        setHistory(pushHistory({
+          id: mainSeed.id,
+          savedAt: Date.now(),
+          mainSeed,
+          subSeeds,
+          similarTracks: data.tracks,
+        }));
+      }
     } catch (e) {
       setSimilarTracks([]);
       setSeedError(String(e));
@@ -440,7 +468,7 @@ export default function Home() {
         </div>
 
         {/* ナビ */}
-        <nav style={{ padding: "10px 8px", flex: 1 }}>
+        <nav style={{ padding: "10px 8px", flex: 1, overflowY: "auto", minHeight: 0 }}>
           <div style={{ fontSize: "10px", color: "#aeaeb2", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", padding: "4px 8px 6px" }}>
             Library
           </div>
@@ -460,6 +488,69 @@ export default function Home() {
             </svg>
             <span style={{ fontSize: "13px", fontWeight: 600, color: mode === "search" && !viewingPlaylist ? "#534AB7" : "#6e6e73" }}>Search</span>
           </div>
+
+          {/* 履歴 */}
+          {history.length > 0 && (
+            <>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 8px 6px" }}>
+                <span style={{ fontSize: "10px", color: "#aeaeb2", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>History</span>
+                <button
+                  onClick={() => { writeHistory([]); setHistory([]); }}
+                  style={{ fontSize: "9px", color: "#aeaeb2", background: "none", border: "none", cursor: "pointer", padding: "0 2px" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = "#6e6e73")}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = "#aeaeb2")}
+                >
+                  全削除
+                </button>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
+                {history.map((entry) => {
+                  const isActive = mainSeed?.id === entry.mainSeed.id && mode === "similar";
+                  const thumb = entry.mainSeed.album.images[0]?.url;
+                  const age = Date.now() - entry.savedAt;
+                  const relTime = age < 3600000 ? `${Math.max(1, Math.floor(age / 60000))}分前`
+                    : age < 86400000 ? `${Math.floor(age / 3600000)}時間前`
+                    : age < 604800000 ? `${Math.floor(age / 86400000)}日前`
+                    : `${Math.floor(age / 604800000)}週前`;
+                  return (
+                    <button
+                      key={entry.id}
+                      onClick={() => {
+                        setMainSeed(entry.mainSeed);
+                        setSubSeeds(entry.subSeeds);
+                        setSimilarTracks(entry.similarTracks);
+                        setMode("similar");
+                        setViewingPlaylist(null);
+                        setFilters(DEFAULT_FILTERS);
+                      }}
+                      style={{
+                        width: "100%", display: "flex", alignItems: "center", gap: "8px",
+                        padding: "7px 10px", borderRadius: "8px",
+                        background: isActive ? "rgba(83,74,183,0.1)" : "none",
+                        border: "none", cursor: "pointer", textAlign: "left",
+                      }}
+                      onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "rgba(0,0,0,0.04)"; }}
+                      onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "none"; }}
+                    >
+                      {thumb ? (
+                        <img src={thumb} alt="" style={{ width: 22, height: 22, borderRadius: "4px", objectFit: "cover", flexShrink: 0 }} />
+                      ) : (
+                        <div style={{ width: 22, height: 22, borderRadius: "4px", background: "rgba(83,74,183,0.12)", flexShrink: 0 }} />
+                      )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: "12px", fontWeight: isActive ? 600 : 500, color: isActive ? "#534AB7" : "#1d1d1f", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {entry.mainSeed.name}
+                        </div>
+                        <div style={{ fontSize: "10px", color: "#aeaeb2", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {relTime} · {entry.similarTracks.length}曲
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
 
           <div style={{ fontSize: "10px", color: "#aeaeb2", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", padding: "12px 8px 6px" }}>
             Playlists
