@@ -162,18 +162,26 @@ function buildSimilarPrompt(
     ? "- Output title and artist fields in Japanese (use Japanese characters — kanji/kana — not romaji). Japanese songs should have Japanese titles."
     : "- Output title and artist fields in English (use Latin alphabet).";
 
-  return `You are a DJ and music expert. List EXACTLY ${count} real songs to mix with "${seed.title}" by ${seed.artist}.
-Genre: ${genres}. BPM≈${seed.bpm || "?"}, Era: ${seed.release_year || "?"}.${subInfo ? " " + subInfo : ""}
-Rules:
-- Output EXACTLY ${count} songs — no more, no less.
-- If you cannot find enough close genre matches, fill remaining slots with related genre/era songs.
-- Match genre closely, BPM within ±15, same era ±10 years.
-- Exclude the seed song itself.${excludeStr}
-- STRICTLY EXCLUDE: karaoke versions, カラオケ, instrumental covers, tribute band recordings, cover albums, BGM collections, sound-alike recordings, "as made famous by" tracks. Only original artist recordings.
-- Do NOT stop early. Always output all ${count} entries.
-- ${langRule}
-Return ONLY a JSON array. No explanation, no markdown, no extra text.
-Each object must have: title, artist, bpm (integer), key (e.g. "F# minor"), camelot (e.g. "11A"), energy (float 0-1), danceability (float 0-1), is_vocal (boolean), genre_tags (string array max 4), release_year (integer), confidence ("high"/"medium"/"low").`;
+  return `You are a DJ and music expert.
+
+TASK: Output a JSON array of EXACTLY ${count} songs that a DJ could mix with "${seed.title}" by ${seed.artist}.
+
+Seed info — Genre: ${genres}. BPM≈${seed.bpm || "?"}, Era: ${seed.release_year || "?"}.${subInfo ? " " + subInfo : ""}
+
+CRITICAL RULES (violations are not acceptable):
+1. The JSON array MUST contain EXACTLY ${count} elements. Count to ${count} before finishing.
+2. If close genre matches run out, WIDEN the search — same era, adjacent genres, similar BPM. NEVER output fewer than ${count} entries.
+3. Exclude the seed song itself.${excludeStr}
+4. EXCLUDE karaoke, カラオケ, cover versions, tribute recordings, instrumental covers, BGM collections, sound-alike tracks. Only original artist recordings.
+5. ${langRule}
+6. Every object must have ALL fields — do not omit any field or output partial objects.
+
+OUTPUT FORMAT: A raw JSON array only. No markdown fences, no explanation, no text before or after the array.
+Array length must be ${count}. Start with [ and end with ].
+
+Each element: {"title":"...","artist":"...","bpm":128,"key":"F# minor","camelot":"2A","energy":0.7,"danceability":0.8,"is_vocal":true,"genre_tags":["House"],"release_year":2005,"confidence":"high"}
+
+REMEMBER: ${count} songs total. Output all ${count} now.`;
 }
 
 async function fetchSuggestions(
@@ -242,22 +250,24 @@ export async function getSimilarTrackSuggestions(
   if (!apiKey) return { suggestions: [], error: "GEMINI_API_KEY not set" };
 
   try {
-    // 1回目
-    const prompt1 = buildSimilarPrompt(seed, subSeeds, count);
+    // Deezerミス・カラオケフィルター分を見越して多めにリクエスト
+    const buffered = Math.min(Math.ceil(count * 1.5), 50);
+
+    // 1回目（バッファ込みで多めに取得）
+    const prompt1 = buildSimilarPrompt(seed, subSeeds, buffered);
     const first = await fetchSuggestions(apiKey, prompt1);
     if (first.error) return first;
 
     let suggestions = first.suggestions;
 
-    // 不足分を再リクエスト（最大1回）
-    if (suggestions.length < count) {
-      const need = count - suggestions.length;
+    // 不足分を再リクエスト（最大2回）
+    for (let retry = 0; retry < 2 && suggestions.length < buffered; retry++) {
+      const need = buffered - suggestions.length;
       const alreadyHave = suggestions.map((s) => `"${s.title}" by ${s.artist}`);
-      const prompt2 = buildSimilarPrompt(seed, subSeeds, need, alreadyHave);
-      const second = await fetchSuggestions(apiKey, prompt2);
-      if (!second.error && second.suggestions.length > 0) {
-        suggestions = [...suggestions, ...second.suggestions].slice(0, count);
-      }
+      const promptN = buildSimilarPrompt(seed, subSeeds, need, alreadyHave);
+      const next = await fetchSuggestions(apiKey, promptN);
+      if (next.error || next.suggestions.length === 0) break;
+      suggestions = [...suggestions, ...next.suggestions];
     }
 
     return { suggestions };

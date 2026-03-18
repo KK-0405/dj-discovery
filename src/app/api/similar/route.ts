@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
     const cap = Math.min(count, 30);
 
     // Step1: Geminiに類似曲の提案＋メタデータを1回で取得
+    // gemini側でバッファ込みで多めに取得するため、capをそのまま渡す
     const { suggestions, error: geminiError } = await getSimilarTrackSuggestions(seed, subSeeds, cap);
     if (suggestions.length === 0) {
       return NextResponse.json({ tracks: [], _debug: geminiError ?? "Gemini returned 0 suggestions" });
@@ -81,7 +82,8 @@ export async function POST(request: NextRequest) {
           release_year: track.release_year || s.release_year || undefined,
         };
       })
-      .filter(Boolean);
+      .filter(Boolean)
+      .slice(0, cap);
 
     return NextResponse.json({ tracks: tracksWithMeta, _debug: geminiError });
   } catch (error) {
