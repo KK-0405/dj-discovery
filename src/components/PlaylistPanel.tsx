@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { type Track, type YoutubePlaylist } from "@/types";
+import { type Track, type SavedPlaylist, type YoutubePlaylist } from "@/types";
 
 const C = {
   bg: "#fafafa",
@@ -27,13 +27,17 @@ type Props = {
   setPlaylistName: (v: string) => void;
   savePlaylist: () => Promise<string | null>;
   setPlaylist: (tracks: Track[]) => void;
+  savedPlaylists: SavedPlaylist[];
+  addTracksToExistingPlaylist: (playlistId: string, tracks: Track[]) => Promise<void>;
 };
 
 export default function PlaylistPanel({
   playlist, removeFromPlaylist,
   playlistName, setPlaylistName, savePlaylist, setPlaylist,
+  savedPlaylists, addTracksToExistingPlaylist,
 }: Props) {
   const { session } = useAuth();
+  const [targetPlaylistId, setTargetPlaylistId] = useState<"new" | string>("new");
   const [showYoutubeSelect, setShowYoutubeSelect] = useState(false);
   const [youtubePlaylists, setYoutubePlaylists] = useState<YoutubePlaylist[]>([]);
   const [selectedYoutubePlaylist, setSelectedYoutubePlaylist] = useState("new");
@@ -58,7 +62,11 @@ export default function PlaylistPanel({
     setSaveStatus("saving");
     setSaveError(null);
     try {
-      await savePlaylist();
+      if (targetPlaylistId === "new") {
+        await savePlaylist();
+      } else {
+        await addTracksToExistingPlaylist(targetPlaylistId, playlist);
+      }
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 2500);
     } catch (e: any) {
@@ -156,14 +164,28 @@ export default function PlaylistPanel({
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
 
-          {/* プレイリスト名 */}
-          <input
-            type="text"
-            value={playlistName}
-            onChange={(e) => setPlaylistName(e.target.value)}
-            placeholder="プレイリスト名"
+          {/* 追加先セレクタ */}
+          <select
+            value={targetPlaylistId}
+            onChange={(e) => setTargetPlaylistId(e.target.value)}
             style={{ width: "100%", padding: "8px 10px", background: "#fff", border: `1px solid ${C.sep}`, borderRadius: "8px", color: C.t1, fontSize: "12px", outline: "none", boxSizing: "border-box" }}
-          />
+          >
+            <option value="new">── 新規作成 ──</option>
+            {savedPlaylists.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}（{p.tracks.length}曲）</option>
+            ))}
+          </select>
+
+          {/* 新規作成時のみ名前入力を表示 */}
+          {targetPlaylistId === "new" && (
+            <input
+              type="text"
+              value={playlistName}
+              onChange={(e) => setPlaylistName(e.target.value)}
+              placeholder="プレイリスト名"
+              style={{ width: "100%", padding: "8px 10px", background: "#fff", border: `1px solid ${C.sep}`, borderRadius: "8px", color: C.t1, fontSize: "12px", outline: "none", boxSizing: "border-box" }}
+            />
+          )}
 
           {/* 保存ボタン */}
           <button
@@ -180,7 +202,10 @@ export default function PlaylistPanel({
               transition: "background 0.2s",
             }}
           >
-            {saveStatus === "saving" ? "保存中..." : saveStatus === "saved" ? "✓ 保存しました" : saveStatus === "error" ? "保存に失敗しました" : "プレイリストを保存"}
+            {saveStatus === "saving" ? "保存中..."
+              : saveStatus === "saved" ? "✓ 保存しました"
+              : saveStatus === "error" ? "保存に失敗しました"
+              : targetPlaylistId === "new" ? "プレイリストを保存" : "このプレイリストに追加"}
           </button>
 
           {/* 保存エラー詳細 */}

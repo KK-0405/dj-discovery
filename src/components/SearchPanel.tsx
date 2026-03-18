@@ -42,8 +42,6 @@ type Props = {
   filteredSimilarCount: number;
   metadataLoading: boolean;
   onResetSimilar: () => void;
-  savedPlaylists: SavedPlaylist[];
-  addTrackToSavedPlaylist: (playlistId: string, track: Track) => void;
   viewingPlaylist: SavedPlaylist | null;
   togglePublic: (id: string, isPublic: boolean) => Promise<void>;
 };
@@ -108,7 +106,7 @@ export default function SearchPanel({
   query, setQuery, search, loading, mode, displayTracks,
   mainSeed, subSeeds, setAsMainSeed, addToSubSeed,
   addToPlaylist, removeFromPlaylist, isInPlaylist, filteredSimilarCount, metadataLoading,
-  savedPlaylists, addTrackToSavedPlaylist, onResetSimilar, viewingPlaylist, togglePublic,
+  onResetSimilar, viewingPlaylist, togglePublic,
 }: Props) {
   const [togglingPublic, setTogglingPublic] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
@@ -122,8 +120,6 @@ export default function SearchPanel({
   const abortRef = useRef<AbortController | null>(null);
   const isSearchExecuted = useRef(false);
   const inputWrapRef = useRef<HTMLDivElement>(null);
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
 
   type PublicPlaylist = { id: string; name: string; slug: string | null; created_by: string; track_count: number; artwork_url: string | null };
   const [publicPlaylists, setPublicPlaylists] = useState<PublicPlaylist[]>([]);
@@ -179,15 +175,6 @@ export default function SearchPanel({
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
-
-  useEffect(() => {
-    if (!openMenuId) return;
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setOpenMenuId(null);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [openMenuId]);
 
   const togglePreview = (track: Track) => {
     if (!track.preview) return;
@@ -629,73 +616,20 @@ export default function SearchPanel({
                 </div>
               )}
               {mode === "similar" && (
-                <div
-                  ref={openMenuId === track.id ? menuRef : undefined}
-                  style={{ position: "relative", flexShrink: 0 }}
+                <button
+                  onClick={() => inPlaylist ? removeFromPlaylist(track.id) : addToPlaylist(track)}
+                  style={{
+                    padding: "5px 12px",
+                    background: inPlaylist ? C.accDim : C.s1,
+                    border: `1px solid ${inPlaylist ? C.acc : C.s2}`,
+                    borderRadius: "8px",
+                    color: inPlaylist ? C.acc : C.t2,
+                    fontSize: "11px", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
+                    flexShrink: 0,
+                  }}
                 >
-                  <button
-                    onClick={() => {
-                      if (inPlaylist) { removeFromPlaylist(track.id); return; }
-                      if (savedPlaylists.length === 0) { addToPlaylist(track); return; }
-                      setOpenMenuId(openMenuId === track.id ? null : track.id);
-                    }}
-                    style={{
-                      padding: "5px 12px",
-                      background: inPlaylist ? C.accDim : C.s1,
-                      border: `1px solid ${inPlaylist ? C.acc : C.s2}`,
-                      borderRadius: "8px",
-                      color: inPlaylist ? C.acc : C.t2,
-                      fontSize: "11px", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
-                    }}
-                  >
-                    {inPlaylist ? "✓ リスト" : "+ リスト"}
-                  </button>
-                  {openMenuId === track.id && (
-                    <div style={{
-                      position: "absolute", right: 0, top: "calc(100% + 4px)",
-                      background: "#fff",
-                      borderRadius: "10px",
-                      boxShadow: "0 4px 20px rgba(0,0,0,0.14), 0 0 0 1px rgba(0,0,0,0.06)",
-                      zIndex: 200,
-                      minWidth: "160px",
-                      overflow: "hidden",
-                    }}>
-                      <div style={{ padding: "5px 12px 3px", fontSize: "9px", fontWeight: 700, color: C.t3, textTransform: "uppercase", letterSpacing: "0.05em", background: C.s1 }}>
-                        追加先
-                      </div>
-                      <div
-                        onMouseDown={() => { addToPlaylist(track); setOpenMenuId(null); }}
-                        style={{
-                          display: "flex", alignItems: "center", justifyContent: "space-between",
-                          padding: "8px 12px", cursor: "pointer", fontSize: "12px",
-                          color: inPlaylist ? C.t3 : C.t1,
-                          borderBottom: `1px solid ${C.sep}`,
-                        }}
-                        onMouseEnter={(e) => { if (!inPlaylist) e.currentTarget.style.background = C.s1; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-                      >
-                        <span>現在のプレイリスト</span>
-                        {inPlaylist && <span style={{ fontSize: "10px", color: C.acc }}>✓</span>}
-                      </div>
-                      {savedPlaylists.map((sp) => (
-                        <div
-                          key={sp.id}
-                          onMouseDown={() => { addTrackToSavedPlaylist(sp.id, track); setOpenMenuId(null); }}
-                          style={{
-                            padding: "8px 12px", cursor: "pointer", fontSize: "12px", color: C.t1,
-                            borderBottom: `1px solid ${C.sep}`,
-                            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                          }}
-                          onMouseEnter={(e) => (e.currentTarget.style.background = C.s1)}
-                          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                        >
-                          {sp.name}
-                          <span style={{ fontSize: "10px", color: C.t3, marginLeft: "4px" }}>({sp.tracks.length}曲)</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                  {inPlaylist ? "✓ リスト" : "+ リスト"}
+                </button>
               )}
             </div>
           );

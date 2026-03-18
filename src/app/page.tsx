@@ -83,7 +83,7 @@ export default function Home() {
   const [seedAnalyzing, setSeedAnalyzing] = useState(false);
   const [seedError, setSeedError] = useState<string | null>(null);
   const [savedPlaylists, setSavedPlaylists] = useState<SavedPlaylist[]>([]);
-  const [playlistName, setPlaylistName] = useState("Playlist 1");
+  const [playlistName, setPlaylistName] = useState("Playlist");
   const [viewingPlaylist, setViewingPlaylist] = useState<SavedPlaylist | null>(null);
 
   const search = async () => {
@@ -156,11 +156,12 @@ export default function Home() {
     loadPlaylists();
   };
 
-  const addTrackToSavedPlaylist = async (playlistId: string, track: Track) => {
+  const addTracksToExistingPlaylist = async (playlistId: string, tracks: Track[]) => {
     const target = savedPlaylists.find((p) => p.id === playlistId);
     if (!target) return;
-    if (target.tracks.find((t) => t.id === track.id)) return;
-    await updateSavedPlaylist(playlistId, [...target.tracks, track]);
+    const existingIds = new Set(target.tracks.map((t) => t.id));
+    const merged = [...target.tracks, ...tracks.filter((t) => !existingIds.has(t.id))];
+    await updateSavedPlaylist(playlistId, merged);
   };
 
   const savePlaylist = async (): Promise<string | null> => {
@@ -461,7 +462,6 @@ export default function Home() {
         subSeeds={subSeeds} setAsMainSeed={setAsMainSeed} addToSubSeed={addToSubSeed}
         addToPlaylist={addToPlaylist} removeFromPlaylist={removeFromPlaylist} isInPlaylist={isInPlaylist}
         filteredSimilarCount={filteredSimilar.length} metadataLoading={metadataLoading}
-        savedPlaylists={savedPlaylists} addTrackToSavedPlaylist={addTrackToSavedPlaylist}
         onResetSimilar={() => { setSimilarTracks([]); setMode("search"); setFilters(DEFAULT_FILTERS); setViewingPlaylist(null); }}
         viewingPlaylist={viewingPlaylist}
         togglePublic={togglePublic}
@@ -492,6 +492,8 @@ export default function Home() {
           playlist={playlist} removeFromPlaylist={removeFromPlaylist}
           playlistName={playlistName} setPlaylistName={setPlaylistName}
           savePlaylist={savePlaylist} setPlaylist={setPlaylist}
+          savedPlaylists={savedPlaylists}
+          addTracksToExistingPlaylist={addTracksToExistingPlaylist}
         />
       </div>
     </div>
