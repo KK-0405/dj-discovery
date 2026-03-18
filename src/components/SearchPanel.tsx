@@ -45,6 +45,7 @@ type Props = {
   metadataLoading: boolean;
   onResetSimilar: () => void;
   onSearchMore: () => void;
+  loadingMore: boolean;
   viewingPlaylist: SavedPlaylist | null;
   togglePublic: (id: string, isPublic: boolean) => Promise<void>;
 };
@@ -110,7 +111,7 @@ export default function SearchPanel({
   mainSeed, subSeeds, setAsMainSeed, addToSubSeed,
   removeMainSeed, removeSubSeed,
   addToPlaylist, removeFromPlaylist, isInPlaylist, filteredSimilarCount, metadataLoading,
-  onResetSimilar, onSearchMore, viewingPlaylist, togglePublic,
+  onResetSimilar, onSearchMore, loadingMore, viewingPlaylist, togglePublic,
 }: Props) {
   const [togglingPublic, setTogglingPublic] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
@@ -136,7 +137,14 @@ export default function SearchPanel({
     fetch("/api/public-playlists").then((r) => r.json()).then((d) => setPublicPlaylists(d.playlists ?? [])).catch(() => {});
   }, []);
 
-  useEffect(() => { listRef.current?.scrollTo({ top: 0 }); }, [displayTracks]);
+  const prevFirstIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    const firstId = displayTracks[0]?.id ?? null;
+    if (firstId !== prevFirstIdRef.current) {
+      listRef.current?.scrollTo({ top: 0 });
+      prevFirstIdRef.current = firstId;
+    }
+  }, [displayTracks]);
 
   const handleQueryChange = (value: string) => {
     isSearchExecuted.current = false;
@@ -735,7 +743,8 @@ export default function SearchPanel({
         {mode === "similar" && displayTracks.length > 0 && (
           <div style={{ padding: "12px 4px 8px", display: "flex", justifyContent: "center" }}>
             <button
-              onClick={onSearchMore}
+              onClick={loadingMore ? undefined : onSearchMore}
+              disabled={loadingMore}
               style={{
                 padding: "9px 24px",
                 background: C.accDim,
@@ -744,13 +753,31 @@ export default function SearchPanel({
                 color: C.acc,
                 fontSize: "13px",
                 fontWeight: 600,
-                cursor: "pointer",
+                cursor: loadingMore ? "default" : "pointer",
                 transition: "background 0.15s",
+                display: "flex", alignItems: "center", gap: "8px",
+                opacity: loadingMore ? 0.85 : 1,
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(83,74,183,0.18)")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = C.accDim)}
+              onMouseEnter={(e) => { if (!loadingMore) e.currentTarget.style.background = "rgba(83,74,183,0.18)"; }}
+              onMouseLeave={(e) => { if (!loadingMore) e.currentTarget.style.background = C.accDim; }}
             >
-              + さらに検索
+              {loadingMore ? (
+                <>
+                  <svg
+                    width="16" height="16" viewBox="0 0 20 20" fill="none"
+                    style={{ animation: "ripple-spin 1s linear infinite", flexShrink: 0 }}
+                  >
+                    <circle cx="10" cy="10" r="2.2" fill={C.acc} opacity="0.9" />
+                    <circle cx="10" cy="10" r="5" stroke={C.acc} strokeWidth="1.6" strokeLinecap="round"
+                      strokeDasharray="23.6 7.8" opacity="0.75" fill="none" />
+                    <circle cx="10" cy="10" r="8" stroke={C.acc} strokeWidth="1.1" strokeLinecap="round"
+                      strokeDasharray="37.7 12.6" opacity="0.5" fill="none" />
+                  </svg>
+                  検索中…
+                </>
+              ) : (
+                "+ さらに検索"
+              )}
             </button>
           </div>
         )}

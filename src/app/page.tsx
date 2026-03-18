@@ -101,6 +101,7 @@ export default function Home() {
   const [filters, setFilters] = useState<SimilarFilters>(DEFAULT_FILTERS);
   const [similarCount, setSimilarCount] = useState<10 | 20 | 30>(20);
   const [metadataLoading, setMetadataLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [seedAnalyzing, setSeedAnalyzing] = useState(false);
   const [seedError, setSeedError] = useState<string | null>(null);
   const [savedPlaylists, setSavedPlaylists] = useState<SavedPlaylist[]>([]);
@@ -175,7 +176,7 @@ export default function Home() {
 
   const exploreSimilarMore = async () => {
     if (!mainSeed) return;
-    setLoading(true);
+    setLoadingMore(true);
     try {
       const excludeTitles = similarTracks.map((t) => t.name);
       const res = await fetch("/api/similar", {
@@ -207,7 +208,7 @@ export default function Home() {
     } catch (e) {
       setSeedError(String(e));
     }
-    setLoading(false);
+    setLoadingMore(false);
   };
 
   const authHeaders = () => ({
@@ -678,6 +679,7 @@ export default function Home() {
         filteredSimilarCount={filteredSimilar.length} metadataLoading={metadataLoading}
         onResetSimilar={() => { setSimilarTracks([]); setMode("search"); setFilters(DEFAULT_FILTERS); setViewingPlaylist(null); }}
         onSearchMore={exploreSimilarMore}
+        loadingMore={loadingMore}
         viewingPlaylist={viewingPlaylist}
         togglePublic={togglePublic}
       />

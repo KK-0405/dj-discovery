@@ -29,3 +29,8 @@ input, button, select, textarea {
   background: rgba(0, 0, 0, 0.15);
   border-radius: 3px;
 }
+
+@keyframes ripple-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
