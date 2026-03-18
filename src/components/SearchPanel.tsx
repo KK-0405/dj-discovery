@@ -605,17 +605,24 @@ export default function SearchPanel({
                   )}
                 </div>
 
-                {/* 類似モード: マッチバッジ */}
+                {/* 類似モード: マッチバッジ + 理由 */}
                 {mode === "similar" && (
-                  <div style={{ display: "flex", gap: "4px", marginTop: "4px", flexWrap: "wrap" }}>
-                    {badges.length > 0 ? badges.map((b, i) => (
-                      <span key={i} style={{ fontSize: "10px", color: b.color, background: b.bg, padding: "1px 6px", borderRadius: "5px", fontWeight: 500, whiteSpace: "nowrap" }}>
-                        {b.label}
-                      </span>
-                    )) : (
-                      <span style={{ fontSize: "11px", color: C.t3 }}>一致なし</span>
+                  <>
+                    <div style={{ display: "flex", gap: "4px", marginTop: "4px", flexWrap: "wrap" }}>
+                      {badges.length > 0 ? badges.map((b, i) => (
+                        <span key={i} style={{ fontSize: "10px", color: b.color, background: b.bg, padding: "1px 6px", borderRadius: "5px", fontWeight: 500, whiteSpace: "nowrap" }}>
+                          {b.label}
+                        </span>
+                      )) : (
+                        <span style={{ fontSize: "11px", color: C.t3 }}>一致なし</span>
+                      )}
+                    </div>
+                    {track.reason && (
+                      <div style={{ marginTop: "3px", fontSize: "10px", color: C.t2, fontStyle: "italic", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {track.reason}
+                      </div>
                     )}
-                  </div>
+                  </>
                 )}
               </div>
 

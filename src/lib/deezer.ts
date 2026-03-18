@@ -15,6 +15,7 @@ export type Track = {
   is_vocal?: boolean;
   genre_tags?: string[];
   release_year?: number;
+  reason?: string;
 };
 
 function mapTrack(t: any): Track {

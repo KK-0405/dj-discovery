@@ -116,7 +116,7 @@ Each object: { bpm: integer, key: string, camelot: string, energy: float 0-1, da
   }
 }
 
-export type TrackSuggestion = { title: string; artist: string } & Partial<GeminiMetadata>;
+export type TrackSuggestion = { title: string; artist: string; reason?: string } & Partial<GeminiMetadata>;
 
 export type SimilarResult = {
   suggestions: TrackSuggestion[];
@@ -204,7 +204,9 @@ CRITICAL RULES (violations are not acceptable):
 OUTPUT FORMAT: A raw JSON array only. No markdown fences, no explanation, no text before or after the array.
 Array length must be ${count}. Start with [ and end with ].
 
-Each element: {"title":"...","artist":"...","bpm":128,"key":"F# minor","camelot":"2A","energy":0.7,"danceability":0.8,"is_vocal":true,"genre_tags":["House"],"release_year":2005,"confidence":"high"}
+Each element: {"title":"...","artist":"...","bpm":128,"key":"F# minor","camelot":"2A","energy":0.7,"danceability":0.8,"is_vocal":true,"genre_tags":["House"],"release_year":2005,"confidence":"high","reason":"..."}
+
+The "reason" field: 1 short sentence (max 40 chars) explaining WHY this track mixes well with the seed. Focus on the strongest matching factor: BPM proximity, camelot key compatibility, shared genre, same era, or matching energy. Write in Japanese if the seed/track are Japanese, otherwise English. Examples: "同BPM・隣接キーでスムーズに繋げる" / "同時代のディスコ、エネルギー一致" / "Same BPM, adjacent camelot key"
 
 REMEMBER: ${count} songs total. Output all ${count} now.`;
 }
@@ -235,7 +237,8 @@ async function fetchSuggestions(
       // カラオケ・カバーをコード側でも除外
       if (isKaraokeOrCover(String(m.title), String(m.artist))) return null;
       const meta = (() => { try { return sanitize(m); } catch { return null; } })();
-      return { title: String(m.title), artist: String(m.artist), ...meta };
+      const reason = typeof m.reason === "string" && m.reason.trim() ? m.reason.trim() : undefined;
+      return { title: String(m.title), artist: String(m.artist), reason, ...meta };
     })
     .filter(Boolean) as TrackSuggestion[];
 

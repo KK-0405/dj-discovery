@@ -104,6 +104,7 @@ export async function POST(request: NextRequest) {
           is_vocal: s.is_vocal ?? true,
           genre_tags: s.genre_tags ?? [],
           release_year: track.release_year || s.release_year || undefined,
+          reason: s.reason ?? undefined,
         };
       })
       .filter(Boolean)
