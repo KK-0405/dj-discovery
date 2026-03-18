@@ -221,8 +221,14 @@ export default function AuthModal({ onClose }: Props) {
         {/* ヘッダー */}
         <div style={{ padding: "22px 24px 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <div style={{ width: 30, height: 30, background: C.acc, borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px", boxShadow: "0 2px 8px rgba(88,86,214,0.3)" }}>♪</div>
-            <span style={{ fontSize: "16px", fontWeight: 700, color: C.t1 }}>DJ Discovery</span>
+            <div style={{ width: 30, height: 30, background: C.acc, borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(88,86,214,0.3)" }}>
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="10" cy="10" r="2.5" fill="white"/>
+                <circle cx="10" cy="10" r="5.5" stroke="white" strokeWidth="1.5" strokeOpacity="0.7"/>
+                <circle cx="10" cy="10" r="9" stroke="white" strokeWidth="1" strokeOpacity="0.35"/>
+              </svg>
+            </div>
+            <span style={{ fontSize: "16px", fontWeight: 700, color: C.t1 }}>Ripple</span>
           </div>
           <button
             onClick={onClose}

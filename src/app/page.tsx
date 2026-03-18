@@ -289,13 +289,18 @@ export default function Home() {
               background: "#5856d6",
               borderRadius: "9px",
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: "17px",
               flexShrink: 0,
               boxShadow: "0 2px 8px rgba(88,86,214,0.35)",
-            }}>♪</div>
+            }}>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="10" cy="10" r="2.5" fill="white"/>
+                <circle cx="10" cy="10" r="5.5" stroke="white" strokeWidth="1.5" strokeOpacity="0.7"/>
+                <circle cx="10" cy="10" r="9" stroke="white" strokeWidth="1" strokeOpacity="0.35"/>
+              </svg>
+            </div>
             <div>
-              <div style={{ fontSize: "14px", fontWeight: 700, color: "#1d1d1f", letterSpacing: "-0.01em" }}>DJ Discovery</div>
-              <div style={{ fontSize: "10px", color: "#aeaeb2", marginTop: "1px" }}>Music Explorer</div>
+              <div style={{ fontSize: "14px", fontWeight: 700, color: "#1d1d1f", letterSpacing: "-0.01em" }}>Ripple</div>
+              <div style={{ fontSize: "10px", color: "#aeaeb2", marginTop: "1px" }}>Find Your Sound</div>
             </div>
           </div>
         </div>

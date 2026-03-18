@@ -10,6 +10,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ja">
+      <head><title>Ripple</title></head>
       <body>
         <AuthProvider>{children}</AuthProvider>
       </body>

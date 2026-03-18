@@ -22,8 +22,8 @@ export async function POST(request: NextRequest) {
         part: ["snippet", "status"],
         requestBody: {
           snippet: {
-            title: title || "DJ Discovery Playlist",
-            description: "Created by DJ Discovery",
+            title: title || "Ripple Playlist",
+            description: "Created by Ripple",
           },
           status: { privacyStatus: "private" },
         },
