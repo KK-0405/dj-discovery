@@ -37,9 +37,11 @@ type Props = {
   setAsMainSeed: (track: Track) => void;
   addToSubSeed: (track: Track) => void;
   addToPlaylist: (track: Track) => void;
+  removeFromPlaylist: (id: string) => void;
   isInPlaylist: (track: Track) => boolean;
   filteredSimilarCount: number;
   metadataLoading: boolean;
+  onResetSimilar: () => void;
   savedPlaylists: SavedPlaylist[];
   addTrackToSavedPlaylist: (playlistId: string, track: Track) => void;
 };
@@ -103,8 +105,8 @@ function isCamelotAdjacent(a: string, b: string): boolean {
 export default function SearchPanel({
   query, setQuery, search, loading, mode, displayTracks,
   mainSeed, subSeeds, setAsMainSeed, addToSubSeed,
-  addToPlaylist, isInPlaylist, filteredSimilarCount, metadataLoading,
-  savedPlaylists, addTrackToSavedPlaylist,
+  addToPlaylist, removeFromPlaylist, isInPlaylist, filteredSimilarCount, metadataLoading,
+  savedPlaylists, addTrackToSavedPlaylist, onResetSimilar,
 }: Props) {
   const listRef = useRef<HTMLDivElement>(null);
   const [isComposing, setIsComposing] = useState(false);
@@ -356,6 +358,27 @@ export default function SearchPanel({
         {metadataLoading && (
           <span style={{ fontSize: "11px", color: C.acc }}>✦ Gemini 解析中...</span>
         )}
+        {mode === "similar" && (
+          <button
+            onClick={onResetSimilar}
+            style={{
+              marginLeft: "auto",
+              padding: "3px 10px",
+              background: "none",
+              border: `1px solid ${C.s3}`,
+              borderRadius: "6px",
+              color: C.t3,
+              fontSize: "11px",
+              fontWeight: 500,
+              cursor: "pointer",
+              flexShrink: 0,
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.t2; e.currentTarget.style.color = C.t2; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.s3; e.currentTarget.style.color = C.t3; }}
+          >
+            ✕ リセット
+          </button>
+        )}
       </div>
 
       {/* トラックリスト */}
@@ -505,9 +528,12 @@ export default function SearchPanel({
 
                 {/* BPM + Camelot + メタ */}
                 <div style={{ display: "flex", gap: "5px", alignItems: "center", marginTop: "4px", flexWrap: "wrap" }}>
-                  <span style={{ fontSize: "11px", color: track.bpm ? "#1b7a34" : C.t3, fontWeight: 500 }}>
-                    {track.bpm ? `${track.bpm} BPM` : "— BPM"}
-                  </span>
+                  {/* 類似モードではBPMをマッチバッジ側に表示するためここでは非表示 */}
+                  {mode !== "similar" && (
+                    <span style={{ fontSize: "11px", color: track.bpm ? "#1b7a34" : C.t3, fontWeight: 500 }}>
+                      {track.bpm ? `${track.bpm} BPM` : "— BPM"}
+                    </span>
+                  )}
                   {track.camelot && (
                     <span style={{ fontSize: "10px", color: "#0055cc", background: C.blueDim, padding: "1px 6px", borderRadius: "4px", fontWeight: 600 }}>
                       {track.camelot}
@@ -576,6 +602,7 @@ export default function SearchPanel({
                 >
                   <button
                     onClick={() => {
+                      if (inPlaylist) { removeFromPlaylist(track.id); return; }
                       if (savedPlaylists.length === 0) { addToPlaylist(track); return; }
                       setOpenMenuId(openMenuId === track.id ? null : track.id);
                     }}

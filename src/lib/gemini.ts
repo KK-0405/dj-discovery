@@ -123,6 +123,92 @@ export type SimilarResult = {
   error?: string;
 };
 
+function isJapanese(text: string): boolean {
+  return /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(text);
+}
+
+// カラオケ・カバー・トリビュートを検出するキーワード
+const KARAOKE_KEYWORDS = [
+  /karaoke/i, /カラオケ/, /kara ?oke/i,
+  /\btribute\b/i, /トリビュート/,
+  /\bcover\b/i, /カバー/,
+  /instrumental version/i, /インスト版/,
+  /as made famous/i, /in the style of/i,
+  /originally performed/i, /originally by/i,
+  /sound ?alike/i, /bgm集/, /bgm collection/i,
+  /\(re-?recorded\)/i, /\[re-?recorded\]/i,
+];
+
+function isKaraokeOrCover(title: string, artist: string): boolean {
+  const combined = `${title} ${artist}`;
+  return KARAOKE_KEYWORDS.some((re) => re.test(combined));
+}
+
+function buildSimilarPrompt(
+  seed: { title: string; artist: string; genre_tags?: string[]; bpm?: number; release_year?: number },
+  subSeeds: { title: string; artist: string; genre_tags?: string[] }[],
+  count: number,
+  excludeTitles: string[] = []
+): string {
+  const genres = seed.genre_tags?.join(", ") || "unknown";
+  const subGenreStr = subSeeds.flatMap((s) => s.genre_tags ?? []).filter(Boolean);
+  const subInfo = subGenreStr.length ? `Sub-influences: ${subGenreStr.join(", ")}` : "";
+  const excludeStr = excludeTitles.length
+    ? `\n- Do NOT include these already-listed songs: ${excludeTitles.slice(0, 20).join(", ")}.`
+    : "";
+
+  const japaneseSeed = isJapanese(seed.title) || isJapanese(seed.artist);
+  const langRule = japaneseSeed
+    ? "- Output title and artist fields in Japanese (use Japanese characters — kanji/kana — not romaji). Japanese songs should have Japanese titles."
+    : "- Output title and artist fields in English (use Latin alphabet).";
+
+  return `You are a DJ and music expert. List EXACTLY ${count} real songs to mix with "${seed.title}" by ${seed.artist}.
+Genre: ${genres}. BPM≈${seed.bpm || "?"}, Era: ${seed.release_year || "?"}.${subInfo ? " " + subInfo : ""}
+Rules:
+- Output EXACTLY ${count} songs — no more, no less.
+- If you cannot find enough close genre matches, fill remaining slots with related genre/era songs.
+- Match genre closely, BPM within ±15, same era ±10 years.
+- Exclude the seed song itself.${excludeStr}
+- STRICTLY EXCLUDE: karaoke versions, カラオケ, instrumental covers, tribute band recordings, cover albums, BGM collections, sound-alike recordings, "as made famous by" tracks. Only original artist recordings.
+- Do NOT stop early. Always output all ${count} entries.
+- ${langRule}
+Return ONLY a JSON array. No explanation, no markdown, no extra text.
+Each object must have: title, artist, bpm (integer), key (e.g. "F# minor"), camelot (e.g. "11A"), energy (float 0-1), danceability (float 0-1), is_vocal (boolean), genre_tags (string array max 4), release_year (integer), confidence ("high"/"medium"/"low").`;
+}
+
+async function fetchSuggestions(
+  apiKey: string,
+  prompt: string
+): Promise<{ suggestions: TrackSuggestion[]; error?: string }> {
+  const result = await geminiPost(apiKey, {
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: { maxOutputTokens: 4096 },
+  });
+  if (!result || !result.__ok || result.__data?.error) {
+    return { suggestions: [], error: `HTTP ${result?.__status}: ${JSON.stringify(result?.__data?.error ?? result?.__data)}` };
+  }
+  const text = extractText(result.__data);
+  let parsed: any[];
+  try {
+    parsed = parseJson(text);
+    if (!Array.isArray(parsed)) return { suggestions: [], error: `JSONパース失敗: ${text.slice(0, 200)}` };
+  } catch {
+    return { suggestions: [], error: `JSONパース失敗: ${text.slice(0, 200)}` };
+  }
+
+  const suggestions = parsed
+    .map((m: any) => {
+      if (!m.title || !m.artist) return null;
+      // カラオケ・カバーをコード側でも除外
+      if (isKaraokeOrCover(String(m.title), String(m.artist))) return null;
+      const meta = (() => { try { return sanitize(m); } catch { return null; } })();
+      return { title: String(m.title), artist: String(m.artist), ...meta };
+    })
+    .filter(Boolean) as TrackSuggestion[];
+
+  return { suggestions };
+}
+
 export async function getSimilarTrackSuggestions(
   seed: {
     title: string;
@@ -155,37 +241,25 @@ export async function getSimilarTrackSuggestions(
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return { suggestions: [], error: "GEMINI_API_KEY not set" };
 
-  const genres = seed.genre_tags?.join(", ") || "unknown";
-  const subGenreStr = subSeeds.flatMap((s) => s.genre_tags ?? []).filter(Boolean);
-  const subInfo = subGenreStr.length ? `Sub-influences: ${subGenreStr.join(", ")}` : "";
-
-  const prompt = `You are a DJ and music expert. List EXACTLY ${count} real songs to mix with "${seed.title}" by ${seed.artist}.
-Genre: ${genres}. BPM≈${seed.bpm || "?"}, Era: ${seed.release_year || "?"}.${subInfo ? " " + subInfo : ""}
-Rules:
-- Output EXACTLY ${count} songs — no more, no less. If you cannot find enough close matches, fill remaining slots with related genre/era songs.
-- Match genre closely, BPM within ±15, same era ±10 years.
-- Exclude the seed song itself.
-- EXCLUDE: karaoke versions, instrumental covers, tribute band recordings, cover albums, BGM collections, sound-alike recordings. Only original artist recordings.
-- Do NOT stop early. Always output all ${count} entries.
-Return ONLY a JSON array. No explanation, no markdown, no extra text.
-Each object must have: title, artist, bpm (integer), key (e.g. "F# minor"), camelot (e.g. "11A"), energy (float 0-1), danceability (float 0-1), is_vocal (boolean), genre_tags (string array max 4), release_year (integer), confidence ("high"/"medium"/"low").`;
-
   try {
-    const result = await geminiPost(apiKey, { contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 4096 } });
-    if (!result || !result.__ok || result.__data?.error) {
-      const errMsg = `HTTP ${result?.__status}: ${JSON.stringify(result?.__data?.error ?? result?.__data)}`;
-      return { suggestions: [], error: errMsg };
+    // 1回目
+    const prompt1 = buildSimilarPrompt(seed, subSeeds, count);
+    const first = await fetchSuggestions(apiKey, prompt1);
+    if (first.error) return first;
+
+    let suggestions = first.suggestions;
+
+    // 不足分を再リクエスト（最大1回）
+    if (suggestions.length < count) {
+      const need = count - suggestions.length;
+      const alreadyHave = suggestions.map((s) => `"${s.title}" by ${s.artist}`);
+      const prompt2 = buildSimilarPrompt(seed, subSeeds, need, alreadyHave);
+      const second = await fetchSuggestions(apiKey, prompt2);
+      if (!second.error && second.suggestions.length > 0) {
+        suggestions = [...suggestions, ...second.suggestions].slice(0, count);
+      }
     }
-    const text = extractText(result.__data);
-    const parsed = parseJson(text);
-    if (!Array.isArray(parsed)) return { suggestions: [], error: `JSONパース失敗: ${text.slice(0, 200)}` };
-    const suggestions = parsed
-      .map((m: any) => {
-        if (!m.title || !m.artist) return null;
-        const meta = (() => { try { return sanitize(m); } catch { return null; } })();
-        return { title: String(m.title), artist: String(m.artist), ...meta };
-      })
-      .filter(Boolean) as TrackSuggestion[];
+
     return { suggestions };
   } catch (e) {
     return { suggestions: [], error: String(e) };

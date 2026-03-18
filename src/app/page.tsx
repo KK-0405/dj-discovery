@@ -436,9 +436,10 @@ export default function Home() {
         query={query} setQuery={setQuery} search={search} loading={loading}
         mode={mode} displayTracks={displayTracks} mainSeed={mainSeed}
         subSeeds={subSeeds} setAsMainSeed={setAsMainSeed} addToSubSeed={addToSubSeed}
-        addToPlaylist={addToPlaylist} isInPlaylist={isInPlaylist}
+        addToPlaylist={addToPlaylist} removeFromPlaylist={removeFromPlaylist} isInPlaylist={isInPlaylist}
         filteredSimilarCount={filteredSimilar.length} metadataLoading={metadataLoading}
         savedPlaylists={savedPlaylists} addTrackToSavedPlaylist={addTrackToSavedPlaylist}
+        onResetSimilar={() => { setSimilarTracks([]); setMode("search"); setFilters(DEFAULT_FILTERS); }}
       />
 
       {/* 右パネル */}

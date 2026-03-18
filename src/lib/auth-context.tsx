@@ -33,24 +33,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadProfile = async (userId: string) => {
+  const loadProfile = async (userId: string, fallbackEmail?: string) => {
     const { data } = await supabase
       .from("users")
       .select("user_id, avatar_url")
       .eq("id", userId)
       .single();
-    setUserProfile(data ?? null);
+    if (data) {
+      setUserProfile(data);
+    } else if (fallbackEmail) {
+      // DBフェッチ失敗時はメールのローカルパートをフォールバック表示
+      setUserProfile({ user_id: fallbackEmail.split("@")[0] || "user", avatar_url: null });
+    }
+    // data も fallbackEmail もない場合は既存の userProfile を保持（ちらつき防止）
   };
 
   const refreshProfile = async () => {
-    if (user) await loadProfile(user.id);
+    if (user) await loadProfile(user.id, user.email);
   };
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) await loadProfile(session.user.id);
+      if (session?.user) await loadProfile(session.user.id, session.user.email);
       setLoading(false);
     });
 
@@ -64,7 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (event === "SIGNED_IN" && session.user.app_metadata?.provider === "google") {
           await ensureGoogleUserRecord(session.user);
         }
-        await loadProfile(session.user.id);
+        await loadProfile(session.user.id, session.user.email);
       } else {
         setUserProfile(null);
       }
@@ -84,6 +90,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSession(null);
     setUser(null);
     setUserProfile(null);
+    // ページをリロードしてSupabaseキャッシュ・メモリ状態を完全リセット
+    if (typeof window !== "undefined") window.location.href = "/";
   };
 
   return (
