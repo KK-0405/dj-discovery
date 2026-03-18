@@ -10,7 +10,7 @@ export type GeminiMetadata = {
   confidence: "high" | "medium" | "low";
 };
 
-const GEMINI_API = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent";
+const GEMINI_API = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent";
 async function geminiPost(apiKey: string, body: object): Promise<any> {
   const res = await fetch(`${GEMINI_API}?key=${apiKey}`, {
     method: "POST",
