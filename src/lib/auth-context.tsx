@@ -75,7 +75,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.error("signOut error:", e);
+    }
+    // API失敗に関わらずローカル状態を強制クリア
+    setSession(null);
+    setUser(null);
     setUserProfile(null);
   };
 

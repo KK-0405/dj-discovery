@@ -404,7 +404,7 @@ export default function Home() {
                       <div style={{ fontSize: "11px", color: "#aeaeb2", marginTop: "1px" }}>{session.user?.email}</div>
                     </div>
                     <button
-                      onClick={() => { signOut(); setShowUserMenu(false); }}
+                      onClick={async () => { await signOut(); setShowUserMenu(false); }}
                       style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", color: "#ff3b30", fontSize: "13px", fontWeight: 500, cursor: "pointer", textAlign: "left" as const }}
                       onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,59,48,0.06)")}
                       onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
