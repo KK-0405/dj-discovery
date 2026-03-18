@@ -8,8 +8,8 @@ const C = {
   bg: "#fafafa",
   s1: "#f5f5f7",
   s2: "#e8e8ed",
-  acc: "#5856d6",
-  accDim: "rgba(88,86,214,0.1)",
+  acc: "#7F77DD",
+  accDim: "rgba(127,119,221,0.1)",
   t1: "#1d1d1f",
   t2: "#6e6e73",
   t3: "#aeaeb2",
@@ -224,7 +224,7 @@ export default function PlaylistPanel({
               color: playlist.length > 0 || saveStatus !== "idle" ? "#fff" : C.t3,
               fontSize: "13px", fontWeight: 700,
               cursor: playlist.length > 0 ? "pointer" : "default",
-              boxShadow: playlist.length > 0 && saveStatus === "idle" ? "0 2px 8px rgba(88,86,214,0.25)" : "none",
+              boxShadow: playlist.length > 0 && saveStatus === "idle" ? "0 2px 8px rgba(127,119,221,0.28)" : "none",
               transition: "background 0.2s",
             }}
           >

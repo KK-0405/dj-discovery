@@ -1,0 +1,25 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#3C3489"/>
+      <stop offset="100%" stop-color="#26215C"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#7F77DD" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#7F77DD" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- 背景 -->
+  <rect x="0" y="0" width="200" height="200" rx="44" fill="url(#bg)"/>
+
+  <!-- グロー -->
+  <ellipse cx="100" cy="100" rx="80" ry="80" fill="url(#glow)"/>
+
+  <!-- 波紋：同心円 -->
+  <circle cx="100" cy="100" r="12" fill="#EEEDFE" opacity="0.95"/>
+  <circle cx="100" cy="100" r="30" fill="none" stroke="#AFA9EC" stroke-width="3.5" opacity="0.85"/>
+  <circle cx="100" cy="100" r="52" fill="none" stroke="#7F77DD" stroke-width="2.5" opacity="0.65"/>
+  <circle cx="100" cy="100" r="74" fill="none" stroke="#534AB7" stroke-width="1.5" opacity="0.45"/>
+  <circle cx="100" cy="100" r="94" fill="none" stroke="#3C3489" stroke-width="1" opacity="0.3"/>
+</svg>

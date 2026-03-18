@@ -286,16 +286,16 @@ export default function Home() {
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <div style={{
               width: 34, height: 34,
-              background: "#5856d6",
+              background: "linear-gradient(135deg, #3C3489, #26215C)",
               borderRadius: "9px",
               display: "flex", alignItems: "center", justifyContent: "center",
               flexShrink: 0,
-              boxShadow: "0 2px 8px rgba(88,86,214,0.35)",
+              boxShadow: "0 2px 10px rgba(63,52,137,0.45)",
             }}>
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="10" cy="10" r="2.5" fill="white"/>
-                <circle cx="10" cy="10" r="5.5" stroke="white" strokeWidth="1.5" strokeOpacity="0.7"/>
-                <circle cx="10" cy="10" r="9" stroke="white" strokeWidth="1" strokeOpacity="0.35"/>
+                <circle cx="10" cy="10" r="2.5" fill="#EEEDFE" opacity="0.95"/>
+                <circle cx="10" cy="10" r="5.5" stroke="#AFA9EC" strokeWidth="1.5" opacity="0.85"/>
+                <circle cx="10" cy="10" r="9" stroke="#7F77DD" strokeWidth="1" opacity="0.65"/>
               </svg>
             </div>
             <div>
@@ -313,10 +313,10 @@ export default function Home() {
           <div style={{
             display: "flex", alignItems: "center", gap: "8px",
             padding: "8px 10px", borderRadius: "8px",
-            background: "rgba(88,86,214,0.1)",
+            background: "rgba(127,119,221,0.1)",
           }}>
             <span style={{ fontSize: "15px" }}>🔍</span>
-            <span style={{ fontSize: "13px", fontWeight: 600, color: "#5856d6" }}>Search</span>
+            <span style={{ fontSize: "13px", fontWeight: 600, color: "#7F77DD" }}>Search</span>
           </div>
 
           <div style={{ fontSize: "10px", color: "#aeaeb2", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", padding: "12px 8px 6px" }}>
@@ -332,7 +332,7 @@ export default function Home() {
               {playlistName.length > 12 ? playlistName.slice(0, 12) + "…" : playlistName}
             </span>
             {playlist.length > 0 && (
-              <span style={{ marginLeft: "auto", background: "#5856d6", color: "#fff", borderRadius: "8px", padding: "1px 6px", fontSize: "10px", fontWeight: 700, flexShrink: 0 }}>
+              <span style={{ marginLeft: "auto", background: "#7F77DD", color: "#fff", borderRadius: "8px", padding: "1px 6px", fontSize: "10px", fontWeight: 700, flexShrink: 0 }}>
                 {playlist.length}
               </span>
             )}
@@ -348,14 +348,14 @@ export default function Home() {
                 style={{
                   width: "100%", display: "flex", alignItems: "center", gap: "8px",
                   padding: "7px 10px", borderRadius: "9px",
-                  background: showUserMenu ? "rgba(88,86,214,0.08)" : "none",
+                  background: showUserMenu ? "rgba(127,119,221,0.08)" : "none",
                   border: "none", cursor: "pointer",
                   transition: "background 0.15s",
                 }}
                 onMouseEnter={(e) => { if (!showUserMenu) e.currentTarget.style.background = "rgba(0,0,0,0.04)"; }}
                 onMouseLeave={(e) => { if (!showUserMenu) e.currentTarget.style.background = "none"; }}
               >
-                <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(88,86,214,0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", flexShrink: 0, color: "#5856d6", fontWeight: 700 }}>
+                <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(127,119,221,0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", flexShrink: 0, color: "#7F77DD", fontWeight: 700 }}>
                   {(userProfile?.user_id ?? "?")[0].toUpperCase()}
                 </div>
                 <span style={{ fontSize: "12px", fontWeight: 500, color: "#1d1d1f", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, textAlign: "left" as const }}>
@@ -389,15 +389,15 @@ export default function Home() {
               onClick={() => setShowAuthModal(true)}
               style={{
                 width: "100%", padding: "9px 10px",
-                background: "rgba(88,86,214,0.08)",
-                border: "1px solid rgba(88,86,214,0.18)",
+                background: "rgba(127,119,221,0.08)",
+                border: "1px solid rgba(127,119,221,0.18)",
                 borderRadius: "9px",
-                color: "#5856d6",
+                color: "#7F77DD",
                 fontSize: "13px", fontWeight: 600,
                 cursor: "pointer",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(88,86,214,0.14)")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(88,86,214,0.08)")}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(127,119,221,0.14)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(127,119,221,0.08)")}
             >
               新規登録 / ログイン
             </button>
