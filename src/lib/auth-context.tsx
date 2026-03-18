@@ -81,17 +81,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = async () => {
+    // scope:'local' = APIを呼ばずにlocalStorageを確実に削除（トークン期限切れでも動作）
     try {
-      await supabase.auth.signOut();
+      await supabase.auth.signOut({ scope: "local" });
     } catch (e) {
       console.error("signOut error:", e);
     }
-    // API失敗に関わらずローカル状態を強制クリア
-    setSession(null);
-    setUser(null);
-    setUserProfile(null);
-    // ページをリロードしてSupabaseキャッシュ・メモリ状態を完全リセット
-    if (typeof window !== "undefined") window.location.href = "/";
+    // Supabaseがlocalに残したセッションキーを手動でも削除（確実性のため）
+    if (typeof window !== "undefined") {
+      Object.keys(localStorage)
+        .filter((k) => k.startsWith("sb-"))
+        .forEach((k) => localStorage.removeItem(k));
+      window.location.href = "/";
+    }
   };
 
   return (
