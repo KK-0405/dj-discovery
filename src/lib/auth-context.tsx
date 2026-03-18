@@ -14,7 +14,7 @@ type AuthContextType = {
   user: User | null;
   userProfile: UserProfile | null;
   loading: boolean;
-  signOut: () => Promise<void>;
+  signOut: () => void;
   refreshProfile: () => Promise<void>;
 };
 
@@ -23,7 +23,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   userProfile: null,
   loading: true,
-  signOut: async () => {},
+  signOut: () => {},
   refreshProfile: async () => {},
 });
 
@@ -80,20 +80,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signOut = async () => {
-    // scope:'local' = APIを呼ばずにlocalStorageを確実に削除（トークン期限切れでも動作）
+  const signOut = () => {
+    // Supabase SDKを呼ばず直接localStorageからセッションを削除してリダイレクト
+    // SDKのsignOut()はネットワーク問題でハングする場合があるため迂回する
     try {
-      await supabase.auth.signOut({ scope: "local" });
-    } catch (e) {
-      console.error("signOut error:", e);
-    }
-    // Supabaseがlocalに残したセッションキーを手動でも削除（確実性のため）
-    if (typeof window !== "undefined") {
       Object.keys(localStorage)
         .filter((k) => k.startsWith("sb-"))
         .forEach((k) => localStorage.removeItem(k));
-      window.location.href = "/";
-    }
+    } catch { /* localStorage アクセス不可の場合は無視 */ }
+    window.location.href = "/";
   };
 
   return (
