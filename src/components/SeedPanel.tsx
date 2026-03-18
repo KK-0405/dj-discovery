@@ -3,6 +3,26 @@
 import { useState } from "react";
 import { type Track, type SimilarFilters } from "@/types";
 
+const C = {
+  s1: "#1c1c1e",
+  s2: "#2c2c2e",
+  s3: "#3a3a3c",
+  acc: "#fc3c44",
+  accDim: "rgba(252,60,68,0.12)",
+  t1: "#fff",
+  t2: "rgba(235,235,245,0.6)",
+  t3: "rgba(235,235,245,0.3)",
+  sep: "rgba(84,84,88,0.4)",
+  blue: "#0a84ff",
+  blueDim: "rgba(10,132,255,0.15)",
+  green: "#30d158",
+  greenDim: "rgba(48,209,88,0.12)",
+  purple: "#bf5af2",
+  purpleDim: "rgba(191,90,242,0.15)",
+  yellow: "#ffd60a",
+  yellowDim: "rgba(255,214,10,0.12)",
+} as const;
+
 type Props = {
   mainSeed: Track | null;
   setMainSeed: (track: Track | null) => void;
@@ -17,34 +37,61 @@ type Props = {
   seedError: string | null;
 };
 
-function Section({ title }: { title: string }) {
+function Label({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ fontSize: "10px", color: "#888", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: "10px", marginBottom: "4px" }}>
-      {title}
-    </div>
-  );
-}
-
-function Row({ label, value, available = true, children }: { label: string; value?: string; available?: boolean; children: React.ReactNode }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "3px 0", opacity: available ? 1 : 0.3 }}>
-      <div style={{ display: "flex", alignItems: "baseline", gap: "6px", minWidth: 0, flex: 1 }}>
-        <span style={{ fontSize: "11px", color: available ? "#ccc" : "#666", flexShrink: 0 }}>{label}</span>
-        {value && <span style={{ fontSize: "10px", color: "#1db954", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{value}</span>}
-      </div>
-      <div style={{ pointerEvents: available ? "auto" : "none", marginLeft: "6px", flexShrink: 0 }}>{children}</div>
+    <div style={{
+      fontSize: "10px", color: C.t3, fontWeight: 600,
+      textTransform: "uppercase", letterSpacing: "0.06em",
+      marginBottom: "6px", marginTop: "2px",
+    }}>
+      {children}
     </div>
   );
 }
 
 function Chip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
-    <button onClick={onClick} style={{
-      padding: "2px 8px", borderRadius: "10px", fontSize: "10px", cursor: "pointer", border: "0.5px solid",
-      background: active ? "#1db954" : "#1a1a1a",
-      borderColor: active ? "#1db954" : "#333",
-      color: active ? "#000" : "#888",
-    }}>{label}</button>
+    <button
+      onClick={onClick}
+      style={{
+        padding: "4px 10px",
+        borderRadius: "20px",
+        fontSize: "11px",
+        fontWeight: 600,
+        cursor: "pointer",
+        border: "none",
+        background: active ? C.acc : "rgba(255,255,255,0.08)",
+        color: active ? "#fff" : C.t2,
+        transition: "background 0.1s",
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
+function CheckRow({
+  label, value, available = true, checked, onChange,
+}: {
+  label: string; value?: string; available?: boolean; checked: boolean; onChange: (v: boolean) => void;
+}) {
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", justifyContent: "space-between",
+      padding: "5px 0", opacity: available ? 1 : 0.35,
+    }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: "5px", minWidth: 0, flex: 1 }}>
+        <span style={{ fontSize: "12px", color: available ? C.t2 : C.t3 }}>{label}</span>
+        {value && <span style={{ fontSize: "10px", color: C.green }}>{value}</span>}
+      </div>
+      <div style={{ marginLeft: "8px", flexShrink: 0, pointerEvents: available ? "auto" : "none" }}>
+        <input
+          type="checkbox" checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+          style={{ accentColor: C.acc, cursor: "pointer", width: 14, height: 14 }}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -74,57 +121,92 @@ export default function SeedPanel({
   const hasDecade = !!(mainSeed?.release_year);
 
   return (
-    <div>
-      <div style={{ fontSize: "12px", fontWeight: 500, color: "#aaa", marginBottom: "10px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Seed</div>
+    <div style={{ padding: "16px" }}>
 
-      {/* メイン */}
-      <div style={{ marginBottom: "10px" }}>
-        <div style={{ fontSize: "11px", color: "#666", marginBottom: "6px" }}>メイン</div>
+      {/* Seed ヘッダー */}
+      <div style={{
+        fontSize: "12px", fontWeight: 700, color: C.t2,
+        textTransform: "uppercase", letterSpacing: "0.06em",
+        marginBottom: "14px",
+      }}>
+        Seed
+      </div>
+
+      {/* メイン Seed */}
+      <div style={{ marginBottom: "12px" }}>
+        <Label>メイン</Label>
         {mainSeed ? (
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "#1db95422", border: "0.5px solid #1db95444", borderRadius: "6px", padding: "8px" }}>
-            <img src={mainSeed.album.images[0]?.url} alt={mainSeed.album.name} width={32} height={32} style={{ borderRadius: "3px", flexShrink: 0 }} />
+          <div style={{
+            display: "flex", alignItems: "center", gap: "10px",
+            background: C.accDim,
+            border: `1px solid rgba(252,60,68,0.25)`,
+            borderRadius: "10px", padding: "10px",
+          }}>
+            <img
+              src={mainSeed.album.images[0]?.url}
+              alt={mainSeed.album.name}
+              width={36} height={36}
+              style={{ borderRadius: "6px", flexShrink: 0 }}
+            />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ color: "#fff", fontSize: "11px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{mainSeed.name}</div>
-              <div style={{ color: "#aaa", fontSize: "10px" }}>{mainSeed.artists[0].name}</div>
-              <div style={{ display: "flex", gap: "6px", marginTop: "2px", flexWrap: "wrap", alignItems: "center" }}>
-                {mainSeed.bpm > 0 && <span style={{ color: "#1db954", fontSize: "10px" }}>{mainSeed.bpm} BPM</span>}
-                {mainSeed.camelot && <span style={{ color: "#bbb", fontSize: "10px", background: "#1a1a1a", padding: "0 4px", borderRadius: "3px" }}>{mainSeed.camelot}</span>}
-                {mainSeed.energy !== undefined && <span style={{ color: "#bbb", fontSize: "10px" }}>E:{Math.round(mainSeed.energy * 10)}</span>}
-                {mainSeed.release_year && <span style={{ color: "#aaa", fontSize: "10px" }}>{mainSeed.release_year}</span>}
-                {seedAnalyzing && <span style={{ color: "#1db954", fontSize: "10px" }}>✦ 解析中...</span>}
-                {seedError && <span style={{ color: "#ff4444", fontSize: "9px", wordBreak: "break-all" }}>ERR: {seedError}</span>}
+              <div style={{ color: C.t1, fontSize: "12px", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{mainSeed.name}</div>
+              <div style={{ color: C.t2, fontSize: "11px", marginTop: "1px" }}>{mainSeed.artists[0]?.name}</div>
+              <div style={{ display: "flex", gap: "6px", marginTop: "4px", flexWrap: "wrap", alignItems: "center" }}>
+                {mainSeed.bpm > 0 && <span style={{ fontSize: "10px", color: C.green, fontWeight: 600 }}>{mainSeed.bpm} BPM</span>}
+                {mainSeed.camelot && (
+                  <span style={{ fontSize: "10px", color: C.blue, background: C.blueDim, padding: "0 5px", borderRadius: "4px", fontWeight: 600 }}>{mainSeed.camelot}</span>
+                )}
+                {mainSeed.energy !== undefined && <span style={{ fontSize: "10px", color: C.t3 }}>E:{Math.round(mainSeed.energy * 10)}</span>}
+                {mainSeed.release_year && <span style={{ fontSize: "10px", color: C.t3 }}>{mainSeed.release_year}</span>}
+                {seedAnalyzing && <span style={{ fontSize: "10px", color: C.acc }}>✦ 解析中...</span>}
+                {seedError && <span style={{ fontSize: "9px", color: "#ff453a", wordBreak: "break-all" }}>ERR</span>}
               </div>
             </div>
-            <button onClick={() => setMainSeed(null)} style={{ background: "none", border: "none", color: "#555", fontSize: "14px", cursor: "pointer", flexShrink: 0 }}>×</button>
+            <button
+              onClick={() => setMainSeed(null)}
+              style={{ background: "none", border: "none", color: C.t3, fontSize: "18px", cursor: "pointer", flexShrink: 0, lineHeight: 1, padding: "2px" }}
+            >
+              ×
+            </button>
           </div>
         ) : (
-          <div style={{ padding: "8px", background: "#1a1a1a", borderRadius: "6px", color: "#555", fontSize: "11px", textAlign: "center" }}>検索結果からメインを選択</div>
+          <div style={{
+            padding: "12px", background: C.s1, borderRadius: "10px",
+            color: C.t3, fontSize: "12px", textAlign: "center",
+          }}>
+            検索結果からメインを選択
+          </div>
         )}
       </div>
 
-      {/* サブ */}
-      <div style={{ marginBottom: "12px" }}>
-        <div style={{ fontSize: "11px", color: "#666", marginBottom: "6px" }}>サブ</div>
+      {/* サブ Seed */}
+      <div style={{ marginBottom: "14px" }}>
+        <Label>サブ</Label>
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           {subSeeds.length === 0 && (
-            <div style={{ padding: "8px", background: "#1a1a1a", borderRadius: "6px", color: "#555", fontSize: "11px", textAlign: "center" }}>サブSeedを追加</div>
+            <div style={{ padding: "10px", background: C.s1, borderRadius: "10px", color: C.t3, fontSize: "12px", textAlign: "center" }}>
+              サブ Seed を追加
+            </div>
           )}
           {subSeeds.map((track) => (
-            <div key={track.id} style={{ display: "flex", alignItems: "center", gap: "8px", background: "#1a1a1a", borderRadius: "6px", padding: "8px" }}>
-              <img src={track.album.images[0]?.url} alt={track.album.name} width={28} height={28} style={{ borderRadius: "3px", flexShrink: 0 }} />
+            <div key={track.id} style={{
+              display: "flex", alignItems: "center", gap: "8px",
+              background: C.s1, borderRadius: "10px", padding: "8px 10px",
+            }}>
+              <img src={track.album.images[0]?.url} alt={track.album.name} width={30} height={30} style={{ borderRadius: "5px", flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ color: "#ddd", fontSize: "11px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{track.name}</div>
-                <div style={{ color: "#999", fontSize: "10px" }}>{track.artists[0].name}</div>
+                <div style={{ color: C.t1, fontSize: "11px", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{track.name}</div>
+                <div style={{ color: C.t2, fontSize: "10px" }}>{track.artists[0]?.name}</div>
               </div>
-              <button onClick={() => removeSubSeed(track.id)} style={{ background: "none", border: "none", color: "#555", fontSize: "14px", cursor: "pointer" }}>×</button>
+              <button onClick={() => removeSubSeed(track.id)} style={{ background: "none", border: "none", color: C.t3, fontSize: "16px", cursor: "pointer" }}>×</button>
             </div>
           ))}
         </div>
       </div>
 
       {/* 取得件数 */}
-      <div style={{ marginBottom: "10px" }}>
-        <div style={{ fontSize: "11px", color: "#666", marginBottom: "6px" }}>取得件数</div>
+      <div style={{ marginBottom: "14px" }}>
+        <Label>取得件数</Label>
         <div style={{ display: "flex", gap: "6px" }}>
           {([10, 20, 30] as const).map((n) => (
             <Chip key={n} label={`${n}曲`} active={similarCount === n} onClick={() => setSimilarCount(n)} />
@@ -132,140 +214,155 @@ export default function SeedPanel({
         </div>
       </div>
 
-      {/* 絞り込み条件 */}
-      <div style={{ border: "0.5px solid #2a2a2a", borderRadius: "8px", overflow: "hidden", marginBottom: "10px" }}>
+      {/* 絞り込み */}
+      <div style={{
+        background: C.s1, borderRadius: "10px", overflow: "hidden",
+        marginBottom: "14px",
+      }}>
         <button
           onClick={() => setShowFilters(!showFilters)}
-          style={{ width: "100%", padding: "8px 10px", background: "#161616", border: "none", color: activeCount > 0 ? "#1db954" : "#888", fontSize: "12px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between" }}
+          style={{
+            width: "100%", padding: "10px 12px",
+            background: "transparent", border: "none",
+            color: activeCount > 0 ? C.acc : C.t2,
+            fontSize: "12px", fontWeight: 600, cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+          }}
         >
-          <span>
+          <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             絞り込み条件
             {activeCount > 0 && (
-              <span style={{ marginLeft: "6px", background: "#1db954", color: "#000", borderRadius: "10px", padding: "1px 6px", fontSize: "10px", fontWeight: 600 }}>{activeCount}</span>
+              <span style={{
+                background: C.acc, color: "#fff",
+                borderRadius: "10px", padding: "0 6px",
+                fontSize: "10px", fontWeight: 700, lineHeight: "16px",
+              }}>
+                {activeCount}
+              </span>
             )}
           </span>
-          <span style={{ fontSize: "10px" }}>{showFilters ? "▲" : "▼"}</span>
+          <span style={{ fontSize: "11px", color: C.t3 }}>{showFilters ? "▲" : "▼"}</span>
         </button>
 
         {showFilters && (
-          <div style={{ padding: "4px 10px 10px", background: "#111" }}>
+          <div style={{ padding: "4px 12px 12px", borderTop: `1px solid ${C.sep}` }}>
 
             {mainSeed && seedAnalyzing && (
-              <div style={{ fontSize: "10px", color: "#1db954", padding: "6px 0", borderBottom: "0.5px solid #1a1a1a", marginBottom: "4px" }}>
-                ✦ Geminiがキー・エネルギー等を解析中...
-              </div>
+              <div style={{ fontSize: "11px", color: C.acc, padding: "8px 0 4px" }}>✦ Gemini が解析中...</div>
             )}
             {mainSeed && !seedAnalyzing && !hasGemini && (
-              <div style={{ fontSize: "10px", color: "#555", padding: "6px 0", borderBottom: "0.5px solid #1a1a1a", marginBottom: "4px" }}>
-                ✦ Seedを選択するとGeminiが自動解析します
-              </div>
+              <div style={{ fontSize: "11px", color: C.t3, padding: "8px 0 4px" }}>✦ Seed 選択後に自動解析</div>
             )}
 
-            {/* リズム・テンポ */}
-            <Section title="リズム・テンポ" />
-            <div style={{ fontSize: "11px", color: "#888", marginBottom: "4px" }}>
-              BPM範囲（シード基準）{(mainSeed?.bpm ?? 0) > 0 && <span style={{ color: "#1db954", marginLeft: "6px" }}>{mainSeed!.bpm} BPM</span>}
-            </div>
-            <div style={{ display: "flex", gap: "6px" }}>
-              {([null, 5, 10] as const).map((v) => (
-                <Chip key={String(v)} label={v === null ? "制限なし" : `±${v}`} active={filters.bpmRange === v} onClick={() => set({ bpmRange: filters.bpmRange === v ? null : v })} />
-              ))}
+            {/* BPM */}
+            <div style={{ marginTop: "8px" }}>
+              <div style={{ fontSize: "11px", color: C.t3, marginBottom: "6px" }}>
+                BPM 範囲
+                {(mainSeed?.bpm ?? 0) > 0 && <span style={{ color: C.green, marginLeft: "6px", fontWeight: 600 }}>{mainSeed!.bpm} BPM</span>}
+              </div>
+              <div style={{ display: "flex", gap: "5px", flexWrap: "wrap" }}>
+                {([null, 5, 10] as const).map((v) => (
+                  <Chip key={String(v)} label={v === null ? "制限なし" : `±${v}`} active={filters.bpmRange === v} onClick={() => set({ bpmRange: filters.bpmRange === v ? null : v })} />
+                ))}
+              </div>
             </div>
 
-            {/* キー・ハーモニー */}
-            <Section title="キー・ハーモニー" />
-            <Row label="同じキー" value={mainSeed?.key || undefined} available={hasGemini}>
-              <input type="checkbox" checked={filters.sameKey} onChange={(e) => set({ sameKey: e.target.checked })} style={{ accentColor: "#1db954", cursor: "pointer" }} />
-            </Row>
-            <Row label="Camelot隣接（±1）" value={mainSeed?.camelot || undefined} available={hasGemini}>
-              <input type="checkbox" checked={filters.camelotAdjacent} onChange={(e) => set({ camelotAdjacent: e.target.checked })} style={{ accentColor: "#1db954", cursor: "pointer" }} />
-            </Row>
-            {!hasGemini && <div style={{ fontSize: "10px", color: "#777" }}>※ Gemini解析後に解除</div>}
+            {/* キー */}
+            <div style={{ marginTop: "10px", paddingTop: "10px", borderTop: `1px solid ${C.sep}` }}>
+              <div style={{ fontSize: "11px", color: C.t3, marginBottom: "4px" }}>キー・ハーモニー</div>
+              <CheckRow label="同じキー" value={mainSeed?.key || undefined} available={hasGemini} checked={filters.sameKey} onChange={(v) => set({ sameKey: v })} />
+              <CheckRow label="Camelot 隣接 (±1)" value={mainSeed?.camelot || undefined} available={hasGemini} checked={filters.camelotAdjacent} onChange={(v) => set({ camelotAdjacent: v })} />
+              {!hasGemini && <div style={{ fontSize: "10px", color: C.t3, marginTop: "2px" }}>※ Gemini 解析後に使用可</div>}
+            </div>
 
             {/* ジャンル */}
-            <Section title="ジャンル" />
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "3px 0", opacity: hasGemini ? 1 : 0.3 }}>
-              <span style={{ fontSize: "11px", color: hasGemini ? "#ccc" : "#888" }}>ジャンル一致</span>
-              <div style={{ pointerEvents: hasGemini ? "auto" : "none" }}>
-                <input type="checkbox" checked={filters.genreMatch} onChange={(e) => set({ genreMatch: e.target.checked })} style={{ accentColor: "#1db954", cursor: "pointer" }} />
-              </div>
-            </div>
-            {hasGemini && mainSeed?.genre_tags?.length && (
-              <div style={{ padding: "2px 0 4px" }}>
-                <span style={{ fontSize: "10px", color: "#999" }}>メインジャンル：</span>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "3px", marginTop: "3px" }}>
+            <div style={{ marginTop: "10px", paddingTop: "10px", borderTop: `1px solid ${C.sep}` }}>
+              <div style={{ fontSize: "11px", color: C.t3, marginBottom: "4px" }}>ジャンル</div>
+              <CheckRow label="ジャンル一致" available={hasGemini} checked={filters.genreMatch} onChange={(v) => set({ genreMatch: v })} />
+              {hasGemini && mainSeed?.genre_tags?.length ? (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "3px", marginTop: "4px" }}>
                   {mainSeed.genre_tags.map((g) => (
-                    <span key={g} style={{ fontSize: "10px", color: "#1db954", background: "#1db95418", border: "0.5px solid #1db95444", borderRadius: "4px", padding: "1px 5px" }}>{g}</span>
+                    <span key={g} style={{ fontSize: "10px", color: C.yellow, background: C.yellowDim, padding: "1px 6px", borderRadius: "4px" }}>{g}</span>
                   ))}
                 </div>
-              </div>
-            )}
-            {subSeeds.some((t) => (t.genre_tags?.length ?? 0) > 0) && (
-              <div style={{ padding: "2px 0 4px" }}>
-                <span style={{ fontSize: "10px", color: "#999" }}>サブジャンル：</span>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "3px", marginTop: "3px" }}>
-                  {[...new Set(subSeeds.flatMap((t) => t.genre_tags ?? []))].map((g) => (
-                    <span key={g} style={{ fontSize: "10px", color: "#aaa", background: "#1a1a1a", border: "0.5px solid #333", borderRadius: "4px", padding: "1px 5px" }}>{g}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-            {!hasGemini && <div style={{ fontSize: "10px", color: "#777" }}>※ Gemini解析後に解除</div>}
+              ) : null}
+              {!hasGemini && <div style={{ fontSize: "10px", color: C.t3, marginTop: "2px" }}>※ Gemini 解析後に使用可</div>}
+            </div>
 
-            {/* エネルギー・ムード */}
-            <Section title="エネルギー・ムード" />
-            <div style={{ fontSize: "11px", color: "#888", marginBottom: "4px" }}>
-              エネルギーレベル{mainSeed?.energy !== undefined && <span style={{ color: "#1db954", marginLeft: "6px" }}>{Math.round(mainSeed.energy * 100)}%</span>}
+            {/* エネルギー */}
+            <div style={{ marginTop: "10px", paddingTop: "10px", borderTop: `1px solid ${C.sep}` }}>
+              <div style={{ fontSize: "11px", color: C.t3, marginBottom: "6px" }}>
+                エネルギー
+                {mainSeed?.energy !== undefined && <span style={{ color: C.green, marginLeft: "6px", fontWeight: 600 }}>{Math.round(mainSeed.energy * 100)}%</span>}
+              </div>
+              <div style={{ display: "flex", gap: "5px", opacity: hasGemini ? 1 : 0.4, pointerEvents: hasGemini ? "auto" : "none", flexWrap: "wrap" }}>
+                {([null, "high", "medium", "low"] as const).map((v) => (
+                  <Chip key={String(v)} label={v === null ? "全て" : v === "high" ? "高" : v === "medium" ? "中" : "低"} active={filters.energyLevel === v} onClick={() => set({ energyLevel: filters.energyLevel === v ? null : v })} />
+                ))}
+              </div>
+              <div style={{ marginTop: "6px", opacity: hasGemini ? 1 : 0.4, pointerEvents: hasGemini ? "auto" : "none" }}>
+                <CheckRow
+                  label="ダンサビリティ高"
+                  value={mainSeed?.danceability !== undefined ? `${Math.round(mainSeed.danceability * 100)}%` : undefined}
+                  available={hasGemini}
+                  checked={filters.danceabilityHigh}
+                  onChange={(v) => set({ danceabilityHigh: v })}
+                />
+              </div>
+              {!hasGemini && <div style={{ fontSize: "10px", color: C.t3, marginTop: "2px" }}>※ Gemini 解析後に使用可</div>}
             </div>
-            <div style={{ display: "flex", gap: "4px", opacity: hasGemini ? 1 : 0.3, pointerEvents: hasGemini ? "auto" : "none" }}>
-              {([null, "high", "medium", "low"] as const).map((v) => (
-                <Chip key={String(v)} label={v === null ? "全て" : v === "high" ? "高" : v === "medium" ? "中" : "低"} active={filters.energyLevel === v} onClick={() => set({ energyLevel: filters.energyLevel === v ? null : v })} />
-              ))}
-            </div>
-            <Row
-              label="ダンサビリティ高"
-              value={mainSeed?.danceability !== undefined ? `${Math.round(mainSeed.danceability * 100)}%` : undefined}
-              available={hasGemini}
-            >
-              <input type="checkbox" checked={filters.danceabilityHigh} onChange={(e) => set({ danceabilityHigh: e.target.checked })} style={{ accentColor: "#1db954", cursor: "pointer" }} />
-            </Row>
-            {!hasGemini && <div style={{ fontSize: "10px", color: "#777" }}>※ Gemini解析後に解除</div>}
 
             {/* アーティスト・時代 */}
-            <Section title="アーティスト・時代" />
-            <Row label="同じアーティスト" value={mainSeed?.artists[0]?.name}>
-              <input type="checkbox" checked={filters.sameArtist} onChange={(e) => set({ sameArtist: e.target.checked })} style={{ accentColor: "#1db954", cursor: "pointer" }} />
-            </Row>
-            <div style={{ fontSize: "11px", color: "#888", marginTop: "4px", marginBottom: "4px" }}>
-              リリース年代{mainSeed?.release_year && <span style={{ color: "#1db954", marginLeft: "6px" }}>{mainSeed.release_year}年</span>}
+            <div style={{ marginTop: "10px", paddingTop: "10px", borderTop: `1px solid ${C.sep}` }}>
+              <div style={{ fontSize: "11px", color: C.t3, marginBottom: "4px" }}>アーティスト・時代</div>
+              <CheckRow label="同じアーティスト" value={mainSeed?.artists[0]?.name} checked={filters.sameArtist} onChange={(v) => set({ sameArtist: v })} />
+              <div style={{ marginTop: "6px" }}>
+                <div style={{ fontSize: "11px", color: C.t3, marginBottom: "6px" }}>
+                  リリース年代
+                  {mainSeed?.release_year && <span style={{ color: C.t2, marginLeft: "6px" }}>{mainSeed.release_year}年</span>}
+                </div>
+                <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", opacity: hasDecade ? 1 : 0.4, pointerEvents: hasDecade ? "auto" : "none" }}>
+                  {DECADES.map((d) => (
+                    <Chip key={d} label={d} active={filters.decade === d} onClick={() => set({ decade: filters.decade === d ? null : d })} />
+                  ))}
+                </div>
+                {!hasDecade && <div style={{ fontSize: "10px", color: C.t3, marginTop: "2px" }}>※ Seed 選択後に使用可</div>}
+              </div>
             </div>
-            <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", opacity: hasDecade ? 1 : 0.3, pointerEvents: hasDecade ? "auto" : "none" }}>
-              {DECADES.map((d) => (
-                <Chip key={d} label={d} active={filters.decade === d} onClick={() => set({ decade: filters.decade === d ? null : d })} />
-              ))}
-            </div>
-            {!hasDecade && <div style={{ fontSize: "10px", color: "#444", marginTop: "2px" }}>※ Seed選択後に解除</div>}
 
-            {/* サウンド特性 */}
-            <Section title="サウンド特性" />
-            <div style={{ fontSize: "11px", color: "#888", marginBottom: "4px" }}>
-              ボーカル{mainSeed?.is_vocal !== undefined && <span style={{ color: "#1db954", marginLeft: "6px" }}>{mainSeed.is_vocal ? "あり" : "なし（インスト）"}</span>}
+            {/* ボーカル */}
+            <div style={{ marginTop: "10px", paddingTop: "10px", borderTop: `1px solid ${C.sep}` }}>
+              <div style={{ fontSize: "11px", color: C.t3, marginBottom: "6px" }}>
+                ボーカル
+                {mainSeed?.is_vocal !== undefined && <span style={{ color: C.t2, marginLeft: "6px" }}>{mainSeed.is_vocal ? "あり" : "インスト"}</span>}
+              </div>
+              <div style={{ display: "flex", gap: "5px", flexWrap: "wrap", opacity: hasGemini ? 1 : 0.4, pointerEvents: hasGemini ? "auto" : "none" }}>
+                {([null, "vocal", "instrumental"] as const).map((v) => (
+                  <Chip key={String(v)} label={v === null ? "全て" : v === "vocal" ? "🎤 ボーカル" : "🎸 インスト"} active={filters.vocalType === v} onClick={() => set({ vocalType: filters.vocalType === v ? null : v })} />
+                ))}
+              </div>
+              {!hasGemini && <div style={{ fontSize: "10px", color: C.t3, marginTop: "2px" }}>※ Gemini 解析後に使用可</div>}
             </div>
-            <div style={{ display: "flex", gap: "4px", opacity: hasGemini ? 1 : 0.3, pointerEvents: hasGemini ? "auto" : "none" }}>
-              {([null, "vocal", "instrumental"] as const).map((v) => (
-                <Chip key={String(v)} label={v === null ? "全て" : v === "vocal" ? "🎤 ボーカル" : "🎸 インスト"} active={filters.vocalType === v} onClick={() => set({ vocalType: filters.vocalType === v ? null : v })} />
-              ))}
-            </div>
-            {!hasGemini && <div style={{ fontSize: "10px", color: "#444", marginTop: "2px" }}>※ Gemini解析後に解除</div>}
 
           </div>
         )}
       </div>
 
+      {/* 類似曲探索ボタン */}
       <button
         onClick={exploreSimilar}
         disabled={!mainSeed}
-        style={{ width: "100%", padding: "8px", background: mainSeed ? "#1db954" : "#222", border: "none", borderRadius: "8px", color: mainSeed ? "#fff" : "#555", fontSize: "13px", fontWeight: 500, cursor: mainSeed ? "pointer" : "default" }}
+        style={{
+          width: "100%",
+          padding: "12px",
+          background: mainSeed ? C.acc : C.s1,
+          border: "none", borderRadius: "10px",
+          color: mainSeed ? "#fff" : C.t3,
+          fontSize: "14px", fontWeight: 700,
+          cursor: mainSeed ? "pointer" : "default",
+          boxShadow: mainSeed ? "0 2px 8px rgba(252,60,68,0.35)" : "none",
+          transition: "background 0.15s, box-shadow 0.15s",
+        }}
       >
         類似曲を探索
       </button>

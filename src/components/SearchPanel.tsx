@@ -3,6 +3,27 @@
 import { useEffect, useRef, useState } from "react";
 import { type Track, type Mode } from "@/types";
 
+const C = {
+  bg: "#000",
+  s1: "#1c1c1e",
+  s2: "#2c2c2e",
+  s3: "#3a3a3c",
+  acc: "#fc3c44",
+  accDim: "rgba(252,60,68,0.12)",
+  t1: "#fff",
+  t2: "rgba(235,235,245,0.6)",
+  t3: "rgba(235,235,245,0.3)",
+  sep: "rgba(84,84,88,0.4)",
+  blue: "#0a84ff",
+  blueDim: "rgba(10,132,255,0.15)",
+  green: "#30d158",
+  greenDim: "rgba(48,209,88,0.12)",
+  purple: "#bf5af2",
+  purpleDim: "rgba(191,90,242,0.15)",
+  yellow: "#ffd60a",
+  yellowDim: "rgba(255,214,10,0.12)",
+} as const;
+
 type Props = {
   query: string;
   setQuery: (q: string) => void;
@@ -20,48 +41,43 @@ type Props = {
   metadataLoading: boolean;
 };
 
-type MatchBadge = { label: string; color: string; bg: string; border: string };
+type MatchBadge = { label: string; color: string; bg: string };
 
 function getMatchBadges(track: Track, seed: Track | null): MatchBadge[] {
   if (!seed) return [];
   const badges: MatchBadge[] = [];
 
-  // BPM
   if (track.bpm && seed.bpm) {
     const diff = Math.abs(track.bpm - seed.bpm);
     if (diff <= 5) {
-      badges.push({ label: `BPM ${track.bpm} ≈ 完全一致`, color: "#1db954", bg: "#1db95420", border: "#1db95450" });
+      badges.push({ label: `${track.bpm} BPM ≈`, color: C.green, bg: C.greenDim });
     } else if (diff <= 15) {
-      badges.push({ label: `BPM ${track.bpm} (±${diff})`, color: "#a8e6cf", bg: "#1db95412", border: "#1db95430" });
+      badges.push({ label: `${track.bpm} BPM ±${diff}`, color: "rgba(48,209,88,0.7)", bg: C.greenDim });
+    } else {
+      badges.push({ label: `${track.bpm} BPM`, color: C.t3, bg: "rgba(255,255,255,0.06)" });
     }
-  } else if (track.bpm) {
-    badges.push({ label: `BPM ${track.bpm}`, color: "#888", bg: "#1a1a1a", border: "#333" });
   }
 
-  // Camelot / Key
   if (track.camelot && seed.camelot) {
     if (track.camelot === seed.camelot) {
-      badges.push({ label: `Key ${track.camelot} 一致`, color: "#82b4ff", bg: "#1a3a6a", border: "#2a5aaa" });
+      badges.push({ label: `${track.camelot} Key ≈`, color: C.blue, bg: C.blueDim });
     } else if (isCamelotAdjacent(seed.camelot, track.camelot)) {
-      badges.push({ label: `Key ${track.camelot} 隣接`, color: "#82b4ff", bg: "#0d2040", border: "#1a3060" });
+      badges.push({ label: `${track.camelot} 隣接`, color: "rgba(10,132,255,0.7)", bg: C.blueDim });
     }
   }
 
-  // ジャンル
   if (track.genre_tags?.length && seed.genre_tags?.length) {
     const seedSet = new Set(seed.genre_tags.map((g) => g.toLowerCase()));
-    const matched = track.genre_tags.filter((g) => seedSet.has(g.toLowerCase()));
-    matched.forEach((g) => {
-      badges.push({ label: g, color: "#e8b86d", bg: "#3a2a0a", border: "#6a4a10" });
+    track.genre_tags.filter((g) => seedSet.has(g.toLowerCase())).slice(0, 2).forEach((g) => {
+      badges.push({ label: g, color: C.yellow, bg: C.yellowDim });
     });
   }
 
-  // 年代
   if (track.release_year && seed.release_year) {
     const tDec = Math.floor(track.release_year / 10) * 10;
     const sDec = Math.floor(seed.release_year / 10) * 10;
     if (tDec === sDec) {
-      badges.push({ label: `${tDec}s`, color: "#b88aff", bg: "#2a1a4a", border: "#4a2a8a" });
+      badges.push({ label: `${tDec}s`, color: C.purple, bg: C.purpleDim });
     }
   }
 
@@ -102,7 +118,6 @@ export default function SearchPanel({
     listRef.current?.scrollTo({ top: 0 });
   }, [displayTracks]);
 
-  // 入力中にdebounceで候補取得
   const handleQueryChange = (value: string) => {
     setQuery(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -111,7 +126,7 @@ export default function SearchPanel({
       try {
         const res = await fetch(`/api/search?q=${encodeURIComponent(value)}`);
         const data = await res.json();
-        const results: Track[] = (data.tracks ?? []).slice(0, 8);
+        const results: Track[] = (data.tracks ?? []).slice(0, 7);
         setSuggestions(results);
         setShowSuggestions(results.length > 0);
       } catch { setSuggestions([]); }
@@ -125,7 +140,6 @@ export default function SearchPanel({
     search();
   };
 
-  // 外側クリックで候補を閉じる
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (inputWrapRef.current && !inputWrapRef.current.contains(e.target as Node)) {
@@ -153,139 +167,299 @@ export default function SearchPanel({
   };
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: "#060606" }}>
 
-      <div style={{ padding: "1.25rem 1.5rem", borderBottom: "0.5px solid #333", display: "flex", gap: "12px", alignItems: "center" }}>
-        <div ref={inputWrapRef} style={{ flex: 1, position: "relative" }}>
-          <input
-            type="text"
-            placeholder="曲名・アーティストを入力"
-            value={query}
-            onChange={(e) => handleQueryChange(e.target.value)}
-            onCompositionStart={() => setIsComposing(true)}
-            onCompositionEnd={() => setIsComposing(false)}
-            onKeyDown={(e) => { if (e.key === "Enter" && !isComposing) { setShowSuggestions(false); search(); } }}
-            onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-            style={{ width: "100%", padding: "8px 14px", background: "#222", border: "0.5px solid #444", borderRadius: "8px", color: "#fff", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
-          />
-          {showSuggestions && (
-            <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#1a1a1a", border: "0.5px solid #444", borderRadius: "8px", marginTop: "4px", zIndex: 100, overflow: "hidden" }}>
-              {suggestions.map((t) => (
-                <div
-                  key={t.id}
-                  onMouseDown={() => selectSuggestion(t)}
-                  style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 12px", cursor: "pointer", borderBottom: "0.5px solid #2a2a2a" }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "#2a2a2a")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                >
-                  {t.album.images[0]?.url && (
-                    <img src={t.album.images[0].url} width={32} height={32} style={{ borderRadius: "3px", flexShrink: 0 }} />
-                  )}
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ color: "#fff", fontSize: "13px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>
-                    <div style={{ color: "#888", fontSize: "11px" }}>{t.artists[0]?.name}</div>
+      {/* 検索バー */}
+      <div style={{ padding: "16px 20px 14px", borderBottom: `1px solid ${C.sep}` }}>
+        <div style={{ display: "flex", gap: "8px" }}>
+          <div ref={inputWrapRef} style={{ flex: 1, position: "relative" }}>
+            <span style={{
+              position: "absolute", left: "13px", top: "50%", transform: "translateY(-50%)",
+              color: C.t3, fontSize: "15px", pointerEvents: "none", lineHeight: 1,
+            }}>
+              🔍
+            </span>
+            <input
+              type="text"
+              placeholder="曲名・アーティストを入力..."
+              value={query}
+              onChange={(e) => handleQueryChange(e.target.value)}
+              onCompositionStart={() => setIsComposing(true)}
+              onCompositionEnd={() => setIsComposing(false)}
+              onKeyDown={(e) => { if (e.key === "Enter" && !isComposing) { setShowSuggestions(false); search(); } }}
+              onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+              style={{
+                width: "100%",
+                padding: "11px 14px 11px 38px",
+                background: C.s1,
+                border: "none",
+                borderRadius: "10px",
+                color: C.t1,
+                fontSize: "14px",
+                outline: "none",
+                boxSizing: "border-box",
+              }}
+            />
+
+            {/* オートコンプリート */}
+            {showSuggestions && (
+              <div style={{
+                position: "absolute",
+                top: "calc(100% + 6px)",
+                left: 0, right: 0,
+                background: C.s2,
+                borderRadius: "12px",
+                boxShadow: "0 8px 32px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.06)",
+                zIndex: 100,
+                overflow: "hidden",
+              }}>
+                {suggestions.map((t, idx) => (
+                  <div
+                    key={t.id}
+                    onMouseDown={() => selectSuggestion(t)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: "10px",
+                      padding: "9px 14px",
+                      cursor: "pointer",
+                      borderBottom: idx < suggestions.length - 1 ? `1px solid ${C.sep}` : "none",
+                      transition: "background 0.1s",
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = C.s3)}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                  >
+                    {t.album.images[0]?.url && (
+                      <img src={t.album.images[0].url} width={36} height={36} style={{ borderRadius: "6px", flexShrink: 0 }} />
+                    )}
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ color: C.t1, fontSize: "13px", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>
+                      <div style={{ color: C.t2, fontSize: "11px", marginTop: "1px" }}>{t.artists[0]?.name}</div>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={() => { setShowSuggestions(false); search(); }}
+            style={{
+              padding: "11px 20px",
+              background: C.acc,
+              border: "none", borderRadius: "10px",
+              color: "#fff", fontSize: "14px", fontWeight: 600,
+              cursor: "pointer", flexShrink: 0,
+              boxShadow: "0 2px 8px rgba(252,60,68,0.3)",
+            }}
+          >
+            検索
+          </button>
         </div>
-        <button
-          onClick={() => { setShowSuggestions(false); search(); }}
-          style={{ padding: "8px 20px", background: "#1db954", color: "#fff", border: "none", borderRadius: "8px", fontSize: "14px", fontWeight: 500, cursor: "pointer" }}
-        >
-          検索
-        </button>
       </div>
 
-      <div style={{ display: "flex", gap: "8px", padding: "0.75rem 1.5rem", borderBottom: "0.5px solid #222", alignItems: "center" }}>
-        <div style={{ fontSize: "12px", color: "#666" }}>
+      {/* モードバー */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: "8px",
+        padding: "8px 20px",
+        borderBottom: `1px solid ${C.sep}`,
+        background: "#060606",
+      }}>
+        <span style={{ fontSize: "12px", color: C.t3, fontWeight: 500 }}>
           {mode === "search" ? "検索結果" : `類似曲 ${filteredSimilarCount}曲`}
-        </div>
+        </span>
         {metadataLoading && (
-          <div style={{ fontSize: "11px", color: "#1db954", marginLeft: "8px" }}>
-            ✦ Gemini解析中...
+          <span style={{ fontSize: "11px", color: C.acc, marginLeft: "4px" }}>
+            ✦ Gemini 解析中...
+          </span>
+        )}
+      </div>
+
+      {/* トラックリスト */}
+      <div
+        ref={listRef}
+        style={{ flex: 1, overflowY: "auto", padding: "8px 12px" }}
+      >
+        {loading && (
+          <div style={{ color: C.t3, fontSize: "13px", textAlign: "center", padding: "40px 0" }}>
+            読み込み中...
           </div>
         )}
-      </div>
-
-      <div ref={listRef} style={{ flex: 1, overflowY: "auto", padding: "1rem 1.5rem", display: "flex", flexDirection: "column", gap: "8px" }}>
-        {loading && <p style={{ color: "#888" }}>読み込み中...</p>}
         {mode === "search" && !loading && displayTracks.length === 0 && (
-          <p style={{ color: "#555", fontSize: "13px" }}>曲を検索してSeedを選んでください</p>
+          <div style={{ textAlign: "center", padding: "60px 20px" }}>
+            <div style={{ fontSize: "40px", marginBottom: "12px" }}>🎵</div>
+            <div style={{ fontSize: "16px", fontWeight: 600, color: C.t2, marginBottom: "6px" }}>曲を検索してみよう</div>
+            <div style={{ fontSize: "13px", color: C.t3 }}>曲名またはアーティスト名を入力してSeedを選択</div>
+          </div>
         )}
+
         {displayTracks.map((track) => {
           const badges = mode === "similar" ? getMatchBadges(track, mainSeed) : [];
+          const isMain = mainSeed?.id === track.id;
+          const inSubSeed = !!subSeeds.find((t) => t.id === track.id);
+          const inPlaylist = isInPlaylist(track);
+
           return (
             <div
               key={track.id}
-              style={{ display: "flex", alignItems: "center", gap: "12px", background: "#1a1a1a", border: mainSeed?.id === track.id ? "0.5px solid #1db954" : "0.5px solid transparent", borderRadius: "8px", padding: "10px 12px" }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                padding: "10px 10px",
+                borderRadius: "10px",
+                background: isMain ? C.accDim : "transparent",
+                marginBottom: "2px",
+                transition: "background 0.12s",
+              }}
+              onMouseEnter={(e) => { if (!isMain) e.currentTarget.style.background = C.s1; }}
+              onMouseLeave={(e) => { if (!isMain) e.currentTarget.style.background = "transparent"; }}
             >
-              <div style={{ position: "relative", flexShrink: 0, width: 48, height: 48 }}>
-                <img src={track.album.images[0]?.url} alt={track.album.name} width={48} height={48} style={{ borderRadius: "4px", display: "block" }} />
+              {/* アルバムアート + プレビュー */}
+              <div style={{ position: "relative", flexShrink: 0, width: 46, height: 46 }}>
+                <img
+                  src={track.album.images[0]?.url}
+                  alt={track.album.name}
+                  width={46} height={46}
+                  style={{ borderRadius: "8px", display: "block", objectFit: "cover" }}
+                />
                 {track.preview && (
                   <button
                     onClick={() => togglePreview(track)}
-                    style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.5)", border: "none", borderRadius: "4px", cursor: "pointer", color: "#fff", fontSize: "16px" }}
+                    className="preview-btn"
+                    style={{
+                      position: "absolute", inset: 0,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      background: "rgba(0,0,0,0.6)",
+                      backdropFilter: "blur(2px)",
+                      border: "none", borderRadius: "8px",
+                      cursor: "pointer", color: "#fff", fontSize: "14px",
+                      opacity: playingId === track.id ? 1 : 0,
+                      transition: "opacity 0.15s",
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                    onMouseLeave={(e) => { if (playingId !== track.id) e.currentTarget.style.opacity = "0"; }}
                   >
-                    {playingId === track.id ? "■" : "▶"}
+                    {playingId === track.id ? "⏹" : "▶"}
                   </button>
                 )}
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ color: "#fff", fontSize: "14px", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{track.name}</div>
-                <div style={{ color: "#888", fontSize: "12px" }}>{track.artists.map((a) => a.name).join(", ")}</div>
 
-                {/* BPM・Key（常に表示） */}
-                <div style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "3px", flexWrap: "wrap" }}>
-                  <span style={{ color: "#1db954", fontSize: "11px", fontWeight: 500 }}>
-                    {track.bpm ? `${track.bpm} BPM` : "-- BPM"}
-                  </span>
-                  {track.camelot && (
-                    <span style={{ color: "#888", fontSize: "10px", background: "#222", padding: "1px 5px", borderRadius: "4px" }}>{track.camelot}</span>
-                  )}
+              {/* トラック情報 */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  color: isMain ? C.acc : C.t1,
+                  fontSize: "14px", fontWeight: 500,
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                  lineHeight: 1.3,
+                }}>
+                  {track.name}
+                </div>
+                <div style={{
+                  color: C.t2, fontSize: "12px", marginTop: "1px",
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                }}>
+                  {track.artists.map((a) => a.name).join(", ")}
+                  {track.release_year && <span style={{ color: C.t3 }}> · {track.release_year}</span>}
                 </div>
 
-                {/* 類似モード: 一致バッジ */}
+                {/* BPM + Camelot + Energy */}
+                <div style={{ display: "flex", gap: "5px", alignItems: "center", marginTop: "4px", flexWrap: "wrap" }}>
+                  <span style={{
+                    fontSize: "11px",
+                    color: track.bpm ? C.green : C.t3,
+                    fontVariantNumeric: "tabular-nums",
+                  }}>
+                    {track.bpm ? `${track.bpm} BPM` : "— BPM"}
+                  </span>
+                  {track.camelot && (
+                    <span style={{
+                      fontSize: "10px", color: C.blue,
+                      background: C.blueDim,
+                      padding: "1px 6px", borderRadius: "4px",
+                      fontWeight: 600,
+                    }}>
+                      {track.camelot}
+                    </span>
+                  )}
+                  {track.energy !== undefined && (
+                    <span style={{ fontSize: "11px", color: C.t3 }}>
+                      E:{Math.round(track.energy * 10)}
+                    </span>
+                  )}
+                  {track.is_vocal !== undefined && (
+                    <span style={{ fontSize: "11px", color: C.t3 }}>{track.is_vocal ? "🎤" : "🎸"}</span>
+                  )}
+                  {track.genre_tags?.slice(0, 2).map((g) => (
+                    <span key={g} style={{
+                      fontSize: "10px", color: C.t3,
+                      background: "rgba(255,255,255,0.07)",
+                      padding: "1px 5px", borderRadius: "4px",
+                    }}>{g}</span>
+                  ))}
+                </div>
+
+                {/* 類似モード: マッチバッジ */}
                 {mode === "similar" && (
                   <div style={{ display: "flex", gap: "4px", marginTop: "4px", flexWrap: "wrap" }}>
                     {badges.length > 0 ? badges.map((b, i) => (
-                      <span key={i} style={{ fontSize: "10px", color: b.color, background: b.bg, border: `0.5px solid ${b.border}`, borderRadius: "4px", padding: "1px 6px", whiteSpace: "nowrap" }}>
+                      <span key={i} style={{
+                        fontSize: "10px", color: b.color,
+                        background: b.bg,
+                        padding: "1px 6px", borderRadius: "5px",
+                        fontWeight: 500, whiteSpace: "nowrap",
+                      }}>
                         {b.label}
                       </span>
                     )) : (
-                      <span style={{ fontSize: "10px", color: "#777" }}>一致なし</span>
+                      <span style={{ fontSize: "11px", color: C.t3 }}>一致なし</span>
                     )}
                   </div>
                 )}
-
-                {/* ジャンルタグ + エネルギー等（常に表示） */}
-                <div style={{ display: "flex", gap: "4px", marginTop: "3px", flexWrap: "wrap", alignItems: "center" }}>
-                  {track.energy !== undefined && (
-                    <span style={{ fontSize: "10px", color: "#aaa" }}>E:{Math.round(track.energy * 10)}</span>
-                  )}
-                  {track.is_vocal !== undefined && (
-                    <span style={{ fontSize: "10px", color: "#aaa" }}>{track.is_vocal ? "🎤" : "🎸"}</span>
-                  )}
-                  {track.genre_tags?.slice(0, 3).map((g) => (
-                    <span key={g} style={{ fontSize: "9px", color: "#bbb", background: "#2a2a2a", padding: "1px 5px", borderRadius: "3px" }}>{g}</span>
-                  ))}
-                </div>
               </div>
 
+              {/* アクションボタン */}
               {mode === "search" && (
                 <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
-                  <button onClick={() => setAsMainSeed(track)} style={{ padding: "4px 8px", background: mainSeed?.id === track.id ? "#1db954" : "#222", border: "none", borderRadius: "4px", color: mainSeed?.id === track.id ? "#fff" : "#aaa", fontSize: "11px", cursor: "pointer", whiteSpace: "nowrap" }}>
-                    {mainSeed?.id === track.id ? "★ メイン" : "メイン"}
+                  <button
+                    onClick={() => setAsMainSeed(track)}
+                    style={{
+                      padding: "5px 10px",
+                      background: isMain ? C.acc : "rgba(255,255,255,0.08)",
+                      border: "none", borderRadius: "8px",
+                      color: isMain ? "#fff" : C.t2,
+                      fontSize: "11px", fontWeight: 600,
+                      cursor: "pointer", whiteSpace: "nowrap",
+                    }}
+                  >
+                    {isMain ? "★ メイン" : "メイン"}
                   </button>
-                  <button onClick={() => addToSubSeed(track)} style={{ padding: "4px 8px", background: subSeeds.find((t) => t.id === track.id) ? "#333" : "#222", border: "none", borderRadius: "4px", color: subSeeds.find((t) => t.id === track.id) ? "#1db954" : "#aaa", fontSize: "11px", cursor: "pointer", whiteSpace: "nowrap" }}>
-                    {subSeeds.find((t) => t.id === track.id) ? "✓ サブ" : "+ サブ"}
+                  <button
+                    onClick={() => addToSubSeed(track)}
+                    style={{
+                      padding: "5px 10px",
+                      background: inSubSeed ? C.greenDim : "rgba(255,255,255,0.08)",
+                      border: "none", borderRadius: "8px",
+                      color: inSubSeed ? C.green : C.t2,
+                      fontSize: "11px", fontWeight: 600,
+                      cursor: "pointer", whiteSpace: "nowrap",
+                    }}
+                  >
+                    {inSubSeed ? "✓ サブ" : "+ サブ"}
                   </button>
                 </div>
               )}
               {mode === "similar" && (
-                <button onClick={() => addToPlaylist(track)} style={{ padding: "4px 10px", background: isInPlaylist(track) ? "#1db954" : "#222", border: "none", borderRadius: "4px", color: isInPlaylist(track) ? "#fff" : "#aaa", fontSize: "11px", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>
-                  {isInPlaylist(track) ? "追加済み" : "+ プレイリスト"}
+                <button
+                  onClick={() => addToPlaylist(track)}
+                  style={{
+                    padding: "5px 12px",
+                    background: inPlaylist ? C.accDim : "rgba(255,255,255,0.08)",
+                    border: "none", borderRadius: "8px",
+                    color: inPlaylist ? C.acc : C.t2,
+                    fontSize: "11px", fontWeight: 600,
+                    cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
+                  }}
+                >
+                  {inPlaylist ? "✓ 追加済み" : "+ リスト"}
                 </button>
               )}
             </div>

@@ -7,7 +7,6 @@ import SearchPanel from "@/components/SearchPanel";
 import SeedPanel from "@/components/SeedPanel";
 import PlaylistPanel from "@/components/PlaylistPanel";
 
-// Geminiメタデータをブラウザにキャッシュ（同じ曲は二度APIを呼ばない）
 const CACHE_KEY = "dj_gemini_v1";
 function cacheKey(title: string, artist: string) {
   return `${title}|||${artist}`.toLowerCase();
@@ -18,7 +17,6 @@ function readCache(): Record<string, any> {
 function writeCache(cache: Record<string, any>) {
   try { localStorage.setItem(CACHE_KEY, JSON.stringify(cache)); } catch { /* quota full */ }
 }
-// キャッシュに存在するtrackをフィルタし、APIレスポンスとマージして返す
 function applyCache(
   tracks: { id: string; title: string; artist: string }[],
   metadata: (any | null)[]
@@ -31,7 +29,6 @@ function applyCache(
     if (hit) { results[i] = hit; }
     else { uncachedIndices.push(i); }
   });
-  // APIレスポンスを未キャッシュ分に埋め込み、同時にキャッシュ更新
   const newCache = { ...cache };
   uncachedIndices.forEach((origIdx, pos) => {
     const m = metadata[pos];
@@ -73,7 +70,6 @@ export default function Home() {
   const [seedError, setSeedError] = useState<string | null>(null);
   const [savedPlaylists, setSavedPlaylists] = useState<SavedPlaylist[]>([]);
   const [playlistName, setPlaylistName] = useState("DJ Discovery Playlist");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const search = async () => {
     if (!query) return;
@@ -98,7 +94,6 @@ export default function Home() {
       title: t.name,
       artist: t.artists[0]?.name ?? "",
     }));
-    // キャッシュ済みをチェックして未キャッシュ分だけAPIを呼ぶ
     const cache = readCache();
     const uncachedTargets = targets.filter((t) => !cache[cacheKey(t.title, t.artist)]);
     let apiMetadata: (any | null)[] = [];
@@ -212,28 +207,22 @@ export default function Home() {
     setSeedAnalyzing(true);
     setSeedError(null);
     const artist = track.artists[0]?.name ?? "";
-
-    // キャッシュ確認（同じ曲は二度Geminiを呼ばない）
     const cached = readCache()[cacheKey(track.name, artist)];
     if (cached) {
       setMainSeed((prev) => prev ? { ...prev, bpm: prev.bpm || cached.bpm, key: cached.key || prev.key, camelot: cached.camelot, energy: cached.energy, danceability: cached.danceability, is_vocal: cached.is_vocal, genre_tags: cached.genre_tags, release_year: prev.release_year || cached.release_year } : prev);
       setSeedAnalyzing(false);
       return;
     }
-
     try {
       const res = await fetch("/api/track-metadata", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tracks: [{ id: track.id, title: track.name, artist }],
-        }),
+        body: JSON.stringify({ tracks: [{ id: track.id, title: track.name, artist }] }),
       });
       const data = await res.json();
       if (data._debug) setSeedError(String(data._debug));
       const m = data.metadata?.[0];
       if (m) {
-        // キャッシュに保存
         const newCache = { ...readCache(), [cacheKey(track.name, artist)]: m };
         writeCache(newCache);
         setMainSeed((prev) =>
@@ -259,7 +248,6 @@ export default function Home() {
     if (mainSeed?.id === track.id) return;
     setSubSeeds((prev) => [...prev, track]);
     const artist = track.artists[0]?.name ?? "";
-    // キャッシュ確認
     let m = readCache()[cacheKey(track.name, artist)] ?? null;
     if (!m) {
       try {
@@ -292,44 +280,35 @@ export default function Home() {
   const isInPlaylist = (track: Track) => !!playlist.find((t) => t.id === track.id);
 
   const filteredSimilar = similarTracks.filter((track) => {
-    // BPM範囲
     if (filters.bpmRange && mainSeed?.bpm && track.bpm) {
       if (Math.abs(track.bpm - mainSeed.bpm) > filters.bpmRange) return false;
     }
-    // 同じアーティスト
     if (filters.sameArtist && mainSeed) {
       if (track.artists[0]?.name !== mainSeed.artists[0]?.name) return false;
     }
-    // 同じキー
     if (filters.sameKey && mainSeed?.key && track.key) {
       if (track.key !== mainSeed.key) return false;
     }
-    // Camelot隣接（同じ or ±1）
     if (filters.camelotAdjacent && mainSeed?.camelot && track.camelot) {
       if (!isCamelotAdjacent(mainSeed.camelot, track.camelot)) return false;
     }
-    // ジャンル一致
     if (filters.genreMatch && mainSeed?.genre_tags?.length && track.genre_tags?.length) {
       const seedGenres = new Set(mainSeed.genre_tags.map((g) => g.toLowerCase()));
       if (!track.genre_tags.some((g) => seedGenres.has(g.toLowerCase()))) return false;
     }
-    // エネルギーレベル
     if (filters.energyLevel && track.energy !== undefined) {
       const e = track.energy;
       if (filters.energyLevel === "high" && e < 0.7) return false;
       if (filters.energyLevel === "medium" && (e < 0.4 || e >= 0.7)) return false;
       if (filters.energyLevel === "low" && e >= 0.4) return false;
     }
-    // ダンサビリティ
     if (filters.danceabilityHigh && track.danceability !== undefined) {
       if (track.danceability < 0.6) return false;
     }
-    // ボーカル
     if (filters.vocalType && track.is_vocal !== undefined) {
       if (filters.vocalType === "vocal" && !track.is_vocal) return false;
       if (filters.vocalType === "instrumental" && track.is_vocal) return false;
     }
-    // リリース年代
     if (filters.decade && track.release_year) {
       const decade = `${Math.floor(track.release_year / 10) * 10}s`;
       if (decade !== filters.decade) return false;
@@ -341,34 +320,88 @@ export default function Home() {
 
   useEffect(() => { loadPlaylists(); }, []);
 
+  const sep = "rgba(84,84,88,0.4)";
+
   return (
-    <div style={{ display: "flex", height: "100vh", background: "#111", fontFamily: "sans-serif", color: "#fff" }}>
+    <div style={{ display: "flex", height: "100vh", background: "#000", overflow: "hidden" }}>
 
-      {/* サイドバートグル */}
-      <div style={{ width: "48px", background: "#0a0a0a", borderRight: "0.5px solid #333", display: "flex", flexDirection: "column", alignItems: "center", paddingTop: "1rem", flexShrink: 0 }}>
-        <button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          title="メニュー"
-          style={{ width: "32px", height: "32px", background: "transparent", border: "none", color: "#888", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "4px", borderRadius: "6px", padding: 0 }}
-        >
-          <span style={{ display: "block", width: "16px", height: "1.5px", background: "currentColor" }} />
-          <span style={{ display: "block", width: "16px", height: "1.5px", background: "currentColor" }} />
-          <span style={{ display: "block", width: "16px", height: "1.5px", background: "currentColor" }} />
-        </button>
-      </div>
-
-      {sidebarOpen && (
-        <div style={{ width: "200px", background: "#0a0a0a", padding: "1.5rem 1rem", display: "flex", flexDirection: "column", gap: "4px", borderRight: "0.5px solid #333", flexShrink: 0 }}>
-          <div style={{ fontSize: "16px", fontWeight: 500, color: "#fff", marginBottom: "1.5rem", paddingLeft: "8px" }}>DJ Discovery</div>
-          <div style={{ padding: "8px 12px", borderRadius: "8px", background: "#1db954", color: "#fff", fontSize: "13px", fontWeight: 500 }}>Search</div>
-          <div style={{ padding: "8px 12px", borderRadius: "8px", color: "#888", fontSize: "13px" }}>Discovery Graph</div>
-          <div style={{ padding: "8px 12px", borderRadius: "8px", color: "#888", fontSize: "13px" }}>Playlist Builder</div>
-          <div style={{ marginTop: "auto" }}>
-            {session && <div style={{ fontSize: "11px", color: "#666", textAlign: "center" }}>{session.user?.email}</div>}
+      {/* サイドバー */}
+      <div style={{
+        width: "200px",
+        background: "#000",
+        borderRight: `1px solid ${sep}`,
+        display: "flex",
+        flexDirection: "column",
+        flexShrink: 0,
+      }}>
+        {/* ロゴ */}
+        <div style={{ padding: "20px 16px 16px", borderBottom: `1px solid ${sep}` }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div style={{
+              width: 34, height: 34,
+              background: "#fc3c44",
+              borderRadius: "9px",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: "18px",
+              flexShrink: 0,
+              boxShadow: "0 2px 8px rgba(252,60,68,0.4)",
+            }}>♪</div>
+            <div>
+              <div style={{ fontSize: "14px", fontWeight: 700, color: "#fff", letterSpacing: "-0.01em" }}>DJ Discovery</div>
+              <div style={{ fontSize: "10px", color: "rgba(235,235,245,0.4)", marginTop: "1px" }}>Music Explorer</div>
+            </div>
           </div>
         </div>
-      )}
 
+        {/* ナビ */}
+        <nav style={{ padding: "10px 8px", flex: 1 }}>
+          <div style={{ marginBottom: "2px" }}>
+            <div style={{ fontSize: "10px", color: "rgba(235,235,245,0.3)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", padding: "4px 8px 6px" }}>
+              Library
+            </div>
+            <div style={{
+              display: "flex", alignItems: "center", gap: "8px",
+              padding: "8px 10px", borderRadius: "8px",
+              background: "rgba(252,60,68,0.12)",
+            }}>
+              <span style={{ fontSize: "15px" }}>🔍</span>
+              <span style={{ fontSize: "13px", fontWeight: 600, color: "#fc3c44" }}>Search</span>
+            </div>
+          </div>
+
+          <div style={{ marginTop: "4px" }}>
+            <div style={{ fontSize: "10px", color: "rgba(235,235,245,0.3)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", padding: "4px 8px 6px" }}>
+              Playlist
+            </div>
+            <div style={{
+              display: "flex", alignItems: "center", gap: "8px",
+              padding: "8px 10px", borderRadius: "8px",
+              color: "rgba(235,235,245,0.45)",
+            }}>
+              <span style={{ fontSize: "15px" }}>🎵</span>
+              <span style={{ fontSize: "13px", fontWeight: 500 }}>
+                {playlistName.length > 14 ? playlistName.slice(0, 14) + "…" : playlistName}
+                {playlist.length > 0 && (
+                  <span style={{ marginLeft: "6px", background: "#fc3c44", color: "#fff", borderRadius: "8px", padding: "1px 6px", fontSize: "10px", fontWeight: 700 }}>
+                    {playlist.length}
+                  </span>
+                )}
+              </span>
+            </div>
+          </div>
+        </nav>
+
+        {/* フッター */}
+        {session && (
+          <div style={{ padding: "12px 16px", borderTop: `1px solid ${sep}` }}>
+            <div style={{ fontSize: "11px", color: "rgba(235,235,245,0.35)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {session.user?.email}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* メインコンテンツ */}
       <SearchPanel
         query={query} setQuery={setQuery} search={search} loading={loading}
         mode={mode} displayTracks={displayTracks} mainSeed={mainSeed}
@@ -377,7 +410,16 @@ export default function Home() {
         filteredSimilarCount={filteredSimilar.length} metadataLoading={metadataLoading}
       />
 
-      <div style={{ width: "240px", background: "#0d0d0d", borderLeft: "0.5px solid #333", padding: "1.25rem 1rem", display: "flex", flexDirection: "column", gap: "16px", overflowY: "auto" }}>
+      {/* 右パネル */}
+      <div style={{
+        width: "260px",
+        background: "#0a0a0a",
+        borderLeft: `1px solid ${sep}`,
+        display: "flex",
+        flexDirection: "column",
+        overflowY: "auto",
+        flexShrink: 0,
+      }}>
         <SeedPanel
           mainSeed={mainSeed} setMainSeed={setMainSeed}
           subSeeds={subSeeds} removeSubSeed={removeSubSeed}
@@ -387,7 +429,7 @@ export default function Home() {
           seedAnalyzing={seedAnalyzing}
           seedError={seedError}
         />
-        <div style={{ borderTop: "0.5px solid #333" }} />
+        <div style={{ height: "1px", background: sep, margin: "0 16px" }} />
         <PlaylistPanel
           session={session} playlist={playlist} removeFromPlaylist={removeFromPlaylist}
           savedPlaylists={savedPlaylists} playlistName={playlistName}
@@ -409,11 +451,9 @@ function isCamelotAdjacent(a: string, b: string): boolean {
   };
   const ca = parseC(a), cb = parseC(b);
   if (!ca || !cb) return false;
-  // 同じ内/外輪で隣接
   if (ca.t === cb.t) {
     const diff = Math.abs(ca.n - cb.n);
     return diff === 1 || diff === 11;
   }
-  // 同じ番号で内/外輪切り替え
   return ca.n === cb.n;
 }
