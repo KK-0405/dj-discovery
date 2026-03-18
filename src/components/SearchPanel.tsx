@@ -44,6 +44,7 @@ type Props = {
   onResetSimilar: () => void;
   savedPlaylists: SavedPlaylist[];
   addTrackToSavedPlaylist: (playlistId: string, track: Track) => void;
+  viewingPlaylist: SavedPlaylist | null;
 };
 
 type MatchBadge = { label: string; color: string; bg: string };
@@ -106,7 +107,7 @@ export default function SearchPanel({
   query, setQuery, search, loading, mode, displayTracks,
   mainSeed, subSeeds, setAsMainSeed, addToSubSeed,
   addToPlaylist, removeFromPlaylist, isInPlaylist, filteredSimilarCount, metadataLoading,
-  savedPlaylists, addTrackToSavedPlaylist, onResetSimilar,
+  savedPlaylists, addTrackToSavedPlaylist, onResetSimilar, viewingPlaylist,
 }: Props) {
   const listRef = useRef<HTMLDivElement>(null);
   const [isComposing, setIsComposing] = useState(false);
@@ -353,12 +354,14 @@ export default function SearchPanel({
         background: C.s1,
       }}>
         <span style={{ fontSize: "11px", color: C.t3, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-          {mode === "search" ? "検索結果" : `類似曲 — ${filteredSimilarCount}曲`}
+          {mode === "search" ? "検索結果"
+            : mode === "playlist" ? `📋 ${viewingPlaylist?.name ?? "プレイリスト"} — ${displayTracks.length}曲`
+            : `類似曲 — ${filteredSimilarCount}曲`}
         </span>
         {metadataLoading && (
           <span style={{ fontSize: "11px", color: C.acc }}>✦ Gemini 解析中...</span>
         )}
-        {mode === "similar" && (
+        {(mode === "similar" || mode === "playlist") && (
           <button
             onClick={onResetSimilar}
             style={{
@@ -376,7 +379,7 @@ export default function SearchPanel({
             onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.t2; e.currentTarget.style.color = C.t2; }}
             onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.s3; e.currentTarget.style.color = C.t3; }}
           >
-            ✕ リセット
+            ✕ 閉じる
           </button>
         )}
       </div>
@@ -565,7 +568,7 @@ export default function SearchPanel({
               </div>
 
               {/* アクション */}
-              {mode === "search" && (
+              {(mode === "search" || mode === "playlist") && (
                 <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
                   <button
                     onClick={() => setAsMainSeed(track)}

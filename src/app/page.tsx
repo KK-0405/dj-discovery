@@ -84,6 +84,7 @@ export default function Home() {
   const [seedError, setSeedError] = useState<string | null>(null);
   const [savedPlaylists, setSavedPlaylists] = useState<SavedPlaylist[]>([]);
   const [playlistName, setPlaylistName] = useState("Playlist 1");
+  const [viewingPlaylist, setViewingPlaylist] = useState<SavedPlaylist | null>(null);
 
   const search = async () => {
     if (!query) return;
@@ -294,7 +295,7 @@ export default function Home() {
     return true;
   });
 
-  const displayTracks = mode === "similar" ? filteredSimilar : tracks;
+  const displayTracks = mode === "playlist" ? (viewingPlaylist?.tracks ?? []) : mode === "similar" ? filteredSimilar : tracks;
 
   useEffect(() => { loadPlaylists(); }, [session?.access_token]);
 
@@ -445,7 +446,8 @@ export default function Home() {
         addToPlaylist={addToPlaylist} removeFromPlaylist={removeFromPlaylist} isInPlaylist={isInPlaylist}
         filteredSimilarCount={filteredSimilar.length} metadataLoading={metadataLoading}
         savedPlaylists={savedPlaylists} addTrackToSavedPlaylist={addTrackToSavedPlaylist}
-        onResetSimilar={() => { setSimilarTracks([]); setMode("search"); setFilters(DEFAULT_FILTERS); }}
+        onResetSimilar={() => { setSimilarTracks([]); setMode("search"); setFilters(DEFAULT_FILTERS); setViewingPlaylist(null); }}
+        viewingPlaylist={viewingPlaylist}
       />
 
       {/* 右パネル */}
@@ -475,6 +477,7 @@ export default function Home() {
           setPlaylistName={setPlaylistName} savePlaylist={savePlaylist}
           deletePlaylist={deletePlaylist} setPlaylist={setPlaylist}
           togglePublic={togglePublic}
+          onViewPlaylist={(p) => { setViewingPlaylist(p); setMode("playlist"); }}
         />
       </div>
     </div>

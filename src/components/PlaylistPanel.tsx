@@ -32,12 +32,13 @@ type Props = {
   deletePlaylist: (id: string) => void;
   setPlaylist: (tracks: Track[]) => void;
   togglePublic: (id: string, isPublic: boolean) => Promise<void>;
+  onViewPlaylist: (p: SavedPlaylist) => void;
 };
 
 export default function PlaylistPanel({
   playlist, removeFromPlaylist, savedPlaylists,
   playlistName, setPlaylistName, savePlaylist, deletePlaylist,
-  setPlaylist, togglePublic,
+  setPlaylist, togglePublic, onViewPlaylist,
 }: Props) {
   const { session } = useAuth();
   const [showSaved, setShowSaved] = useState(true);
@@ -341,7 +342,19 @@ export default function PlaylistPanel({
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                            <div style={{ color: C.t1, fontSize: "12px", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); onViewPlaylist(p); }}
+                              style={{
+                                background: "none", border: "none", padding: 0, cursor: "pointer",
+                                color: C.t1, fontSize: "12px", fontWeight: 600,
+                                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                                textAlign: "left", maxWidth: "100%",
+                              }}
+                              onMouseEnter={(e) => (e.currentTarget.style.color = C.acc)}
+                              onMouseLeave={(e) => (e.currentTarget.style.color = C.t1)}
+                            >
+                              {p.name}
+                            </button>
                             {p.is_public && (
                               <span style={{ flexShrink: 0, fontSize: "9px", fontWeight: 700, color: C.acc, background: C.accDim, padding: "1px 5px", borderRadius: "4px", letterSpacing: "0.02em" }}>
                                 公開中
