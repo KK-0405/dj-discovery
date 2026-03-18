@@ -316,7 +316,10 @@ export default function Home() {
       }}>
         {/* ロゴ */}
         <div style={{ padding: "20px 16px 16px", borderBottom: "1px solid rgba(0,0,0,0.07)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <div
+            onClick={() => { setQuery(""); setTracks([]); setSimilarTracks([]); setMode("search"); setMainSeed(null); setSubSeeds([]); setFilters(DEFAULT_FILTERS); setViewingPlaylist(null); setSeedError(null); }}
+            style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}
+          >
             <div style={{
               width: 34, height: 34,
               background: "linear-gradient(135deg, #3C3489, #26215C)",
@@ -343,13 +346,19 @@ export default function Home() {
           <div style={{ fontSize: "10px", color: "#aeaeb2", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", padding: "4px 8px 6px" }}>
             Library
           </div>
-          <div style={{
-            display: "flex", alignItems: "center", gap: "8px",
-            padding: "8px 10px", borderRadius: "8px",
-            background: "rgba(83,74,183,0.1)",
-          }}>
+          <div
+            onClick={() => { setQuery(""); setTracks([]); setSimilarTracks([]); setMode("search"); setMainSeed(null); setSubSeeds([]); setFilters(DEFAULT_FILTERS); setViewingPlaylist(null); setSeedError(null); }}
+            style={{
+              display: "flex", alignItems: "center", gap: "8px",
+              padding: "8px 10px", borderRadius: "8px",
+              background: mode === "search" && !viewingPlaylist ? "rgba(83,74,183,0.1)" : "none",
+              cursor: "pointer",
+            }}
+            onMouseEnter={(e) => { if (!(mode === "search" && !viewingPlaylist)) e.currentTarget.style.background = "rgba(0,0,0,0.04)"; }}
+            onMouseLeave={(e) => { if (!(mode === "search" && !viewingPlaylist)) e.currentTarget.style.background = "none"; }}
+          >
             <span style={{ fontSize: "15px" }}>🔍</span>
-            <span style={{ fontSize: "13px", fontWeight: 600, color: "#534AB7" }}>Search</span>
+            <span style={{ fontSize: "13px", fontWeight: 600, color: mode === "search" && !viewingPlaylist ? "#534AB7" : "#6e6e73" }}>Search</span>
           </div>
 
           <div style={{ fontSize: "10px", color: "#aeaeb2", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", padding: "12px 8px 6px" }}>
