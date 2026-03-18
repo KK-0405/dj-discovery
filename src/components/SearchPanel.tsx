@@ -114,26 +114,40 @@ export default function SearchPanel({
   const [artistSuggestions, setArtistSuggestions] = useState<ArtistSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const isSearchExecuted = useRef(false);
   const inputWrapRef = useRef<HTMLDivElement>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  type PublicPlaylist = { id: string; name: string; slug: string | null; created_by: string; track_count: number; artwork_url: string | null };
+  const [publicPlaylists, setPublicPlaylists] = useState<PublicPlaylist[]>([]);
+  useEffect(() => {
+    fetch("/api/public-playlists").then((r) => r.json()).then((d) => setPublicPlaylists(d.playlists ?? [])).catch(() => {});
+  }, []);
+
   useEffect(() => { listRef.current?.scrollTo({ top: 0 }); }, [displayTracks]);
 
   const handleQueryChange = (value: string) => {
+    isSearchExecuted.current = false;
     setQuery(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (abortRef.current) { abortRef.current.abort(); abortRef.current = null; }
     if (value.trim().length < 2) { setSuggestions([]); setArtistSuggestions([]); setShowSuggestions(false); return; }
+    const controller = new AbortController();
+    abortRef.current = controller;
     debounceRef.current = setTimeout(async () => {
+      if (isSearchExecuted.current) return;
       try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(value)}`);
+        const res = await fetch(`/api/search?q=${encodeURIComponent(value)}`, { signal: controller.signal });
         const data = await res.json();
+        if (isSearchExecuted.current) return;
         const tracks: Track[] = (data.tracks ?? []).slice(0, 6);
         const artists: ArtistSuggestion[] = (data.artists ?? []).slice(0, 3);
         setSuggestions(tracks);
         setArtistSuggestions(artists);
         setShowSuggestions(tracks.length > 0 || artists.length > 0);
-      } catch { setSuggestions([]); setArtistSuggestions([]); }
+      } catch { if (!controller.signal.aborted) { setSuggestions([]); setArtistSuggestions([]); } }
     }, 300);
   };
 
@@ -204,7 +218,17 @@ export default function SearchPanel({
               onChange={(e) => handleQueryChange(e.target.value)}
               onCompositionStart={() => setIsComposing(true)}
               onCompositionEnd={() => setIsComposing(false)}
-              onKeyDown={(e) => { if (e.key === "Enter" && !isComposing) { setShowSuggestions(false); search(); } }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !isComposing) {
+                  isSearchExecuted.current = true;
+                  if (debounceRef.current) clearTimeout(debounceRef.current);
+                  if (abortRef.current) { abortRef.current.abort(); abortRef.current = null; }
+                  setShowSuggestions(false);
+                  setSuggestions([]);
+                  setArtistSuggestions([]);
+                  search();
+                }
+              }}
               onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
               style={{
                 width: "100%",
@@ -296,7 +320,15 @@ export default function SearchPanel({
           </div>
 
           <button
-            onClick={() => { setShowSuggestions(false); search(); }}
+            onClick={() => {
+              isSearchExecuted.current = true;
+              if (debounceRef.current) clearTimeout(debounceRef.current);
+              if (abortRef.current) { abortRef.current.abort(); abortRef.current = null; }
+              setShowSuggestions(false);
+              setSuggestions([]);
+              setArtistSuggestions([]);
+              search();
+            }}
             style={{
               padding: "11px 20px",
               background: C.acc,
@@ -332,17 +364,76 @@ export default function SearchPanel({
           <div style={{ color: C.t3, fontSize: "13px", textAlign: "center", padding: "48px 0" }}>読み込み中...</div>
         )}
         {mode === "search" && !loading && displayTracks.length === 0 && (
-          <div style={{ textAlign: "center", padding: "60px 20px" }}>
-            <div style={{ marginBottom: "14px", display: "flex", justifyContent: "center" }}>
-              <svg width="44" height="44" viewBox="0 0 20 20" fill="none">
-                <circle cx="4" cy="10" r="2" fill={C.t3}/>
-                <path d="M 4 7.5 A 2.5 2.5 0 0 1 4 12.5" fill="none" stroke={C.t3} strokeWidth="1.8" strokeLinecap="round"/>
-                <path d="M 4 4.5 A 5.5 5.5 0 0 1 4 15.5" fill="none" stroke={C.t3} strokeWidth="1.5" strokeLinecap="round"/>
-                <path d="M 4 1.5 A 8.5 8.5 0 0 1 4 18.5" fill="none" stroke={C.t3} strokeWidth="1.2" strokeLinecap="round"/>
-              </svg>
+          <div style={{ padding: "40px 20px 24px" }}>
+            {/* ヘッダー */}
+            <div style={{ textAlign: "center", marginBottom: "32px" }}>
+              <div style={{ marginBottom: "12px", display: "flex", justifyContent: "center" }}>
+                <svg width="40" height="40" viewBox="0 0 20 20" fill="none">
+                  <circle cx="4" cy="10" r="2" fill={C.t3}/>
+                  <path d="M 4 7.5 A 2.5 2.5 0 0 1 4 12.5" fill="none" stroke={C.t3} strokeWidth="1.8" strokeLinecap="round"/>
+                  <path d="M 4 4.5 A 5.5 5.5 0 0 1 4 15.5" fill="none" stroke={C.t3} strokeWidth="1.5" strokeLinecap="round"/>
+                  <path d="M 4 1.5 A 8.5 8.5 0 0 1 4 18.5" fill="none" stroke={C.t3} strokeWidth="1.2" strokeLinecap="round"/>
+                </svg>
+              </div>
+              <div style={{ fontSize: "17px", fontWeight: 600, color: C.t2, marginBottom: "5px" }}>曲を検索してみよう</div>
+              <div style={{ fontSize: "13px", color: C.t3 }}>曲名またはアーティスト名を入力して Seed を選択</div>
             </div>
-            <div style={{ fontSize: "17px", fontWeight: 600, color: C.t2, marginBottom: "6px" }}>曲を検索してみよう</div>
-            <div style={{ fontSize: "13px", color: C.t3 }}>曲名またはアーティスト名を入力して Seed を選択</div>
+
+            {/* 公開プレイリスト */}
+            {publicPlaylists.length > 0 && (
+              <div>
+                <div style={{ fontSize: "12px", fontWeight: 700, color: C.t2, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "14px" }}>
+                  みんなのプレイリスト
+                </div>
+                <div style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))",
+                  gap: "16px",
+                }}>
+                  {publicPlaylists.map((pl) => (
+                    <a
+                      key={pl.id}
+                      href={pl.slug ? `/playlist/${pl.slug}` : "#"}
+                      style={{ textDecoration: "none", display: "block" }}
+                    >
+                      {/* アートワーク */}
+                      <div style={{
+                        width: "100%", aspectRatio: "1 / 1",
+                        borderRadius: "10px",
+                        overflow: "hidden",
+                        background: C.accDim,
+                        marginBottom: "8px",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                      }}>
+                        {pl.artwork_url ? (
+                          <img
+                            src={pl.artwork_url}
+                            alt={pl.name}
+                            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                          />
+                        ) : (
+                          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <svg width="32" height="32" viewBox="0 0 20 20" fill="none">
+                              <circle cx="4" cy="10" r="2" fill={C.acc} opacity="0.6"/>
+                              <path d="M 4 7.5 A 2.5 2.5 0 0 1 4 12.5" fill="none" stroke={C.acc} strokeWidth="1.8" strokeLinecap="round" opacity="0.6"/>
+                              <path d="M 4 4.5 A 5.5 5.5 0 0 1 4 15.5" fill="none" stroke={C.acc} strokeWidth="1.5" strokeLinecap="round" opacity="0.4"/>
+                              <path d="M 4 1.5 A 8.5 8.5 0 0 1 4 18.5" fill="none" stroke={C.acc} strokeWidth="1.2" strokeLinecap="round" opacity="0.25"/>
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                      {/* テキスト */}
+                      <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "12px", fontWeight: 600, color: C.t1, marginBottom: "2px" }}>
+                        {pl.name}
+                      </div>
+                      <div style={{ fontSize: "11px", color: C.t3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        @{pl.created_by} · {pl.track_count}曲
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
