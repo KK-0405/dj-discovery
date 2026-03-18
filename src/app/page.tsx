@@ -73,7 +73,7 @@ export default function Home() {
   const [seedAnalyzing, setSeedAnalyzing] = useState(false);
   const [seedError, setSeedError] = useState<string | null>(null);
   const [savedPlaylists, setSavedPlaylists] = useState<SavedPlaylist[]>([]);
-  const [playlistName, setPlaylistName] = useState("DJ Discovery Playlist");
+  const [playlistName, setPlaylistName] = useState("Playlist 1");
 
   const search = async () => {
     if (!query) return;
