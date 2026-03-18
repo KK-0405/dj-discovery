@@ -411,13 +411,9 @@ export default function PlaylistPanel({
             )}
           </div>
 
-          {/* ユーザー情報 */}
-          <div style={{ fontSize: "11px", color: C.t3, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingTop: "4px" }}>
-            {session.user?.email}
-            {!googleToken && (
-              <div style={{ fontSize: "10px", color: C.t3, marginTop: "2px" }}>YouTube書き出しはGoogleログインが必要です</div>
-            )}
-          </div>
+          {!googleToken && (
+            <div style={{ fontSize: "10px", color: C.t3, textAlign: "center" }}>YouTube書き出しはGoogleログインが必要です</div>
+          )}
         </div>
       )}
     </div>
