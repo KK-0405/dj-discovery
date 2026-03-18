@@ -139,9 +139,27 @@ const KARAOKE_KEYWORDS = [
   /\(re-?recorded\)/i, /\[re-?recorded\]/i,
 ];
 
+// 既知のカラオケ専門アーティスト（アーティスト名で完全排除）
+const KARAOKE_ARTISTS = [
+  /歌っちゃ王/,
+  /うたっちゃ王/,
+  /カラオケ?J?P?O?P?/i,
+  /歌之王/,
+  /カラオケボックス/,
+  /JOYSOUND/i,
+  /DAM カラオケ/i,
+  /Karaoke King/i,
+  /Karaoke All Stars/i,
+  /Karaoke Playbacks/i,
+  /Karaoke Version/i,
+  /歌手名/,
+];
+
 function isKaraokeOrCover(title: string, artist: string): boolean {
   const combined = `${title} ${artist}`;
-  return KARAOKE_KEYWORDS.some((re) => re.test(combined));
+  if (KARAOKE_KEYWORDS.some((re) => re.test(combined))) return true;
+  if (KARAOKE_ARTISTS.some((re) => re.test(artist))) return true;
+  return false;
 }
 
 function buildSimilarPrompt(
@@ -172,7 +190,7 @@ CRITICAL RULES (violations are not acceptable):
 1. The JSON array MUST contain EXACTLY ${count} elements. Count to ${count} before finishing.
 2. If close genre matches run out, WIDEN the search — same era, adjacent genres, similar BPM. NEVER output fewer than ${count} entries.
 3. Exclude the seed song itself.${excludeStr}
-4. EXCLUDE karaoke, カラオケ, cover versions, tribute recordings, instrumental covers, BGM collections, sound-alike tracks. Only original artist recordings.
+4. EXCLUDE karaoke, カラオケ, cover versions, tribute recordings, instrumental covers, BGM collections, sound-alike tracks. Only original artist recordings. NEVER include artists such as "歌っちゃ王", "Karaoke Version", "Karaoke All Stars", or any karaoke/cover label artist.
 5. ${langRule}
 6. Every object must have ALL fields — do not omit any field or output partial objects.
 

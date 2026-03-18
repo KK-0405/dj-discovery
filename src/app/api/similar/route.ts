@@ -1,6 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSimilarTrackSuggestions } from "@/lib/gemini";
 
+// Deezerが返したトラックのアーティスト名で最終フィルター
+const BLOCKED_ARTISTS = [
+  /歌っちゃ王/,
+  /うたっちゃ王/,
+  /karaoke/i,
+  /カラオケ/,
+  /tribute/i,
+  /cover version/i,
+  /JOYSOUND/i,
+];
+
+function isDeezerKaraoke(artistName: string, title: string): boolean {
+  return BLOCKED_ARTISTS.some((re) => re.test(artistName) || re.test(title));
+}
+
 function mapDeezerTrack(t: any) {
   return {
     id: String(t.id),
@@ -58,7 +73,10 @@ export async function POST(request: NextRequest) {
           const res = await fetch(`https://api.deezer.com/search?q=${q}&limit=1`);
           const data = (await res.json()) as any;
           const hit = data?.data?.[0];
-          return hit ? mapDeezerTrack(hit) : null;
+          if (!hit) return null;
+          // Deezer側でカラオケアーティストが返ってきた場合も排除
+          if (isDeezerKaraoke(hit.artist?.name ?? "", hit.title ?? "")) return null;
+          return mapDeezerTrack(hit);
         } catch {
           return null;
         }
