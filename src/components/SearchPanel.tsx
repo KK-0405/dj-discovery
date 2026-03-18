@@ -4,24 +4,24 @@ import { useEffect, useRef, useState } from "react";
 import { type Track, type Mode } from "@/types";
 
 const C = {
-  bg: "#000",
-  s1: "#1c1c1e",
-  s2: "#2c2c2e",
-  s3: "#3a3a3c",
-  acc: "#fc3c44",
-  accDim: "rgba(252,60,68,0.12)",
-  t1: "#fff",
-  t2: "rgba(235,235,245,0.6)",
-  t3: "rgba(235,235,245,0.3)",
-  sep: "rgba(84,84,88,0.4)",
-  blue: "#0a84ff",
-  blueDim: "rgba(10,132,255,0.15)",
-  green: "#30d158",
-  greenDim: "rgba(48,209,88,0.12)",
-  purple: "#bf5af2",
-  purpleDim: "rgba(191,90,242,0.15)",
-  yellow: "#ffd60a",
-  yellowDim: "rgba(255,214,10,0.12)",
+  bg: "#ffffff",
+  s1: "#f5f5f7",
+  s2: "#e8e8ed",
+  s3: "#d2d2d7",
+  acc: "#5856d6",
+  accDim: "rgba(88,86,214,0.1)",
+  t1: "#1d1d1f",
+  t2: "#6e6e73",
+  t3: "#aeaeb2",
+  sep: "rgba(0,0,0,0.08)",
+  green: "#34c759",
+  greenDim: "rgba(52,199,89,0.1)",
+  blue: "#007aff",
+  blueDim: "rgba(0,122,255,0.1)",
+  orange: "#ff9500",
+  orangeDim: "rgba(255,149,0,0.1)",
+  purple: "#af52de",
+  purpleDim: "rgba(175,82,222,0.1)",
 } as const;
 
 type Props = {
@@ -50,26 +50,26 @@ function getMatchBadges(track: Track, seed: Track | null): MatchBadge[] {
   if (track.bpm && seed.bpm) {
     const diff = Math.abs(track.bpm - seed.bpm);
     if (diff <= 5) {
-      badges.push({ label: `${track.bpm} BPM ≈`, color: C.green, bg: C.greenDim });
+      badges.push({ label: `${track.bpm} BPM ≈`, color: "#1b7a34", bg: C.greenDim });
     } else if (diff <= 15) {
-      badges.push({ label: `${track.bpm} BPM ±${diff}`, color: "rgba(48,209,88,0.7)", bg: C.greenDim });
+      badges.push({ label: `${track.bpm} BPM ±${diff}`, color: C.green, bg: C.greenDim });
     } else {
-      badges.push({ label: `${track.bpm} BPM`, color: C.t3, bg: "rgba(255,255,255,0.06)" });
+      badges.push({ label: `${track.bpm} BPM`, color: C.t2, bg: C.s1 });
     }
   }
 
   if (track.camelot && seed.camelot) {
     if (track.camelot === seed.camelot) {
-      badges.push({ label: `${track.camelot} Key ≈`, color: C.blue, bg: C.blueDim });
+      badges.push({ label: `${track.camelot} Key ≈`, color: "#0055cc", bg: C.blueDim });
     } else if (isCamelotAdjacent(seed.camelot, track.camelot)) {
-      badges.push({ label: `${track.camelot} 隣接`, color: "rgba(10,132,255,0.7)", bg: C.blueDim });
+      badges.push({ label: `${track.camelot} 隣接`, color: C.blue, bg: C.blueDim });
     }
   }
 
   if (track.genre_tags?.length && seed.genre_tags?.length) {
     const seedSet = new Set(seed.genre_tags.map((g) => g.toLowerCase()));
     track.genre_tags.filter((g) => seedSet.has(g.toLowerCase())).slice(0, 2).forEach((g) => {
-      badges.push({ label: g, color: C.yellow, bg: C.yellowDim });
+      badges.push({ label: g, color: "#b06c00", bg: C.orangeDim });
     });
   }
 
@@ -77,7 +77,7 @@ function getMatchBadges(track: Track, seed: Track | null): MatchBadge[] {
     const tDec = Math.floor(track.release_year / 10) * 10;
     const sDec = Math.floor(seed.release_year / 10) * 10;
     if (tDec === sDec) {
-      badges.push({ label: `${tDec}s`, color: C.purple, bg: C.purpleDim });
+      badges.push({ label: `${tDec}s`, color: "#7a35a8", bg: C.purpleDim });
     }
   }
 
@@ -93,10 +93,7 @@ function isCamelotAdjacent(a: string, b: string): boolean {
   };
   const ca = parseC(a), cb = parseC(b);
   if (!ca || !cb) return false;
-  if (ca.t === cb.t) {
-    const diff = Math.abs(ca.n - cb.n);
-    return diff === 1 || diff === 11;
-  }
+  if (ca.t === cb.t) { const diff = Math.abs(ca.n - cb.n); return diff === 1 || diff === 11; }
   return ca.n === cb.n;
 }
 
@@ -114,9 +111,7 @@ export default function SearchPanel({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputWrapRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    listRef.current?.scrollTo({ top: 0 });
-  }, [displayTracks]);
+  useEffect(() => { listRef.current?.scrollTo({ top: 0 }); }, [displayTracks]);
 
   const handleQueryChange = (value: string) => {
     setQuery(value);
@@ -142,9 +137,7 @@ export default function SearchPanel({
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (inputWrapRef.current && !inputWrapRef.current.contains(e.target as Node)) {
-        setShowSuggestions(false);
-      }
+      if (inputWrapRef.current && !inputWrapRef.current.contains(e.target as Node)) setShowSuggestions(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -167,18 +160,16 @@ export default function SearchPanel({
   };
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: "#060606" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: C.bg }}>
 
       {/* 検索バー */}
-      <div style={{ padding: "16px 20px 14px", borderBottom: `1px solid ${C.sep}` }}>
+      <div style={{ padding: "16px 20px 14px", borderBottom: `1px solid ${C.sep}`, background: C.bg }}>
         <div style={{ display: "flex", gap: "8px" }}>
           <div ref={inputWrapRef} style={{ flex: 1, position: "relative" }}>
             <span style={{
               position: "absolute", left: "13px", top: "50%", transform: "translateY(-50%)",
-              color: C.t3, fontSize: "15px", pointerEvents: "none", lineHeight: 1,
-            }}>
-              🔍
-            </span>
+              color: C.t3, fontSize: "14px", pointerEvents: "none",
+            }}>🔍</span>
             <input
               type="text"
               placeholder="曲名・アーティストを入力..."
@@ -192,7 +183,7 @@ export default function SearchPanel({
                 width: "100%",
                 padding: "11px 14px 11px 38px",
                 background: C.s1,
-                border: "none",
+                border: `1px solid ${C.sep}`,
                 borderRadius: "10px",
                 color: C.t1,
                 fontSize: "14px",
@@ -204,12 +195,10 @@ export default function SearchPanel({
             {/* オートコンプリート */}
             {showSuggestions && (
               <div style={{
-                position: "absolute",
-                top: "calc(100% + 6px)",
-                left: 0, right: 0,
-                background: C.s2,
+                position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0,
+                background: C.bg,
                 borderRadius: "12px",
-                boxShadow: "0 8px 32px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.06)",
+                boxShadow: "0 4px 24px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.06)",
                 zIndex: 100,
                 overflow: "hidden",
               }}>
@@ -219,12 +208,10 @@ export default function SearchPanel({
                     onMouseDown={() => selectSuggestion(t)}
                     style={{
                       display: "flex", alignItems: "center", gap: "10px",
-                      padding: "9px 14px",
-                      cursor: "pointer",
+                      padding: "9px 14px", cursor: "pointer",
                       borderBottom: idx < suggestions.length - 1 ? `1px solid ${C.sep}` : "none",
-                      transition: "background 0.1s",
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = C.s3)}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = C.s1)}
                     onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                   >
                     {t.album.images[0]?.url && (
@@ -248,7 +235,7 @@ export default function SearchPanel({
               border: "none", borderRadius: "10px",
               color: "#fff", fontSize: "14px", fontWeight: 600,
               cursor: "pointer", flexShrink: 0,
-              boxShadow: "0 2px 8px rgba(252,60,68,0.3)",
+              boxShadow: "0 2px 8px rgba(88,86,214,0.3)",
             }}
           >
             検索
@@ -259,35 +246,28 @@ export default function SearchPanel({
       {/* モードバー */}
       <div style={{
         display: "flex", alignItems: "center", gap: "8px",
-        padding: "8px 20px",
+        padding: "7px 20px",
         borderBottom: `1px solid ${C.sep}`,
-        background: "#060606",
+        background: C.s1,
       }}>
-        <span style={{ fontSize: "12px", color: C.t3, fontWeight: 500 }}>
-          {mode === "search" ? "検索結果" : `類似曲 ${filteredSimilarCount}曲`}
+        <span style={{ fontSize: "11px", color: C.t3, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+          {mode === "search" ? "検索結果" : `類似曲 — ${filteredSimilarCount}曲`}
         </span>
         {metadataLoading && (
-          <span style={{ fontSize: "11px", color: C.acc, marginLeft: "4px" }}>
-            ✦ Gemini 解析中...
-          </span>
+          <span style={{ fontSize: "11px", color: C.acc }}>✦ Gemini 解析中...</span>
         )}
       </div>
 
       {/* トラックリスト */}
-      <div
-        ref={listRef}
-        style={{ flex: 1, overflowY: "auto", padding: "8px 12px" }}
-      >
+      <div ref={listRef} style={{ flex: 1, overflowY: "auto", padding: "8px 12px", background: C.bg }}>
         {loading && (
-          <div style={{ color: C.t3, fontSize: "13px", textAlign: "center", padding: "40px 0" }}>
-            読み込み中...
-          </div>
+          <div style={{ color: C.t3, fontSize: "13px", textAlign: "center", padding: "48px 0" }}>読み込み中...</div>
         )}
         {mode === "search" && !loading && displayTracks.length === 0 && (
           <div style={{ textAlign: "center", padding: "60px 20px" }}>
-            <div style={{ fontSize: "40px", marginBottom: "12px" }}>🎵</div>
-            <div style={{ fontSize: "16px", fontWeight: 600, color: C.t2, marginBottom: "6px" }}>曲を検索してみよう</div>
-            <div style={{ fontSize: "13px", color: C.t3 }}>曲名またはアーティスト名を入力してSeedを選択</div>
+            <div style={{ fontSize: "44px", marginBottom: "14px" }}>🎵</div>
+            <div style={{ fontSize: "17px", fontWeight: 600, color: C.t2, marginBottom: "6px" }}>曲を検索してみよう</div>
+            <div style={{ fontSize: "13px", color: C.t3 }}>曲名またはアーティスト名を入力して Seed を選択</div>
           </div>
         )}
 
@@ -301,35 +281,31 @@ export default function SearchPanel({
             <div
               key={track.id}
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
+                display: "flex", alignItems: "center", gap: "12px",
                 padding: "10px 10px",
                 borderRadius: "10px",
                 background: isMain ? C.accDim : "transparent",
                 marginBottom: "2px",
-                transition: "background 0.12s",
+                transition: "background 0.1s",
               }}
               onMouseEnter={(e) => { if (!isMain) e.currentTarget.style.background = C.s1; }}
               onMouseLeave={(e) => { if (!isMain) e.currentTarget.style.background = "transparent"; }}
             >
-              {/* アルバムアート + プレビュー */}
+              {/* アルバムアート */}
               <div style={{ position: "relative", flexShrink: 0, width: 46, height: 46 }}>
                 <img
                   src={track.album.images[0]?.url}
                   alt={track.album.name}
                   width={46} height={46}
-                  style={{ borderRadius: "8px", display: "block", objectFit: "cover" }}
+                  style={{ borderRadius: "8px", display: "block", objectFit: "cover", boxShadow: "0 1px 4px rgba(0,0,0,0.12)" }}
                 />
                 {track.preview && (
                   <button
                     onClick={() => togglePreview(track)}
-                    className="preview-btn"
                     style={{
                       position: "absolute", inset: 0,
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      background: "rgba(0,0,0,0.6)",
-                      backdropFilter: "blur(2px)",
+                      background: "rgba(0,0,0,0.45)",
                       border: "none", borderRadius: "8px",
                       cursor: "pointer", color: "#fff", fontSize: "14px",
                       opacity: playingId === track.id ? 1 : 0,
@@ -361,39 +337,24 @@ export default function SearchPanel({
                   {track.release_year && <span style={{ color: C.t3 }}> · {track.release_year}</span>}
                 </div>
 
-                {/* BPM + Camelot + Energy */}
+                {/* BPM + Camelot + メタ */}
                 <div style={{ display: "flex", gap: "5px", alignItems: "center", marginTop: "4px", flexWrap: "wrap" }}>
-                  <span style={{
-                    fontSize: "11px",
-                    color: track.bpm ? C.green : C.t3,
-                    fontVariantNumeric: "tabular-nums",
-                  }}>
+                  <span style={{ fontSize: "11px", color: track.bpm ? "#1b7a34" : C.t3, fontWeight: 500 }}>
                     {track.bpm ? `${track.bpm} BPM` : "— BPM"}
                   </span>
                   {track.camelot && (
-                    <span style={{
-                      fontSize: "10px", color: C.blue,
-                      background: C.blueDim,
-                      padding: "1px 6px", borderRadius: "4px",
-                      fontWeight: 600,
-                    }}>
+                    <span style={{ fontSize: "10px", color: "#0055cc", background: C.blueDim, padding: "1px 6px", borderRadius: "4px", fontWeight: 600 }}>
                       {track.camelot}
                     </span>
                   )}
                   {track.energy !== undefined && (
-                    <span style={{ fontSize: "11px", color: C.t3 }}>
-                      E:{Math.round(track.energy * 10)}
-                    </span>
+                    <span style={{ fontSize: "11px", color: C.t3 }}>E:{Math.round(track.energy * 10)}</span>
                   )}
                   {track.is_vocal !== undefined && (
                     <span style={{ fontSize: "11px", color: C.t3 }}>{track.is_vocal ? "🎤" : "🎸"}</span>
                   )}
                   {track.genre_tags?.slice(0, 2).map((g) => (
-                    <span key={g} style={{
-                      fontSize: "10px", color: C.t3,
-                      background: "rgba(255,255,255,0.07)",
-                      padding: "1px 5px", borderRadius: "4px",
-                    }}>{g}</span>
+                    <span key={g} style={{ fontSize: "10px", color: C.t2, background: C.s1, padding: "1px 5px", borderRadius: "4px", border: `1px solid ${C.sep}` }}>{g}</span>
                   ))}
                 </div>
 
@@ -401,12 +362,7 @@ export default function SearchPanel({
                 {mode === "similar" && (
                   <div style={{ display: "flex", gap: "4px", marginTop: "4px", flexWrap: "wrap" }}>
                     {badges.length > 0 ? badges.map((b, i) => (
-                      <span key={i} style={{
-                        fontSize: "10px", color: b.color,
-                        background: b.bg,
-                        padding: "1px 6px", borderRadius: "5px",
-                        fontWeight: 500, whiteSpace: "nowrap",
-                      }}>
+                      <span key={i} style={{ fontSize: "10px", color: b.color, background: b.bg, padding: "1px 6px", borderRadius: "5px", fontWeight: 500, whiteSpace: "nowrap" }}>
                         {b.label}
                       </span>
                     )) : (
@@ -416,18 +372,18 @@ export default function SearchPanel({
                 )}
               </div>
 
-              {/* アクションボタン */}
+              {/* アクション */}
               {mode === "search" && (
                 <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
                   <button
                     onClick={() => setAsMainSeed(track)}
                     style={{
                       padding: "5px 10px",
-                      background: isMain ? C.acc : "rgba(255,255,255,0.08)",
-                      border: "none", borderRadius: "8px",
+                      background: isMain ? C.acc : C.s1,
+                      border: `1px solid ${isMain ? C.acc : C.s2}`,
+                      borderRadius: "8px",
                       color: isMain ? "#fff" : C.t2,
-                      fontSize: "11px", fontWeight: 600,
-                      cursor: "pointer", whiteSpace: "nowrap",
+                      fontSize: "11px", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
                     }}
                   >
                     {isMain ? "★ メイン" : "メイン"}
@@ -436,11 +392,11 @@ export default function SearchPanel({
                     onClick={() => addToSubSeed(track)}
                     style={{
                       padding: "5px 10px",
-                      background: inSubSeed ? C.greenDim : "rgba(255,255,255,0.08)",
-                      border: "none", borderRadius: "8px",
-                      color: inSubSeed ? C.green : C.t2,
-                      fontSize: "11px", fontWeight: 600,
-                      cursor: "pointer", whiteSpace: "nowrap",
+                      background: inSubSeed ? C.greenDim : C.s1,
+                      border: `1px solid ${inSubSeed ? "#34c759" : C.s2}`,
+                      borderRadius: "8px",
+                      color: inSubSeed ? "#1b7a34" : C.t2,
+                      fontSize: "11px", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
                     }}
                   >
                     {inSubSeed ? "✓ サブ" : "+ サブ"}
@@ -452,11 +408,11 @@ export default function SearchPanel({
                   onClick={() => addToPlaylist(track)}
                   style={{
                     padding: "5px 12px",
-                    background: inPlaylist ? C.accDim : "rgba(255,255,255,0.08)",
-                    border: "none", borderRadius: "8px",
+                    background: inPlaylist ? C.accDim : C.s1,
+                    border: `1px solid ${inPlaylist ? C.acc : C.s2}`,
+                    borderRadius: "8px",
                     color: inPlaylist ? C.acc : C.t2,
-                    fontSize: "11px", fontWeight: 600,
-                    cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
+                    fontSize: "11px", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
                   }}
                 >
                   {inPlaylist ? "✓ 追加済み" : "+ リスト"}

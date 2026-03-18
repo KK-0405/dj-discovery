@@ -4,23 +4,25 @@ import { useState } from "react";
 import { type Track, type SimilarFilters } from "@/types";
 
 const C = {
-  s1: "#1c1c1e",
-  s2: "#2c2c2e",
-  s3: "#3a3a3c",
-  acc: "#fc3c44",
-  accDim: "rgba(252,60,68,0.12)",
-  t1: "#fff",
-  t2: "rgba(235,235,245,0.6)",
-  t3: "rgba(235,235,245,0.3)",
-  sep: "rgba(84,84,88,0.4)",
-  blue: "#0a84ff",
-  blueDim: "rgba(10,132,255,0.15)",
-  green: "#30d158",
-  greenDim: "rgba(48,209,88,0.12)",
-  purple: "#bf5af2",
-  purpleDim: "rgba(191,90,242,0.15)",
-  yellow: "#ffd60a",
-  yellowDim: "rgba(255,214,10,0.12)",
+  bg: "#fafafa",
+  s1: "#f5f5f7",
+  s2: "#e8e8ed",
+  s3: "#d2d2d7",
+  acc: "#5856d6",
+  accDim: "rgba(88,86,214,0.1)",
+  accBorder: "rgba(88,86,214,0.3)",
+  t1: "#1d1d1f",
+  t2: "#6e6e73",
+  t3: "#aeaeb2",
+  sep: "rgba(0,0,0,0.08)",
+  green: "#34c759",
+  greenDim: "rgba(52,199,89,0.1)",
+  greenText: "#1b7a34",
+  blue: "#007aff",
+  blueDim: "rgba(0,122,255,0.1)",
+  blueText: "#0055cc",
+  orange: "#ff9500",
+  orangeDim: "rgba(255,149,0,0.1)",
 } as const;
 
 type Props = {
@@ -37,13 +39,9 @@ type Props = {
   seedError: string | null;
 };
 
-function Label({ children }: { children: React.ReactNode }) {
+function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{
-      fontSize: "10px", color: C.t3, fontWeight: 600,
-      textTransform: "uppercase", letterSpacing: "0.06em",
-      marginBottom: "6px", marginTop: "2px",
-    }}>
+    <div style={{ fontSize: "10px", color: C.t3, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px", marginTop: "2px" }}>
       {children}
     </div>
   );
@@ -54,15 +52,12 @@ function Chip({ label, active, onClick }: { label: string; active: boolean; onCl
     <button
       onClick={onClick}
       style={{
-        padding: "4px 10px",
-        borderRadius: "20px",
-        fontSize: "11px",
-        fontWeight: 600,
+        padding: "4px 10px", borderRadius: "20px", fontSize: "11px", fontWeight: 600,
         cursor: "pointer",
-        border: "none",
-        background: active ? C.acc : "rgba(255,255,255,0.08)",
+        background: active ? C.acc : C.s1,
+        border: `1px solid ${active ? C.acc : C.s2}`,
         color: active ? "#fff" : C.t2,
-        transition: "background 0.1s",
+        transition: "all 0.1s",
       }}
     >
       {label}
@@ -72,24 +67,15 @@ function Chip({ label, active, onClick }: { label: string; active: boolean; onCl
 
 function CheckRow({
   label, value, available = true, checked, onChange,
-}: {
-  label: string; value?: string; available?: boolean; checked: boolean; onChange: (v: boolean) => void;
-}) {
+}: { label: string; value?: string; available?: boolean; checked: boolean; onChange: (v: boolean) => void }) {
   return (
-    <div style={{
-      display: "flex", alignItems: "center", justifyContent: "space-between",
-      padding: "5px 0", opacity: available ? 1 : 0.35,
-    }}>
-      <div style={{ display: "flex", alignItems: "baseline", gap: "5px", minWidth: 0, flex: 1 }}>
-        <span style={{ fontSize: "12px", color: available ? C.t2 : C.t3 }}>{label}</span>
-        {value && <span style={{ fontSize: "10px", color: C.green }}>{value}</span>}
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "5px 0", opacity: available ? 1 : 0.4 }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: "5px", flex: 1, minWidth: 0 }}>
+        <span style={{ fontSize: "12px", color: C.t2 }}>{label}</span>
+        {value && <span style={{ fontSize: "10px", color: C.greenText, fontWeight: 600 }}>{value}</span>}
       </div>
       <div style={{ marginLeft: "8px", flexShrink: 0, pointerEvents: available ? "auto" : "none" }}>
-        <input
-          type="checkbox" checked={checked}
-          onChange={(e) => onChange(e.target.checked)}
-          style={{ accentColor: C.acc, cursor: "pointer", width: 14, height: 14 }}
-        />
+        <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} style={{ accentColor: C.acc, cursor: "pointer", width: 14, height: 14 }} />
       </div>
     </div>
   );
@@ -102,19 +88,12 @@ export default function SeedPanel({
   filters, setFilters, similarCount, setSimilarCount, seedAnalyzing, seedError,
 }: Props) {
   const [showFilters, setShowFilters] = useState(false);
-
   const set = (patch: Partial<SimilarFilters>) => setFilters({ ...filters, ...patch });
 
   const activeCount = [
-    filters.bpmRange !== null,
-    filters.sameKey,
-    filters.camelotAdjacent,
-    filters.genreMatch,
-    filters.energyLevel !== null,
-    filters.danceabilityHigh,
-    filters.sameArtist,
-    filters.decade !== null,
-    filters.vocalType !== null,
+    filters.bpmRange !== null, filters.sameKey, filters.camelotAdjacent,
+    filters.genreMatch, filters.energyLevel !== null, filters.danceabilityHigh,
+    filters.sameArtist, filters.decade !== null, filters.vocalType !== null,
   ].filter(Boolean).length;
 
   const hasGemini = mainSeed?.energy !== undefined;
@@ -123,57 +102,36 @@ export default function SeedPanel({
   return (
     <div style={{ padding: "16px" }}>
 
-      {/* Seed ヘッダー */}
-      <div style={{
-        fontSize: "12px", fontWeight: 700, color: C.t2,
-        textTransform: "uppercase", letterSpacing: "0.06em",
-        marginBottom: "14px",
-      }}>
+      <div style={{ fontSize: "12px", fontWeight: 700, color: C.t2, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "14px" }}>
         Seed
       </div>
 
       {/* メイン Seed */}
       <div style={{ marginBottom: "12px" }}>
-        <Label>メイン</Label>
+        <SectionLabel>メイン</SectionLabel>
         {mainSeed ? (
           <div style={{
             display: "flex", alignItems: "center", gap: "10px",
-            background: C.accDim,
-            border: `1px solid rgba(252,60,68,0.25)`,
+            background: C.accDim, border: `1px solid ${C.accBorder}`,
             borderRadius: "10px", padding: "10px",
           }}>
-            <img
-              src={mainSeed.album.images[0]?.url}
-              alt={mainSeed.album.name}
-              width={36} height={36}
-              style={{ borderRadius: "6px", flexShrink: 0 }}
-            />
+            <img src={mainSeed.album.images[0]?.url} alt={mainSeed.album.name} width={36} height={36} style={{ borderRadius: "6px", flexShrink: 0, boxShadow: "0 1px 4px rgba(0,0,0,0.15)" }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ color: C.t1, fontSize: "12px", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{mainSeed.name}</div>
               <div style={{ color: C.t2, fontSize: "11px", marginTop: "1px" }}>{mainSeed.artists[0]?.name}</div>
               <div style={{ display: "flex", gap: "6px", marginTop: "4px", flexWrap: "wrap", alignItems: "center" }}>
-                {mainSeed.bpm > 0 && <span style={{ fontSize: "10px", color: C.green, fontWeight: 600 }}>{mainSeed.bpm} BPM</span>}
-                {mainSeed.camelot && (
-                  <span style={{ fontSize: "10px", color: C.blue, background: C.blueDim, padding: "0 5px", borderRadius: "4px", fontWeight: 600 }}>{mainSeed.camelot}</span>
-                )}
+                {mainSeed.bpm > 0 && <span style={{ fontSize: "10px", color: C.greenText, fontWeight: 600 }}>{mainSeed.bpm} BPM</span>}
+                {mainSeed.camelot && <span style={{ fontSize: "10px", color: C.blueText, background: C.blueDim, padding: "0 5px", borderRadius: "4px", fontWeight: 600 }}>{mainSeed.camelot}</span>}
                 {mainSeed.energy !== undefined && <span style={{ fontSize: "10px", color: C.t3 }}>E:{Math.round(mainSeed.energy * 10)}</span>}
                 {mainSeed.release_year && <span style={{ fontSize: "10px", color: C.t3 }}>{mainSeed.release_year}</span>}
-                {seedAnalyzing && <span style={{ fontSize: "10px", color: C.acc }}>✦ 解析中...</span>}
-                {seedError && <span style={{ fontSize: "9px", color: "#ff453a", wordBreak: "break-all" }}>ERR</span>}
+                {seedAnalyzing && <span style={{ fontSize: "10px", color: C.acc, fontWeight: 500 }}>✦ 解析中...</span>}
+                {seedError && <span style={{ fontSize: "9px", color: "#ff3b30" }}>ERR</span>}
               </div>
             </div>
-            <button
-              onClick={() => setMainSeed(null)}
-              style={{ background: "none", border: "none", color: C.t3, fontSize: "18px", cursor: "pointer", flexShrink: 0, lineHeight: 1, padding: "2px" }}
-            >
-              ×
-            </button>
+            <button onClick={() => setMainSeed(null)} style={{ background: "none", border: "none", color: C.t3, fontSize: "18px", cursor: "pointer", flexShrink: 0, lineHeight: 1 }}>×</button>
           </div>
         ) : (
-          <div style={{
-            padding: "12px", background: C.s1, borderRadius: "10px",
-            color: C.t3, fontSize: "12px", textAlign: "center",
-          }}>
+          <div style={{ padding: "12px", background: C.s1, border: `1px solid ${C.sep}`, borderRadius: "10px", color: C.t3, fontSize: "12px", textAlign: "center" }}>
             検索結果からメインを選択
           </div>
         )}
@@ -181,19 +139,19 @@ export default function SeedPanel({
 
       {/* サブ Seed */}
       <div style={{ marginBottom: "14px" }}>
-        <Label>サブ</Label>
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+        <SectionLabel>サブ</SectionLabel>
+        <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
           {subSeeds.length === 0 && (
-            <div style={{ padding: "10px", background: C.s1, borderRadius: "10px", color: C.t3, fontSize: "12px", textAlign: "center" }}>
+            <div style={{ padding: "10px", background: C.s1, border: `1px solid ${C.sep}`, borderRadius: "10px", color: C.t3, fontSize: "12px", textAlign: "center" }}>
               サブ Seed を追加
             </div>
           )}
           {subSeeds.map((track) => (
             <div key={track.id} style={{
               display: "flex", alignItems: "center", gap: "8px",
-              background: C.s1, borderRadius: "10px", padding: "8px 10px",
+              background: C.s1, border: `1px solid ${C.sep}`, borderRadius: "8px", padding: "8px 10px",
             }}>
-              <img src={track.album.images[0]?.url} alt={track.album.name} width={30} height={30} style={{ borderRadius: "5px", flexShrink: 0 }} />
+              <img src={track.album.images[0]?.url} alt={track.album.name} width={28} height={28} style={{ borderRadius: "5px", flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ color: C.t1, fontSize: "11px", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{track.name}</div>
                 <div style={{ color: C.t2, fontSize: "10px" }}>{track.artists[0]?.name}</div>
@@ -206,7 +164,7 @@ export default function SeedPanel({
 
       {/* 取得件数 */}
       <div style={{ marginBottom: "14px" }}>
-        <Label>取得件数</Label>
+        <SectionLabel>取得件数</SectionLabel>
         <div style={{ display: "flex", gap: "6px" }}>
           {([10, 20, 30] as const).map((n) => (
             <Chip key={n} label={`${n}曲`} active={similarCount === n} onClick={() => setSimilarCount(n)} />
@@ -215,15 +173,11 @@ export default function SeedPanel({
       </div>
 
       {/* 絞り込み */}
-      <div style={{
-        background: C.s1, borderRadius: "10px", overflow: "hidden",
-        marginBottom: "14px",
-      }}>
+      <div style={{ background: C.s1, border: `1px solid ${C.sep}`, borderRadius: "10px", overflow: "hidden", marginBottom: "14px" }}>
         <button
           onClick={() => setShowFilters(!showFilters)}
           style={{
-            width: "100%", padding: "10px 12px",
-            background: "transparent", border: "none",
+            width: "100%", padding: "10px 12px", background: "transparent", border: "none",
             color: activeCount > 0 ? C.acc : C.t2,
             fontSize: "12px", fontWeight: 600, cursor: "pointer",
             display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -232,33 +186,23 @@ export default function SeedPanel({
           <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             絞り込み条件
             {activeCount > 0 && (
-              <span style={{
-                background: C.acc, color: "#fff",
-                borderRadius: "10px", padding: "0 6px",
-                fontSize: "10px", fontWeight: 700, lineHeight: "16px",
-              }}>
+              <span style={{ background: C.acc, color: "#fff", borderRadius: "10px", padding: "0 6px", fontSize: "10px", fontWeight: 700, lineHeight: "16px" }}>
                 {activeCount}
               </span>
             )}
           </span>
-          <span style={{ fontSize: "11px", color: C.t3 }}>{showFilters ? "▲" : "▼"}</span>
+          <span style={{ fontSize: "10px", color: C.t3 }}>{showFilters ? "▲" : "▼"}</span>
         </button>
 
         {showFilters && (
           <div style={{ padding: "4px 12px 12px", borderTop: `1px solid ${C.sep}` }}>
-
-            {mainSeed && seedAnalyzing && (
-              <div style={{ fontSize: "11px", color: C.acc, padding: "8px 0 4px" }}>✦ Gemini が解析中...</div>
-            )}
-            {mainSeed && !seedAnalyzing && !hasGemini && (
-              <div style={{ fontSize: "11px", color: C.t3, padding: "8px 0 4px" }}>✦ Seed 選択後に自動解析</div>
-            )}
+            {mainSeed && seedAnalyzing && <div style={{ fontSize: "11px", color: C.acc, padding: "8px 0 4px" }}>✦ Gemini が解析中...</div>}
+            {mainSeed && !seedAnalyzing && !hasGemini && <div style={{ fontSize: "11px", color: C.t3, padding: "8px 0 4px" }}>✦ Seed 選択後に自動解析</div>}
 
             {/* BPM */}
             <div style={{ marginTop: "8px" }}>
               <div style={{ fontSize: "11px", color: C.t3, marginBottom: "6px" }}>
-                BPM 範囲
-                {(mainSeed?.bpm ?? 0) > 0 && <span style={{ color: C.green, marginLeft: "6px", fontWeight: 600 }}>{mainSeed!.bpm} BPM</span>}
+                BPM 範囲{(mainSeed?.bpm ?? 0) > 0 && <span style={{ color: C.greenText, marginLeft: "6px", fontWeight: 600 }}>{mainSeed!.bpm} BPM</span>}
               </div>
               <div style={{ display: "flex", gap: "5px", flexWrap: "wrap" }}>
                 {([null, 5, 10] as const).map((v) => (
@@ -282,7 +226,7 @@ export default function SeedPanel({
               {hasGemini && mainSeed?.genre_tags?.length ? (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "3px", marginTop: "4px" }}>
                   {mainSeed.genre_tags.map((g) => (
-                    <span key={g} style={{ fontSize: "10px", color: C.yellow, background: C.yellowDim, padding: "1px 6px", borderRadius: "4px" }}>{g}</span>
+                    <span key={g} style={{ fontSize: "10px", color: "#b06c00", background: C.orangeDim, padding: "1px 6px", borderRadius: "4px" }}>{g}</span>
                   ))}
                 </div>
               ) : null}
@@ -292,22 +236,15 @@ export default function SeedPanel({
             {/* エネルギー */}
             <div style={{ marginTop: "10px", paddingTop: "10px", borderTop: `1px solid ${C.sep}` }}>
               <div style={{ fontSize: "11px", color: C.t3, marginBottom: "6px" }}>
-                エネルギー
-                {mainSeed?.energy !== undefined && <span style={{ color: C.green, marginLeft: "6px", fontWeight: 600 }}>{Math.round(mainSeed.energy * 100)}%</span>}
+                エネルギー{mainSeed?.energy !== undefined && <span style={{ color: C.greenText, marginLeft: "6px", fontWeight: 600 }}>{Math.round(mainSeed.energy * 100)}%</span>}
               </div>
-              <div style={{ display: "flex", gap: "5px", opacity: hasGemini ? 1 : 0.4, pointerEvents: hasGemini ? "auto" : "none", flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: "5px", flexWrap: "wrap", opacity: hasGemini ? 1 : 0.4, pointerEvents: hasGemini ? "auto" : "none" }}>
                 {([null, "high", "medium", "low"] as const).map((v) => (
                   <Chip key={String(v)} label={v === null ? "全て" : v === "high" ? "高" : v === "medium" ? "中" : "低"} active={filters.energyLevel === v} onClick={() => set({ energyLevel: filters.energyLevel === v ? null : v })} />
                 ))}
               </div>
               <div style={{ marginTop: "6px", opacity: hasGemini ? 1 : 0.4, pointerEvents: hasGemini ? "auto" : "none" }}>
-                <CheckRow
-                  label="ダンサビリティ高"
-                  value={mainSeed?.danceability !== undefined ? `${Math.round(mainSeed.danceability * 100)}%` : undefined}
-                  available={hasGemini}
-                  checked={filters.danceabilityHigh}
-                  onChange={(v) => set({ danceabilityHigh: v })}
-                />
+                <CheckRow label="ダンサビリティ高" value={mainSeed?.danceability !== undefined ? `${Math.round(mainSeed.danceability * 100)}%` : undefined} available={hasGemini} checked={filters.danceabilityHigh} onChange={(v) => set({ danceabilityHigh: v })} />
               </div>
               {!hasGemini && <div style={{ fontSize: "10px", color: C.t3, marginTop: "2px" }}>※ Gemini 解析後に使用可</div>}
             </div>
@@ -318,8 +255,7 @@ export default function SeedPanel({
               <CheckRow label="同じアーティスト" value={mainSeed?.artists[0]?.name} checked={filters.sameArtist} onChange={(v) => set({ sameArtist: v })} />
               <div style={{ marginTop: "6px" }}>
                 <div style={{ fontSize: "11px", color: C.t3, marginBottom: "6px" }}>
-                  リリース年代
-                  {mainSeed?.release_year && <span style={{ color: C.t2, marginLeft: "6px" }}>{mainSeed.release_year}年</span>}
+                  リリース年代{mainSeed?.release_year && <span style={{ color: C.t2, marginLeft: "6px" }}>{mainSeed.release_year}年</span>}
                 </div>
                 <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", opacity: hasDecade ? 1 : 0.4, pointerEvents: hasDecade ? "auto" : "none" }}>
                   {DECADES.map((d) => (
@@ -333,8 +269,7 @@ export default function SeedPanel({
             {/* ボーカル */}
             <div style={{ marginTop: "10px", paddingTop: "10px", borderTop: `1px solid ${C.sep}` }}>
               <div style={{ fontSize: "11px", color: C.t3, marginBottom: "6px" }}>
-                ボーカル
-                {mainSeed?.is_vocal !== undefined && <span style={{ color: C.t2, marginLeft: "6px" }}>{mainSeed.is_vocal ? "あり" : "インスト"}</span>}
+                ボーカル{mainSeed?.is_vocal !== undefined && <span style={{ color: C.t2, marginLeft: "6px" }}>{mainSeed.is_vocal ? "あり" : "インスト"}</span>}
               </div>
               <div style={{ display: "flex", gap: "5px", flexWrap: "wrap", opacity: hasGemini ? 1 : 0.4, pointerEvents: hasGemini ? "auto" : "none" }}>
                 {([null, "vocal", "instrumental"] as const).map((v) => (
@@ -343,25 +278,24 @@ export default function SeedPanel({
               </div>
               {!hasGemini && <div style={{ fontSize: "10px", color: C.t3, marginTop: "2px" }}>※ Gemini 解析後に使用可</div>}
             </div>
-
           </div>
         )}
       </div>
 
-      {/* 類似曲探索ボタン */}
+      {/* 探索ボタン */}
       <button
         onClick={exploreSimilar}
         disabled={!mainSeed}
         style={{
-          width: "100%",
-          padding: "12px",
+          width: "100%", padding: "12px",
           background: mainSeed ? C.acc : C.s1,
-          border: "none", borderRadius: "10px",
+          border: `1px solid ${mainSeed ? C.acc : C.sep}`,
+          borderRadius: "10px",
           color: mainSeed ? "#fff" : C.t3,
           fontSize: "14px", fontWeight: 700,
           cursor: mainSeed ? "pointer" : "default",
-          boxShadow: mainSeed ? "0 2px 8px rgba(252,60,68,0.35)" : "none",
-          transition: "background 0.15s, box-shadow 0.15s",
+          boxShadow: mainSeed ? "0 2px 8px rgba(88,86,214,0.3)" : "none",
+          transition: "all 0.15s",
         }}
       >
         類似曲を探索

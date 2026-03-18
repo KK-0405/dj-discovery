@@ -79,53 +79,11 @@ export default function Home() {
     try {
       const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
       const data = await res.json();
-      const fetched: Track[] = data.tracks ?? [];
-      setTracks(fetched);
-      setLoading(false);
+      setTracks(data.tracks ?? []);
     } catch {
       setTracks([]);
-      setLoading(false);
     }
-  };
-
-  const enrichSearchTracks = async (trackList: Track[]) => {
-    const targets = trackList.slice(0, 10).map((t) => ({
-      id: t.id,
-      title: t.name,
-      artist: t.artists[0]?.name ?? "",
-    }));
-    const cache = readCache();
-    const uncachedTargets = targets.filter((t) => !cache[cacheKey(t.title, t.artist)]);
-    let apiMetadata: (any | null)[] = [];
-    if (uncachedTargets.length > 0) {
-      try {
-        const res = await fetch("/api/track-metadata", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tracks: uncachedTargets }),
-        });
-        const data = await res.json();
-        apiMetadata = data.metadata ?? [];
-      } catch { /* ignore */ }
-    }
-    const { results } = applyCache(targets, apiMetadata.length ? apiMetadata : new Array(uncachedTargets.length).fill(null));
-    setTracks((prev) =>
-      prev.map((track, i) => {
-        const m = results[i];
-        if (!m) return track;
-        return {
-          ...track,
-          bpm: track.bpm || m.bpm,
-          key: m.key || track.key,
-          camelot: m.camelot,
-          energy: m.energy,
-          danceability: m.danceability,
-          is_vocal: m.is_vocal,
-          genre_tags: m.genre_tags,
-          release_year: track.release_year || m.release_year,
-        };
-      })
-    );
+    setLoading(false);
   };
 
   const exploreSimilar = async () => {
@@ -157,8 +115,7 @@ export default function Home() {
         }),
       });
       const data = await res.json();
-      const fetched: Track[] = data.tracks ?? [];
-      setSimilarTracks(fetched);
+      setSimilarTracks(data.tracks ?? []);
     } catch {
       setSimilarTracks([]);
     }
@@ -185,7 +142,7 @@ export default function Home() {
       body: JSON.stringify({ name: playlistName, tracks: playlist }),
     });
     const data = await res.json();
-    if (data.playlist) { alert("プレイリストを保存しました！"); loadPlaylists(); }
+    if (data.playlist) { alert("保存しました！"); loadPlaylists(); }
   };
 
   const loadPlaylists = async () => {
@@ -223,13 +180,8 @@ export default function Home() {
       if (data._debug) setSeedError(String(data._debug));
       const m = data.metadata?.[0];
       if (m) {
-        const newCache = { ...readCache(), [cacheKey(track.name, artist)]: m };
-        writeCache(newCache);
-        setMainSeed((prev) =>
-          prev
-            ? { ...prev, bpm: prev.bpm || m.bpm, key: m.key || prev.key, camelot: m.camelot, energy: m.energy, danceability: m.danceability, is_vocal: m.is_vocal, genre_tags: m.genre_tags, release_year: prev.release_year || m.release_year }
-            : prev
-        );
+        writeCache({ ...readCache(), [cacheKey(track.name, artist)]: m });
+        setMainSeed((prev) => prev ? { ...prev, bpm: prev.bpm || m.bpm, key: m.key || prev.key, camelot: m.camelot, energy: m.energy, danceability: m.danceability, is_vocal: m.is_vocal, genre_tags: m.genre_tags, release_year: prev.release_year || m.release_year } : prev);
       } else {
         setSeedError((prev) => prev ?? "metadata[0] is null");
       }
@@ -239,13 +191,9 @@ export default function Home() {
     setSeedAnalyzing(false);
   };
 
-  const setAsMainSeed = (track: Track) => {
-    setMainSeed(track);
-    analyzeSeed(track);
-  };
+  const setAsMainSeed = (track: Track) => { setMainSeed(track); analyzeSeed(track); };
   const addToSubSeed = async (track: Track) => {
-    if (subSeeds.find((t) => t.id === track.id)) return;
-    if (mainSeed?.id === track.id) return;
+    if (subSeeds.find((t) => t.id === track.id) || mainSeed?.id === track.id) return;
     setSubSeeds((prev) => [...prev, track]);
     const artist = track.artists[0]?.name ?? "";
     let m = readCache()[cacheKey(track.name, artist)] ?? null;
@@ -262,36 +210,19 @@ export default function Home() {
       } catch { /* ignore */ }
     }
     if (m) {
-      setSubSeeds((prev) =>
-        prev.map((t) =>
-          t.id === track.id
-            ? { ...t, genre_tags: m.genre_tags, energy: m.energy, danceability: m.danceability, is_vocal: m.is_vocal, camelot: m.camelot, bpm: t.bpm || m.bpm, release_year: m.release_year }
-            : t
-        )
-      );
+      setSubSeeds((prev) => prev.map((t) => t.id === track.id ? { ...t, genre_tags: m.genre_tags, energy: m.energy, danceability: m.danceability, is_vocal: m.is_vocal, camelot: m.camelot, bpm: t.bpm || m.bpm, release_year: m.release_year } : t));
     }
   };
   const removeSubSeed = (id: string) => setSubSeeds(subSeeds.filter((t) => t.id !== id));
-  const addToPlaylist = (track: Track) => {
-    if (playlist.find((t) => t.id === track.id)) return;
-    setPlaylist([...playlist, track]);
-  };
+  const addToPlaylist = (track: Track) => { if (!playlist.find((t) => t.id === track.id)) setPlaylist([...playlist, track]); };
   const removeFromPlaylist = (id: string) => setPlaylist(playlist.filter((t) => t.id !== id));
   const isInPlaylist = (track: Track) => !!playlist.find((t) => t.id === track.id);
 
   const filteredSimilar = similarTracks.filter((track) => {
-    if (filters.bpmRange && mainSeed?.bpm && track.bpm) {
-      if (Math.abs(track.bpm - mainSeed.bpm) > filters.bpmRange) return false;
-    }
-    if (filters.sameArtist && mainSeed) {
-      if (track.artists[0]?.name !== mainSeed.artists[0]?.name) return false;
-    }
-    if (filters.sameKey && mainSeed?.key && track.key) {
-      if (track.key !== mainSeed.key) return false;
-    }
-    if (filters.camelotAdjacent && mainSeed?.camelot && track.camelot) {
-      if (!isCamelotAdjacent(mainSeed.camelot, track.camelot)) return false;
-    }
+    if (filters.bpmRange && mainSeed?.bpm && track.bpm && Math.abs(track.bpm - mainSeed.bpm) > filters.bpmRange) return false;
+    if (filters.sameArtist && mainSeed && track.artists[0]?.name !== mainSeed.artists[0]?.name) return false;
+    if (filters.sameKey && mainSeed?.key && track.key && track.key !== mainSeed.key) return false;
+    if (filters.camelotAdjacent && mainSeed?.camelot && track.camelot && !isCamelotAdjacent(mainSeed.camelot, track.camelot)) return false;
     if (filters.genreMatch && mainSeed?.genre_tags?.length && track.genre_tags?.length) {
       const seedGenres = new Set(mainSeed.genre_tags.map((g) => g.toLowerCase()));
       if (!track.genre_tags.some((g) => seedGenres.has(g.toLowerCase()))) return false;
@@ -302,16 +233,13 @@ export default function Home() {
       if (filters.energyLevel === "medium" && (e < 0.4 || e >= 0.7)) return false;
       if (filters.energyLevel === "low" && e >= 0.4) return false;
     }
-    if (filters.danceabilityHigh && track.danceability !== undefined) {
-      if (track.danceability < 0.6) return false;
-    }
+    if (filters.danceabilityHigh && track.danceability !== undefined && track.danceability < 0.6) return false;
     if (filters.vocalType && track.is_vocal !== undefined) {
       if (filters.vocalType === "vocal" && !track.is_vocal) return false;
       if (filters.vocalType === "instrumental" && track.is_vocal) return false;
     }
     if (filters.decade && track.release_year) {
-      const decade = `${Math.floor(track.release_year / 10) * 10}s`;
-      if (decade !== filters.decade) return false;
+      if (`${Math.floor(track.release_year / 10) * 10}s` !== filters.decade) return false;
     }
     return true;
   });
@@ -320,81 +248,75 @@ export default function Home() {
 
   useEffect(() => { loadPlaylists(); }, []);
 
-  const sep = "rgba(84,84,88,0.4)";
-
   return (
-    <div style={{ display: "flex", height: "100vh", background: "#000", overflow: "hidden" }}>
+    <div style={{ display: "flex", height: "100vh", background: "#fff", overflow: "hidden" }}>
 
       {/* サイドバー */}
       <div style={{
         width: "200px",
-        background: "#000",
-        borderRight: `1px solid ${sep}`,
+        background: "#f5f5f7",
+        borderRight: "1px solid rgba(0,0,0,0.08)",
         display: "flex",
         flexDirection: "column",
         flexShrink: 0,
       }}>
         {/* ロゴ */}
-        <div style={{ padding: "20px 16px 16px", borderBottom: `1px solid ${sep}` }}>
+        <div style={{ padding: "20px 16px 16px", borderBottom: "1px solid rgba(0,0,0,0.07)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <div style={{
               width: 34, height: 34,
-              background: "#fc3c44",
+              background: "#5856d6",
               borderRadius: "9px",
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: "18px",
+              fontSize: "17px",
               flexShrink: 0,
-              boxShadow: "0 2px 8px rgba(252,60,68,0.4)",
+              boxShadow: "0 2px 8px rgba(88,86,214,0.35)",
             }}>♪</div>
             <div>
-              <div style={{ fontSize: "14px", fontWeight: 700, color: "#fff", letterSpacing: "-0.01em" }}>DJ Discovery</div>
-              <div style={{ fontSize: "10px", color: "rgba(235,235,245,0.4)", marginTop: "1px" }}>Music Explorer</div>
+              <div style={{ fontSize: "14px", fontWeight: 700, color: "#1d1d1f", letterSpacing: "-0.01em" }}>DJ Discovery</div>
+              <div style={{ fontSize: "10px", color: "#aeaeb2", marginTop: "1px" }}>Music Explorer</div>
             </div>
           </div>
         </div>
 
         {/* ナビ */}
         <nav style={{ padding: "10px 8px", flex: 1 }}>
-          <div style={{ marginBottom: "2px" }}>
-            <div style={{ fontSize: "10px", color: "rgba(235,235,245,0.3)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", padding: "4px 8px 6px" }}>
-              Library
-            </div>
-            <div style={{
-              display: "flex", alignItems: "center", gap: "8px",
-              padding: "8px 10px", borderRadius: "8px",
-              background: "rgba(252,60,68,0.12)",
-            }}>
-              <span style={{ fontSize: "15px" }}>🔍</span>
-              <span style={{ fontSize: "13px", fontWeight: 600, color: "#fc3c44" }}>Search</span>
-            </div>
+          <div style={{ fontSize: "10px", color: "#aeaeb2", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", padding: "4px 8px 6px" }}>
+            Library
+          </div>
+          <div style={{
+            display: "flex", alignItems: "center", gap: "8px",
+            padding: "8px 10px", borderRadius: "8px",
+            background: "rgba(88,86,214,0.1)",
+          }}>
+            <span style={{ fontSize: "15px" }}>🔍</span>
+            <span style={{ fontSize: "13px", fontWeight: 600, color: "#5856d6" }}>Search</span>
           </div>
 
-          <div style={{ marginTop: "4px" }}>
-            <div style={{ fontSize: "10px", color: "rgba(235,235,245,0.3)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", padding: "4px 8px 6px" }}>
-              Playlist
-            </div>
-            <div style={{
-              display: "flex", alignItems: "center", gap: "8px",
-              padding: "8px 10px", borderRadius: "8px",
-              color: "rgba(235,235,245,0.45)",
-            }}>
-              <span style={{ fontSize: "15px" }}>🎵</span>
-              <span style={{ fontSize: "13px", fontWeight: 500 }}>
-                {playlistName.length > 14 ? playlistName.slice(0, 14) + "…" : playlistName}
-                {playlist.length > 0 && (
-                  <span style={{ marginLeft: "6px", background: "#fc3c44", color: "#fff", borderRadius: "8px", padding: "1px 6px", fontSize: "10px", fontWeight: 700 }}>
-                    {playlist.length}
-                  </span>
-                )}
+          <div style={{ fontSize: "10px", color: "#aeaeb2", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", padding: "12px 8px 6px" }}>
+            Playlist
+          </div>
+          <div style={{
+            display: "flex", alignItems: "center", gap: "8px",
+            padding: "8px 10px", borderRadius: "8px",
+            color: "#6e6e73",
+          }}>
+            <span style={{ fontSize: "15px" }}>🎵</span>
+            <span style={{ fontSize: "13px", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {playlistName.length > 12 ? playlistName.slice(0, 12) + "…" : playlistName}
+            </span>
+            {playlist.length > 0 && (
+              <span style={{ marginLeft: "auto", background: "#5856d6", color: "#fff", borderRadius: "8px", padding: "1px 6px", fontSize: "10px", fontWeight: 700, flexShrink: 0 }}>
+                {playlist.length}
               </span>
-            </div>
+            )}
           </div>
         </nav>
 
         {/* フッター */}
         {session && (
-          <div style={{ padding: "12px 16px", borderTop: `1px solid ${sep}` }}>
-            <div style={{ fontSize: "11px", color: "rgba(235,235,245,0.35)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <div style={{ padding: "12px 16px", borderTop: "1px solid rgba(0,0,0,0.07)" }}>
+            <div style={{ fontSize: "11px", color: "#aeaeb2", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {session.user?.email}
             </div>
           </div>
@@ -413,8 +335,8 @@ export default function Home() {
       {/* 右パネル */}
       <div style={{
         width: "260px",
-        background: "#0a0a0a",
-        borderLeft: `1px solid ${sep}`,
+        background: "#fafafa",
+        borderLeft: "1px solid rgba(0,0,0,0.08)",
         display: "flex",
         flexDirection: "column",
         overflowY: "auto",
@@ -426,10 +348,9 @@ export default function Home() {
           exploreSimilar={exploreSimilar}
           filters={filters} setFilters={setFilters}
           similarCount={similarCount} setSimilarCount={setSimilarCount}
-          seedAnalyzing={seedAnalyzing}
-          seedError={seedError}
+          seedAnalyzing={seedAnalyzing} seedError={seedError}
         />
-        <div style={{ height: "1px", background: sep, margin: "0 16px" }} />
+        <div style={{ height: "1px", background: "rgba(0,0,0,0.07)", margin: "0 16px" }} />
         <PlaylistPanel
           session={session} playlist={playlist} removeFromPlaylist={removeFromPlaylist}
           savedPlaylists={savedPlaylists} playlistName={playlistName}
@@ -451,9 +372,6 @@ function isCamelotAdjacent(a: string, b: string): boolean {
   };
   const ca = parseC(a), cb = parseC(b);
   if (!ca || !cb) return false;
-  if (ca.t === cb.t) {
-    const diff = Math.abs(ca.n - cb.n);
-    return diff === 1 || diff === 11;
-  }
+  if (ca.t === cb.t) { const diff = Math.abs(ca.n - cb.n); return diff === 1 || diff === 11; }
   return ca.n === cb.n;
 }
