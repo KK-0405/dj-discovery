@@ -206,7 +206,7 @@ Array length must be ${count}. Start with [ and end with ].
 
 Each element: {"title":"...","artist":"...","bpm":128,"key":"F# minor","camelot":"2A","energy":0.7,"danceability":0.8,"is_vocal":true,"genre_tags":["House"],"release_year":2005,"confidence":"high","reason":"..."}
 
-The "reason" field: 1 short sentence (max 40 chars) explaining WHY this track mixes well with the seed. Focus on the strongest matching factor: BPM proximity, camelot key compatibility, shared genre, same era, or matching energy. Write in Japanese if the seed/track are Japanese, otherwise English. Examples: "同BPM・隣接キーでスムーズに繋げる" / "同時代のディスコ、エネルギー一致" / "Same BPM, adjacent camelot key"
+The "reason" field: 1 short sentence (max 40 chars) explaining WHY this track mixes well with the seed. Focus on the strongest matching factor: BPM proximity, camelot key compatibility, shared genre, same era, or matching energy. ALWAYS write in Japanese regardless of the track's language. Examples: "同BPM・隣接キーでスムーズに繋げる" / "同時代のディスコ、エネルギー一致" / "同じグルーヴ感、BPM近似"
 
 REMEMBER: ${count} songs total. Output all ${count} now.`;
 }
