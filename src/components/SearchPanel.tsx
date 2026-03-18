@@ -486,7 +486,21 @@ export default function SearchPanel({
       {/* トラックリスト */}
       <div ref={listRef} style={{ flex: 1, overflowY: "auto", padding: "8px 12px", background: C.bg }}>
         {loading && (
-          <div style={{ color: C.t3, fontSize: "13px", textAlign: "center", padding: "48px 0" }}>読み込み中...</div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "64px 0", gap: "16px" }}>
+            <svg
+              width="40" height="40" viewBox="0 0 20 20" fill="none"
+              style={{ animation: "ripple-spin 1s linear infinite" }}
+            >
+              <circle cx="10" cy="10" r="2.2" fill={C.acc} opacity="0.9" />
+              <circle cx="10" cy="10" r="5" stroke={C.acc} strokeWidth="1.6" strokeLinecap="round"
+                strokeDasharray="23.6 7.8" opacity="0.6" fill="none" />
+              <circle cx="10" cy="10" r="8" stroke={C.acc} strokeWidth="1.1" strokeLinecap="round"
+                strokeDasharray="37.7 12.6" opacity="0.35" fill="none" />
+            </svg>
+            {mode === "similar" && (
+              <div style={{ fontSize: "12px", color: C.t3, fontWeight: 500 }}>類似曲を探索中...</div>
+            )}
+          </div>
         )}
         {mode === "search" && !loading && displayTracks.length === 0 && (
           <div style={{ padding: "40px 20px 24px" }}>
