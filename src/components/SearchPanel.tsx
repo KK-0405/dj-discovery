@@ -45,6 +45,7 @@ type Props = {
   savedPlaylists: SavedPlaylist[];
   addTrackToSavedPlaylist: (playlistId: string, track: Track) => void;
   viewingPlaylist: SavedPlaylist | null;
+  togglePublic: (id: string, isPublic: boolean) => Promise<void>;
 };
 
 type MatchBadge = { label: string; color: string; bg: string };
@@ -107,8 +108,9 @@ export default function SearchPanel({
   query, setQuery, search, loading, mode, displayTracks,
   mainSeed, subSeeds, setAsMainSeed, addToSubSeed,
   addToPlaylist, removeFromPlaylist, isInPlaylist, filteredSimilarCount, metadataLoading,
-  savedPlaylists, addTrackToSavedPlaylist, onResetSimilar, viewingPlaylist,
+  savedPlaylists, addTrackToSavedPlaylist, onResetSimilar, viewingPlaylist, togglePublic,
 }: Props) {
+  const [togglingPublic, setTogglingPublic] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const [isComposing, setIsComposing] = useState(false);
   const [playingId, setPlayingId] = useState<string | null>(null);
@@ -361,11 +363,39 @@ export default function SearchPanel({
         {metadataLoading && (
           <span style={{ fontSize: "11px", color: C.acc }}>✦ Gemini 解析中...</span>
         )}
+
+        {/* プレイリストモード: 公開/非公開トグル */}
+        {mode === "playlist" && viewingPlaylist && (
+          <button
+            onClick={async () => {
+              if (togglingPublic) return;
+              setTogglingPublic(true);
+              try { await togglePublic(viewingPlaylist.id, !viewingPlaylist.is_public); }
+              finally { setTogglingPublic(false); }
+            }}
+            disabled={togglingPublic}
+            style={{
+              marginLeft: "auto",
+              padding: "3px 10px",
+              background: viewingPlaylist.is_public ? "rgba(83,74,183,0.08)" : C.s1,
+              border: `1px solid ${viewingPlaylist.is_public ? "rgba(83,74,183,0.3)" : C.s3}`,
+              borderRadius: "6px",
+              color: viewingPlaylist.is_public ? C.acc : C.t2,
+              fontSize: "11px", fontWeight: 600,
+              cursor: togglingPublic ? "default" : "pointer",
+              opacity: togglingPublic ? 0.5 : 1,
+              flexShrink: 0,
+            }}
+          >
+            {togglingPublic ? "..." : viewingPlaylist.is_public ? "🌐 公開中" : "🔒 非公開"}
+          </button>
+        )}
+
         {(mode === "similar" || mode === "playlist") && (
           <button
             onClick={onResetSimilar}
             style={{
-              marginLeft: "auto",
+              marginLeft: mode === "playlist" ? "8px" : "auto",
               padding: "3px 10px",
               background: "none",
               border: `1px solid ${C.s3}`,

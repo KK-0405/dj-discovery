@@ -205,6 +205,7 @@ export default function Home() {
       body: JSON.stringify({ id, is_public: isPublic }),
     });
     loadPlaylists();
+    setViewingPlaylist((prev) => prev?.id === id ? { ...prev, is_public: isPublic } : prev);
   };
 
   const analyzeSeed = async (track: Track) => {
@@ -463,6 +464,7 @@ export default function Home() {
         savedPlaylists={savedPlaylists} addTrackToSavedPlaylist={addTrackToSavedPlaylist}
         onResetSimilar={() => { setSimilarTracks([]); setMode("search"); setFilters(DEFAULT_FILTERS); setViewingPlaylist(null); }}
         viewingPlaylist={viewingPlaylist}
+        togglePublic={togglePublic}
       />
 
       {/* 右パネル */}
@@ -488,11 +490,8 @@ export default function Home() {
         <div style={{ height: "1px", background: "rgba(0,0,0,0.07)", margin: "0 16px" }} />
         <PlaylistPanel
           playlist={playlist} removeFromPlaylist={removeFromPlaylist}
-          savedPlaylists={savedPlaylists} playlistName={playlistName}
-          setPlaylistName={setPlaylistName} savePlaylist={savePlaylist}
-          deletePlaylist={deletePlaylist} setPlaylist={setPlaylist}
-          togglePublic={togglePublic}
-          onViewPlaylist={(p) => { setViewingPlaylist(p); setMode("playlist"); }}
+          playlistName={playlistName} setPlaylistName={setPlaylistName}
+          savePlaylist={savePlaylist} setPlaylist={setPlaylist}
         />
       </div>
     </div>
