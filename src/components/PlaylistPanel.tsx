@@ -3,22 +3,7 @@
 import { useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { type Track, type SavedPlaylist, type YoutubePlaylist } from "@/types";
-
-const C = {
-  bg: "#fafafa",
-  s1: "#f5f5f7",
-  s2: "#e8e8ed",
-  acc: "#534AB7",
-  accDim: "rgba(83,74,183,0.1)",
-  t1: "#1d1d1f",
-  t2: "#6e6e73",
-  t3: "#aeaeb2",
-  sep: "rgba(0,0,0,0.08)",
-  green: "#34c759",
-  greenDim: "rgba(52,199,89,0.1)",
-  red: "#ff3b30",
-  redDim: "rgba(255,59,48,0.08)",
-} as const;
+import { useTheme } from "@/lib/theme-context";
 
 type Props = {
   playlist: Track[];
@@ -37,6 +22,7 @@ export default function PlaylistPanel({
   savedPlaylists, addTracksToExistingPlaylist,
 }: Props) {
   const { session } = useAuth();
+  const { C } = useTheme();
   const [targetPlaylistId, setTargetPlaylistId] = useState<"new" | string>("new");
   const [showYoutubeSelect, setShowYoutubeSelect] = useState(false);
   const [youtubePlaylists, setYoutubePlaylists] = useState<YoutubePlaylist[]>([]);

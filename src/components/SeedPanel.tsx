@@ -2,28 +2,7 @@
 
 import { useState, useRef } from "react";
 import { type Track, type SimilarFilters } from "@/types";
-
-const C = {
-  bg: "#fafafa",
-  s1: "#f5f5f7",
-  s2: "#e8e8ed",
-  s3: "#d2d2d7",
-  acc: "#534AB7",
-  accDim: "rgba(83,74,183,0.1)",
-  accBorder: "rgba(83,74,183,0.3)",
-  t1: "#1d1d1f",
-  t2: "#6e6e73",
-  t3: "#aeaeb2",
-  sep: "rgba(0,0,0,0.08)",
-  green: "#34c759",
-  greenDim: "rgba(52,199,89,0.1)",
-  greenText: "#1b7a34",
-  blue: "#007aff",
-  blueDim: "rgba(0,122,255,0.1)",
-  blueText: "#0055cc",
-  orange: "#ff9500",
-  orangeDim: "rgba(255,149,0,0.1)",
-} as const;
+import { useTheme } from "@/lib/theme-context";
 
 type Props = {
   mainSeed: Track | null;
@@ -47,7 +26,7 @@ type Props = {
   onClearChatFilter: () => void;
 };
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+function SectionLabel({ children, C }: { children: React.ReactNode; C: import("@/lib/theme-context").Colors }) {
   return (
     <div style={{ fontSize: "10px", color: C.t3, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px", marginTop: "2px" }}>
       {children}
@@ -55,7 +34,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Chip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+function Chip({ label, active, onClick, C }: { label: string; active: boolean; onClick: () => void; C: import("@/lib/theme-context").Colors }) {
   return (
     <button
       onClick={onClick}
@@ -74,8 +53,8 @@ function Chip({ label, active, onClick }: { label: string; active: boolean; onCl
 }
 
 function CheckRow({
-  label, value, available = true, checked, onChange,
-}: { label: string; value?: string; available?: boolean; checked: boolean; onChange: (v: boolean) => void }) {
+  label, value, available = true, checked, onChange, C,
+}: { label: string; value?: string; available?: boolean; checked: boolean; onChange: (v: boolean) => void; C: import("@/lib/theme-context").Colors }) {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "5px 0", opacity: available ? 1 : 0.4 }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: "5px", flex: 1, minWidth: 0 }}>
@@ -96,6 +75,7 @@ export default function SeedPanel({
   filters, setFilters, similarCount, setSimilarCount, seedAnalyzing, seedError, playlistCount, availableGenres,
   hasSimilar, chatFilterIds, chatFilterMessage, chatLoading, onChatFilter, onClearChatFilter,
 }: Props) {
+  const { C } = useTheme();
   const [showFilters, setShowFilters] = useState(false);
   const [chatInput, setChatInput] = useState("");
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
@@ -120,7 +100,7 @@ export default function SeedPanel({
 
       {/* メイン Seed */}
       <div style={{ marginBottom: "12px" }}>
-        <SectionLabel>メイン</SectionLabel>
+        <SectionLabel C={C}>メイン</SectionLabel>
         {mainSeed ? (
           <div style={{
             display: "flex", alignItems: "center", gap: "10px",
@@ -174,7 +154,7 @@ export default function SeedPanel({
 
       {/* サブ Seed */}
       <div style={{ marginBottom: "14px" }}>
-        <SectionLabel>サブ</SectionLabel>
+        <SectionLabel C={C}>サブ</SectionLabel>
         <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
           {subSeeds.length === 0 && (
             <div style={{ padding: "10px", background: C.s1, border: `1px solid ${C.sep}`, borderRadius: "10px", color: C.t3, fontSize: "12px", textAlign: "center" }}>
@@ -199,10 +179,10 @@ export default function SeedPanel({
 
       {/* 取得件数 */}
       <div style={{ marginBottom: "14px" }}>
-        <SectionLabel>取得件数</SectionLabel>
+        <SectionLabel C={C}>取得件数</SectionLabel>
         <div style={{ display: "flex", gap: "6px" }}>
           {([10, 20, 30] as const).map((n) => (
-            <Chip key={n} label={`${n}曲`} active={similarCount === n} onClick={() => setSimilarCount(n)} />
+            <Chip C={C} key={n} label={`${n}曲`} active={similarCount === n} onClick={() => setSimilarCount(n)} />
           ))}
         </div>
       </div>
@@ -241,7 +221,7 @@ export default function SeedPanel({
               </div>
               <div style={{ display: "flex", gap: "5px", flexWrap: "wrap" }}>
                 {([null, 5, 10] as const).map((v) => (
-                  <Chip key={String(v)} label={v === null ? "制限なし" : `±${v}`} active={filters.bpmRange === v} onClick={() => set({ bpmRange: filters.bpmRange === v ? null : v })} />
+                  <Chip C={C} key={String(v)} label={v === null ? "制限なし" : `±${v}`} active={filters.bpmRange === v} onClick={() => set({ bpmRange: filters.bpmRange === v ? null : v })} />
                 ))}
               </div>
             </div>
@@ -249,8 +229,8 @@ export default function SeedPanel({
             {/* キー */}
             <div style={{ marginTop: "10px", paddingTop: "10px", borderTop: `1px solid ${C.sep}` }}>
               <div style={{ fontSize: "11px", color: C.t3, marginBottom: "4px" }}>キー・ハーモニー</div>
-              <CheckRow label="同じキー" value={mainSeed?.key || undefined} available={hasGemini} checked={filters.sameKey} onChange={(v) => set({ sameKey: v })} />
-              <CheckRow label="Camelot 隣接 (±1)" value={mainSeed?.camelot || undefined} available={hasGemini} checked={filters.camelotAdjacent} onChange={(v) => set({ camelotAdjacent: v })} />
+              <CheckRow C={C} label="同じキー" value={mainSeed?.key || undefined} available={hasGemini} checked={filters.sameKey} onChange={(v) => set({ sameKey: v })} />
+              <CheckRow C={C} label="Camelot 隣接 (±1)" value={mainSeed?.camelot || undefined} available={hasGemini} checked={filters.camelotAdjacent} onChange={(v) => set({ camelotAdjacent: v })} />
               {!hasGemini && <div style={{ fontSize: "10px", color: C.t3, marginTop: "2px" }}>※ Gemini 解析後に使用可</div>}
             </div>
 
@@ -300,7 +280,7 @@ export default function SeedPanel({
               </div>
               <div style={{ display: "flex", gap: "5px", flexWrap: "wrap", opacity: hasGemini ? 1 : 0.4, pointerEvents: hasGemini ? "auto" : "none" }}>
                 {([null, "high", "medium", "low"] as const).map((v) => (
-                  <Chip key={String(v)} label={v === null ? "全て" : v === "high" ? "高" : v === "medium" ? "中" : "低"} active={filters.energyLevel === v} onClick={() => set({ energyLevel: filters.energyLevel === v ? null : v })} />
+                  <Chip C={C} key={String(v)} label={v === null ? "全て" : v === "high" ? "高" : v === "medium" ? "中" : "低"} active={filters.energyLevel === v} onClick={() => set({ energyLevel: filters.energyLevel === v ? null : v })} />
                 ))}
               </div>
               {!hasGemini && <div style={{ fontSize: "10px", color: C.t3, marginTop: "2px" }}>※ Gemini 解析後に使用可</div>}
@@ -309,14 +289,14 @@ export default function SeedPanel({
             {/* アーティスト・時代 */}
             <div style={{ marginTop: "10px", paddingTop: "10px", borderTop: `1px solid ${C.sep}` }}>
               <div style={{ fontSize: "11px", color: C.t3, marginBottom: "4px" }}>アーティスト・時代</div>
-              <CheckRow label="同じアーティスト" value={mainSeed?.artists[0]?.name} checked={filters.sameArtist} onChange={(v) => set({ sameArtist: v })} />
+              <CheckRow C={C} label="同じアーティスト" value={mainSeed?.artists[0]?.name} checked={filters.sameArtist} onChange={(v) => set({ sameArtist: v })} />
               <div style={{ marginTop: "6px" }}>
                 <div style={{ fontSize: "11px", color: C.t3, marginBottom: "6px" }}>
                   リリース年代{mainSeed?.release_year && <span style={{ color: C.t2, marginLeft: "6px" }}>{mainSeed.release_year}年</span>}
                 </div>
                 <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", opacity: hasDecade ? 1 : 0.4, pointerEvents: hasDecade ? "auto" : "none" }}>
                   {DECADES.map((d) => (
-                    <Chip key={d} label={d} active={filters.decade === d} onClick={() => set({ decade: filters.decade === d ? null : d })} />
+                    <Chip C={C} key={d} label={d} active={filters.decade === d} onClick={() => set({ decade: filters.decade === d ? null : d })} />
                   ))}
                 </div>
                 {!hasDecade && <div style={{ fontSize: "10px", color: C.t3, marginTop: "2px" }}>※ Seed 選択後に使用可</div>}

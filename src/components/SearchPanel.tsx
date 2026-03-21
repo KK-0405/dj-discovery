@@ -3,27 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { type Track, type Mode, type SavedPlaylist } from "@/types";
 import { type ArtistSuggestion } from "@/lib/itunes";
-
-const C = {
-  bg: "#ffffff",
-  s1: "#f5f5f7",
-  s2: "#e8e8ed",
-  s3: "#d2d2d7",
-  acc: "#534AB7",
-  accDim: "rgba(83,74,183,0.1)",
-  t1: "#1d1d1f",
-  t2: "#6e6e73",
-  t3: "#aeaeb2",
-  sep: "rgba(0,0,0,0.08)",
-  green: "#34c759",
-  greenDim: "rgba(52,199,89,0.1)",
-  blue: "#007aff",
-  blueDim: "rgba(0,122,255,0.1)",
-  orange: "#ff9500",
-  orangeDim: "rgba(255,149,0,0.1)",
-  purple: "#af52de",
-  purpleDim: "rgba(175,82,222,0.1)",
-} as const;
+import { useTheme, type Colors } from "@/lib/theme-context";
 
 type Props = {
   query: string;
@@ -53,14 +33,14 @@ type Props = {
 
 type MatchBadge = { label: string; color: string; bg: string };
 
-function getMatchBadges(track: Track, seed: Track | null): MatchBadge[] {
+function getMatchBadges(track: Track, seed: Track | null, C: Colors): MatchBadge[] {
   if (!seed) return [];
   const badges: MatchBadge[] = [];
 
   if (track.bpm && seed.bpm) {
     const diff = Math.abs(track.bpm - seed.bpm);
     if (diff <= 5) {
-      badges.push({ label: `${track.bpm} BPM`, color: "#1b7a34", bg: C.greenDim });
+      badges.push({ label: `${track.bpm} BPM`, color: C.greenText, bg: C.greenDim });
     } else if (diff <= 15) {
       badges.push({ label: `${track.bpm} BPM`, color: C.green, bg: C.greenDim });
     } else {
@@ -70,7 +50,7 @@ function getMatchBadges(track: Track, seed: Track | null): MatchBadge[] {
 
   if (track.camelot && seed.camelot) {
     if (track.camelot === seed.camelot) {
-      badges.push({ label: `${track.camelot} Key ≈`, color: "#0055cc", bg: C.blueDim });
+      badges.push({ label: `${track.camelot} Key ≈`, color: C.blueText, bg: C.blueDim });
     } else if (isCamelotAdjacent(seed.camelot, track.camelot)) {
       badges.push({ label: `${track.camelot} 隣接`, color: C.blue, bg: C.blueDim });
     }
@@ -79,7 +59,7 @@ function getMatchBadges(track: Track, seed: Track | null): MatchBadge[] {
   if (track.genre_tags?.length && seed.genre_tags?.length) {
     const seedSet = new Set(seed.genre_tags.map((g) => g.toLowerCase()));
     track.genre_tags.filter((g) => seedSet.has(g.toLowerCase())).slice(0, 2).forEach((g) => {
-      badges.push({ label: g, color: "#b06c00", bg: C.orangeDim });
+      badges.push({ label: g, color: C.orangeText, bg: C.orangeDim });
     });
   }
 
@@ -87,7 +67,7 @@ function getMatchBadges(track: Track, seed: Track | null): MatchBadge[] {
     const tDec = Math.floor(track.release_year / 10) * 10;
     const sDec = Math.floor(seed.release_year / 10) * 10;
     if (tDec === sDec) {
-      badges.push({ label: `${tDec}s`, color: "#7a35a8", bg: C.purpleDim });
+      badges.push({ label: `${tDec}s`, color: C.purpleText, bg: C.purpleDim });
     }
   }
 
@@ -114,6 +94,7 @@ export default function SearchPanel({
   addToPlaylist, removeFromPlaylist, isInPlaylist, filteredSimilarCount, metadataLoading,
   onResetSimilar, onSearchMore, loadingMore, viewingPlaylist, togglePublic,
 }: Props) {
+  const { C } = useTheme();
   const [togglingPublic, setTogglingPublic] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const [isComposing, setIsComposing] = useState(false);
@@ -579,7 +560,7 @@ export default function SearchPanel({
         )}
 
         {displayTracks.map((track) => {
-          const badges = mode === "similar" ? getMatchBadges(track, mainSeed) : [];
+          const badges = mode === "similar" ? getMatchBadges(track, mainSeed, C) : [];
           const isMain = mainSeed?.id === track.id;
           const inSubSeed = !!subSeeds.find((t) => t.id === track.id);
           const inPlaylist = isInPlaylist(track);

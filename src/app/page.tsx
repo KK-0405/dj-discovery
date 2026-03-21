@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { type Track, type Mode, type SavedPlaylist, type SimilarFilters, type HistoryEntry } from "@/types";
+import { useTheme } from "@/lib/theme-context";
 import AuthModal from "@/components/AuthModal";
 import SearchPanel from "@/components/SearchPanel";
 import SeedPanel from "@/components/SeedPanel";
@@ -71,6 +72,7 @@ const DEFAULT_FILTERS: SimilarFilters = {
 };
 
 export default function Home() {
+  const { C, isDark, setIsDark } = useTheme();
   const { session, userProfile, loading: authLoading, signOut, refreshProfile } = useAuth();
   const [query, setQuery] = useState("");
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -406,31 +408,58 @@ export default function Home() {
   useEffect(() => { loadPlaylists(); }, [session?.access_token]);
 
   return (
-    <div style={{ display: "flex", height: "100vh", background: "#fff", overflow: "hidden" }}>
+    <div style={{ display: "flex", height: "100vh", background: C.bg, overflow: "hidden" }}>
       {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
 
       {showUserSettings && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center" }}
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center" }}
           onClick={(e) => { if (e.target === e.currentTarget) setShowUserSettings(false); }}
         >
-          <div style={{ background: "#fff", borderRadius: "14px", padding: "24px", width: "340px", boxShadow: "0 8px 32px rgba(0,0,0,0.18)" }}>
-            <div style={{ fontSize: "16px", fontWeight: 700, color: "#1d1d1f", marginBottom: "20px" }}>ユーザー設定</div>
+          <div style={{ background: C.bg, borderRadius: "14px", padding: "24px", width: "340px", boxShadow: isDark ? "0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.08)" : "0 8px 32px rgba(0,0,0,0.18)" }}>
+            <div style={{ fontSize: "16px", fontWeight: 700, color: C.t1, marginBottom: "20px" }}>ユーザー設定</div>
+
+            {/* ダークモード切替 */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0", marginBottom: "12px", borderBottom: `1px solid ${C.sep}` }}>
+              <div>
+                <div style={{ fontSize: "13px", fontWeight: 600, color: C.t1 }}>ダークモード</div>
+                <div style={{ fontSize: "11px", color: C.t3, marginTop: "2px" }}>{isDark ? "ダーク" : "ライト"}</div>
+              </div>
+              <button
+                onClick={() => setIsDark(!isDark)}
+                style={{
+                  width: 44, height: 26, borderRadius: 13,
+                  background: isDark ? C.acc : C.s3,
+                  border: "none", cursor: "pointer", padding: 0,
+                  position: "relative", transition: "background 0.2s",
+                  flexShrink: 0,
+                }}
+              >
+                <div style={{
+                  width: 20, height: 20, borderRadius: "50%",
+                  background: "#fff",
+                  position: "absolute", top: 3,
+                  left: isDark ? 21 : 3,
+                  transition: "left 0.2s",
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.25)",
+                }} />
+              </button>
+            </div>
 
             <div style={{ marginBottom: "16px" }}>
-              <label style={{ fontSize: "12px", fontWeight: 600, color: "#6e6e73", display: "block", marginBottom: "6px" }}>ID</label>
+              <label style={{ fontSize: "12px", fontWeight: 600, color: C.t2, display: "block", marginBottom: "6px" }}>ID</label>
               <input
                 value={newUserId}
                 onChange={(e) => { setNewUserId(e.target.value); setUserIdError(null); }}
                 placeholder="新しいID"
-                style={{ width: "100%", padding: "9px 12px", border: "1px solid rgba(0,0,0,0.15)", borderRadius: "8px", fontSize: "14px", outline: "none", boxSizing: "border-box" as const, color: "#1d1d1f" }}
+                style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.sepStrong}`, borderRadius: "8px", fontSize: "14px", outline: "none", boxSizing: "border-box" as const, color: C.t1, background: C.s1 }}
               />
-              {userIdError && <div style={{ fontSize: "12px", color: "#ff3b30", marginTop: "6px" }}>{userIdError}</div>}
+              {userIdError && <div style={{ fontSize: "12px", color: C.red, marginTop: "6px" }}>{userIdError}</div>}
             </div>
 
             <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
               <button
                 onClick={() => setShowUserSettings(false)}
-                style={{ padding: "8px 16px", border: "1px solid rgba(0,0,0,0.15)", borderRadius: "8px", background: "none", fontSize: "13px", fontWeight: 500, cursor: "pointer", color: "#1d1d1f" }}
+                style={{ padding: "8px 16px", border: `1px solid ${C.sepStrong}`, borderRadius: "8px", background: "none", fontSize: "13px", fontWeight: 500, cursor: "pointer", color: C.t1 }}
               >
                 キャンセル
               </button>
@@ -456,7 +485,7 @@ export default function Home() {
                   }
                   setUserIdSaving(false);
                 }}
-                style={{ padding: "8px 16px", border: "none", borderRadius: "8px", background: "#534AB7", color: "#fff", fontSize: "13px", fontWeight: 600, cursor: userIdSaving ? "not-allowed" : "pointer", opacity: userIdSaving || !newUserId.trim() ? 0.6 : 1 }}
+                style={{ padding: "8px 16px", border: "none", borderRadius: "8px", background: C.acc, color: "#fff", fontSize: "13px", fontWeight: 600, cursor: userIdSaving ? "not-allowed" : "pointer", opacity: userIdSaving || !newUserId.trim() ? 0.6 : 1 }}
               >
                 {userIdSaving ? "保存中…" : "保存"}
               </button>
@@ -468,14 +497,14 @@ export default function Home() {
       {/* サイドバー */}
       <div style={{
         width: "200px",
-        background: "#f5f5f7",
-        borderRight: "1px solid rgba(0,0,0,0.08)",
+        background: C.s1,
+        borderRight: `1px solid ${C.sep}`,
         display: "flex",
         flexDirection: "column",
         flexShrink: 0,
       }}>
         {/* ロゴ */}
-        <div style={{ padding: "20px 16px 16px", borderBottom: "1px solid rgba(0,0,0,0.07)" }}>
+        <div style={{ padding: "20px 16px 16px", borderBottom: `1px solid ${C.sep}` }}>
           <div
             onClick={() => { setQuery(""); setTracks([]); setSimilarTracks([]); setMode("search"); setMainSeed(null); setSubSeeds([]); setFilters(DEFAULT_FILTERS); setViewingPlaylist(null); setSeedError(null); }}
             style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}
@@ -495,15 +524,15 @@ export default function Home() {
               </svg>
             </div>
             <div>
-              <div style={{ fontSize: "14px", fontWeight: 700, color: "#1d1d1f", letterSpacing: "-0.01em" }}>Ripple</div>
-              <div style={{ fontSize: "10px", color: "#aeaeb2", marginTop: "1px" }}>Find Your Sound</div>
+              <div style={{ fontSize: "14px", fontWeight: 700, color: C.t1, letterSpacing: "-0.01em" }}>Ripple</div>
+              <div style={{ fontSize: "10px", color: C.t3, marginTop: "1px" }}>Find Your Sound</div>
             </div>
           </div>
         </div>
 
         {/* ナビ */}
         <nav style={{ padding: "10px 8px", flex: 1, overflowY: "auto", minHeight: 0 }}>
-          <div style={{ fontSize: "10px", color: "#aeaeb2", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", padding: "4px 8px 6px" }}>
+          <div style={{ fontSize: "10px", color: C.t3, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", padding: "4px 8px 6px" }}>
             Library
           </div>
           <div
@@ -511,28 +540,28 @@ export default function Home() {
             style={{
               display: "flex", alignItems: "center", gap: "8px",
               padding: "8px 10px", borderRadius: "8px",
-              background: mode === "search" && !viewingPlaylist ? "rgba(83,74,183,0.1)" : "none",
+              background: mode === "search" && !viewingPlaylist ? C.accDim : "none",
               cursor: "pointer",
             }}
-            onMouseEnter={(e) => { if (!(mode === "search" && !viewingPlaylist)) e.currentTarget.style.background = "rgba(0,0,0,0.04)"; }}
+            onMouseEnter={(e) => { if (!(mode === "search" && !viewingPlaylist)) e.currentTarget.style.background = C.hover; }}
             onMouseLeave={(e) => { if (!(mode === "search" && !viewingPlaylist)) e.currentTarget.style.background = "none"; }}
           >
-            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke={mode === "search" && !viewingPlaylist ? "#534AB7" : "#6e6e73"} strokeWidth="1.6" strokeLinecap="round">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke={mode === "search" && !viewingPlaylist ? C.acc : C.t2} strokeWidth="1.6" strokeLinecap="round">
               <circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/>
             </svg>
-            <span style={{ fontSize: "13px", fontWeight: 600, color: mode === "search" && !viewingPlaylist ? "#534AB7" : "#6e6e73" }}>Search</span>
+            <span style={{ fontSize: "13px", fontWeight: 600, color: mode === "search" && !viewingPlaylist ? C.acc : C.t2 }}>Search</span>
           </div>
 
           {/* 履歴 */}
           {history.length > 0 && (
             <>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 8px 6px" }}>
-                <span style={{ fontSize: "10px", color: "#aeaeb2", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>History</span>
+                <span style={{ fontSize: "10px", color: C.t3, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>History</span>
                 <button
                   onClick={() => { writeHistory([]); setHistory([]); }}
-                  style={{ fontSize: "9px", color: "#aeaeb2", background: "none", border: "none", cursor: "pointer", padding: "0 2px" }}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = "#6e6e73")}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = "#aeaeb2")}
+                  style={{ fontSize: "9px", color: C.t3, background: "none", border: "none", cursor: "pointer", padding: "0 2px" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = C.t2)}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = C.t3)}
                 >
                   全削除
                 </button>
@@ -561,22 +590,22 @@ export default function Home() {
                       style={{
                         width: "100%", display: "flex", alignItems: "center", gap: "8px",
                         padding: "7px 10px", borderRadius: "8px",
-                        background: isActive ? "rgba(83,74,183,0.1)" : "none",
+                        background: isActive ? C.accDim : "none",
                         border: "none", cursor: "pointer", textAlign: "left",
                       }}
-                      onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "rgba(0,0,0,0.04)"; }}
+                      onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = C.hover; }}
                       onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "none"; }}
                     >
                       {thumb ? (
                         <img src={thumb} alt="" style={{ width: 22, height: 22, borderRadius: "4px", objectFit: "cover", flexShrink: 0 }} />
                       ) : (
-                        <div style={{ width: 22, height: 22, borderRadius: "4px", background: "rgba(83,74,183,0.12)", flexShrink: 0 }} />
+                        <div style={{ width: 22, height: 22, borderRadius: "4px", background: C.accDim, flexShrink: 0 }} />
                       )}
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: "12px", fontWeight: isActive ? 600 : 500, color: isActive ? "#534AB7" : "#1d1d1f", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <div style={{ fontSize: "12px", fontWeight: isActive ? 600 : 500, color: isActive ? C.acc : C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {entry.mainSeed.name}
                         </div>
-                        <div style={{ fontSize: "10px", color: "#aeaeb2", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <div style={{ fontSize: "10px", color: C.t3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {relTime} · {entry.similarTracks.length}曲
                         </div>
                       </div>
@@ -587,7 +616,7 @@ export default function Home() {
             </>
           )}
 
-          <div style={{ fontSize: "10px", color: "#aeaeb2", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", padding: "12px 8px 6px" }}>
+          <div style={{ fontSize: "10px", color: C.t3, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", padding: "12px 8px 6px" }}>
             Playlists
           </div>
 
@@ -601,22 +630,22 @@ export default function Home() {
                   style={{
                     width: "100%", display: "flex", alignItems: "center", gap: "8px",
                     padding: "7px 10px", borderRadius: "8px",
-                    background: viewingPlaylist?.id === p.id ? "rgba(83,74,183,0.1)" : "none",
+                    background: viewingPlaylist?.id === p.id ? C.accDim : "none",
                     border: "none", cursor: "pointer", textAlign: "left",
                   }}
-                  onMouseEnter={(e) => { if (viewingPlaylist?.id !== p.id) e.currentTarget.style.background = "rgba(0,0,0,0.04)"; }}
+                  onMouseEnter={(e) => { if (viewingPlaylist?.id !== p.id) e.currentTarget.style.background = C.hover; }}
                   onMouseLeave={(e) => { if (viewingPlaylist?.id !== p.id) e.currentTarget.style.background = "none"; }}
                 >
                   {/* ミニサムネイル */}
-                  <div style={{ width: 22, height: 22, borderRadius: "4px", overflow: "hidden", flexShrink: 0, background: "rgba(83,74,183,0.12)", display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+                  <div style={{ width: 22, height: 22, borderRadius: "4px", overflow: "hidden", flexShrink: 0, background: C.accDim, display: "grid", gridTemplateColumns: "1fr 1fr" }}>
                     {p.tracks.slice(0, 4).map((t, i) => (
                       <img key={i} src={t.album.images[0]?.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                     ))}
                   </div>
-                  <span style={{ fontSize: "12px", fontWeight: viewingPlaylist?.id === p.id ? 600 : 500, color: viewingPlaylist?.id === p.id ? "#534AB7" : "#1d1d1f", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+                  <span style={{ fontSize: "12px", fontWeight: viewingPlaylist?.id === p.id ? 600 : 500, color: viewingPlaylist?.id === p.id ? C.acc : C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
                     {p.name}
                   </span>
-                  <span style={{ fontSize: "10px", color: "#aeaeb2", flexShrink: 0 }}>{p.tracks.length}</span>
+                  <span style={{ fontSize: "10px", color: C.t3, flexShrink: 0 }}>{p.tracks.length}</span>
                 </button>
               ))}
             </div>
@@ -628,12 +657,12 @@ export default function Home() {
         </nav>
 
         {/* フッター: 認証UI */}
-        <div style={{ padding: "12px 10px", borderTop: "1px solid rgba(0,0,0,0.07)" }}>
+        <div style={{ padding: "12px 10px", borderTop: `1px solid ${C.sep}` }}>
           {authLoading ? (
             /* プロフィール取得中はスケルトン表示（"No ID" 防止） */
             <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "7px 10px" }}>
-              <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(0,0,0,0.08)", flexShrink: 0 }} />
-              <div style={{ flex: 1, height: 12, borderRadius: "6px", background: "rgba(0,0,0,0.08)" }} />
+              <div style={{ width: 28, height: 28, borderRadius: "50%", background: C.s2, flexShrink: 0 }} />
+              <div style={{ flex: 1, height: 12, borderRadius: "6px", background: C.s2 }} />
             </div>
           ) : session ? (
             <div style={{ position: "relative" }}>
@@ -642,40 +671,40 @@ export default function Home() {
                 style={{
                   width: "100%", display: "flex", alignItems: "center", gap: "8px",
                   padding: "7px 10px", borderRadius: "9px",
-                  background: showUserMenu ? "rgba(83,74,183,0.08)" : "none",
+                  background: showUserMenu ? C.accDim : "none",
                   border: "none", cursor: "pointer",
                   transition: "background 0.15s",
                 }}
-                onMouseEnter={(e) => { if (!showUserMenu) e.currentTarget.style.background = "rgba(0,0,0,0.04)"; }}
+                onMouseEnter={(e) => { if (!showUserMenu) e.currentTarget.style.background = C.hover; }}
                 onMouseLeave={(e) => { if (!showUserMenu) e.currentTarget.style.background = "none"; }}
               >
-                <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(83,74,183,0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", flexShrink: 0, color: "#534AB7", fontWeight: 700 }}>
+                <div style={{ width: 28, height: 28, borderRadius: "50%", background: C.accDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", flexShrink: 0, color: C.acc, fontWeight: 700 }}>
                   {(userProfile?.user_id ?? "?")[0].toUpperCase()}
                 </div>
-                <span style={{ fontSize: "12px", fontWeight: 500, color: "#1d1d1f", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, textAlign: "left" as const }}>
+                <span style={{ fontSize: "12px", fontWeight: 500, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, textAlign: "left" as const }}>
                   {userProfile?.user_id ?? "No ID"}
                 </span>
-                <span style={{ fontSize: "10px", color: "#aeaeb2" }}>⋯</span>
+                <span style={{ fontSize: "10px", color: C.t3 }}>⋯</span>
               </button>
 
               {showUserMenu && (
-                <div ref={userMenuRef} style={{ position: "absolute", bottom: "calc(100% + 6px)", left: 0, right: 0, background: "#fff", borderRadius: "10px", boxShadow: "0 4px 20px rgba(0,0,0,0.14), 0 0 0 1px rgba(0,0,0,0.06)", zIndex: 51, overflow: "hidden" }}>
-                  <div style={{ padding: "10px 14px 8px", borderBottom: "1px solid rgba(0,0,0,0.07)" }}>
-                    <div style={{ fontSize: "12px", fontWeight: 600, color: "#1d1d1f" }}>{userProfile?.user_id}</div>
-                    <div style={{ fontSize: "11px", color: "#aeaeb2", marginTop: "1px" }}>{userProfile?.user_id ?? "No ID"}</div>
+                <div ref={userMenuRef} style={{ position: "absolute", bottom: "calc(100% + 6px)", left: 0, right: 0, background: C.bg, borderRadius: "10px", boxShadow: isDark ? "0 4px 20px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.08)" : "0 4px 20px rgba(0,0,0,0.14), 0 0 0 1px rgba(0,0,0,0.06)", zIndex: 51, overflow: "hidden" }}>
+                  <div style={{ padding: "10px 14px 8px", borderBottom: `1px solid ${C.sep}` }}>
+                    <div style={{ fontSize: "12px", fontWeight: 600, color: C.t1 }}>{userProfile?.user_id}</div>
+                    <div style={{ fontSize: "11px", color: C.t3, marginTop: "1px" }}>{userProfile?.user_id ?? "No ID"}</div>
                   </div>
                   <button
                     onClick={() => { setShowUserMenu(false); setNewUserId(userProfile?.user_id ?? ""); setUserIdError(null); setShowUserSettings(true); }}
-                    style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", color: "#1d1d1f", fontSize: "13px", fontWeight: 500, cursor: "pointer", textAlign: "left" as const, borderBottom: "1px solid rgba(0,0,0,0.07)" }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(0,0,0,0.04)")}
+                    style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", color: C.t1, fontSize: "13px", fontWeight: 500, cursor: "pointer", textAlign: "left" as const, borderBottom: `1px solid ${C.sep}` }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = C.hover)}
                     onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
                   >
                     ユーザー設定
                   </button>
                   <button
                     onClick={() => signOut()}
-                    style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", color: "#ff3b30", fontSize: "13px", fontWeight: 500, cursor: "pointer", textAlign: "left" as const }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,59,48,0.06)")}
+                    style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", color: C.red, fontSize: "13px", fontWeight: 500, cursor: "pointer", textAlign: "left" as const }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = C.redDim)}
                     onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
                   >
                     ログアウト
@@ -688,15 +717,15 @@ export default function Home() {
               onClick={() => setShowAuthModal(true)}
               style={{
                 width: "100%", padding: "9px 10px",
-                background: "rgba(83,74,183,0.08)",
-                border: "1px solid rgba(83,74,183,0.18)",
+                background: C.accDim,
+                border: `1px solid ${C.accBorder}`,
                 borderRadius: "9px",
-                color: "#534AB7",
+                color: C.acc,
                 fontSize: "13px", fontWeight: 600,
                 cursor: "pointer",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(83,74,183,0.14)")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(83,74,183,0.08)")}
+              onMouseEnter={(e) => (e.currentTarget.style.background = C.accBorder)}
+              onMouseLeave={(e) => (e.currentTarget.style.background = C.accDim)}
             >
               新規登録 / ログイン
             </button>
@@ -721,8 +750,8 @@ export default function Home() {
       {/* 右パネル */}
       <div style={{
         width: "260px",
-        background: "#fafafa",
-        borderLeft: "1px solid rgba(0,0,0,0.08)",
+        background: C.bg2,
+        borderLeft: `1px solid ${C.sep}`,
         display: "flex",
         flexDirection: "column",
         overflowY: "auto",

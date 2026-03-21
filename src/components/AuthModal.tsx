@@ -2,20 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-
-const C = {
-  bg: "#ffffff",
-  s1: "#f5f5f7",
-  s2: "#e8e8ed",
-  acc: "#534AB7",
-  accDim: "rgba(83,74,183,0.1)",
-  t1: "#1d1d1f",
-  t2: "#6e6e73",
-  t3: "#aeaeb2",
-  sep: "rgba(0,0,0,0.08)",
-  red: "#ff3b30",
-  green: "#34c759",
-} as const;
+import { useTheme } from "@/lib/theme-context";
 
 type Mode = "login" | "register";
 type LoginTab = "email" | "userid";
@@ -41,6 +28,7 @@ export default function AuthModal({ onClose }: Props) {
   const [regPassword, setRegPassword] = useState("");
   const [regConfirm, setRegConfirm] = useState("");
 
+  const { C } = useTheme();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
