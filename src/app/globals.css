@@ -1,5 +1,6 @@
 *, *::before, *::after {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html, body {
@@ -11,6 +12,32 @@ html, body {
   font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* iOS overscroll prevention */
+  overscroll-behavior: none;
+}
+
+/* iOS input zoom prevention — font-size must stay ≥16px on focus */
+@media (max-width: 768px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Mobile scrollbar: hide on touch devices */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar { display: none; }
+}
+
+/* Bottom sheet slide-up animation */
+@keyframes sheet-slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+.sheet-enter {
+  animation: sheet-slide-up 0.28s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 input, button, select, textarea {

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { type Track, type Mode, type SavedPlaylist } from "@/types";
 import { type ArtistSuggestion } from "@/lib/itunes";
 import { useTheme, type Colors } from "@/lib/theme-context";
+import { useMobile } from "@/lib/use-mobile";
 
 type Props = {
   query: string;
@@ -95,6 +96,7 @@ export default function SearchPanel({
   onResetSimilar, onSearchMore, loadingMore, viewingPlaylist, togglePublic,
 }: Props) {
   const { C } = useTheme();
+  const isMobile = useMobile();
   const [togglingPublic, setTogglingPublic] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const [isComposing, setIsComposing] = useState(false);
@@ -262,7 +264,7 @@ export default function SearchPanel({
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: C.bg }}>
 
       {/* 検索バー */}
-      <div style={{ padding: "16px 20px 14px", borderBottom: `1px solid ${C.sep}`, background: C.bg }}>
+      <div style={{ padding: isMobile ? "10px 12px 10px" : "16px 20px 14px", borderBottom: `1px solid ${C.sep}`, background: C.bg, paddingTop: isMobile ? "calc(10px + env(safe-area-inset-top))" : undefined }}>
         <div style={{ display: "flex", gap: "8px" }}>
           <div ref={inputWrapRef} style={{ flex: 1, position: "relative" }}>
             <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke={C.t3} strokeWidth="1.6" strokeLinecap="round" style={{ position: "absolute", left: "13px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
@@ -403,7 +405,7 @@ export default function SearchPanel({
       {/* モードバー */}
       <div style={{
         display: "flex", alignItems: "center", gap: "8px",
-        padding: "7px 20px",
+        padding: isMobile ? "7px 12px" : "7px 20px",
         borderBottom: `1px solid ${C.sep}`,
         background: C.s1,
       }}>
@@ -467,7 +469,7 @@ export default function SearchPanel({
       </div>
 
       {/* トラックリスト */}
-      <div ref={listRef} style={{ flex: 1, overflowY: "auto", padding: "8px 12px", background: C.bg }}>
+      <div ref={listRef} style={{ flex: 1, overflowY: "auto", padding: isMobile ? "6px 8px" : "8px 12px", background: C.bg }}>
         {loading && (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "64px 0", gap: "16px" }}>
             <svg
@@ -577,8 +579,8 @@ export default function SearchPanel({
                   .catch(() => setYtData({ loading: false }));
               }}
               style={{
-                display: "flex", alignItems: "center", gap: "12px",
-                padding: "10px 10px",
+                display: "flex", alignItems: "center", gap: isMobile ? "10px" : "12px",
+                padding: isMobile ? "9px 8px" : "10px 10px",
                 borderRadius: "10px",
                 background: isMain ? C.accDim : "transparent",
                 marginBottom: "2px",
@@ -589,11 +591,11 @@ export default function SearchPanel({
               onMouseLeave={(e) => { if (!isMain) e.currentTarget.style.background = "transparent"; }}
             >
               {/* アルバムアート */}
-              <div style={{ position: "relative", flexShrink: 0, width: 46, height: 46 }}>
+              <div style={{ position: "relative", flexShrink: 0, width: isMobile ? 40 : 46, height: isMobile ? 40 : 46 }}>
                 <img
                   src={track.album.images[0]?.url}
                   alt={track.album.name}
-                  width={46} height={46}
+                  width={isMobile ? 40 : 46} height={isMobile ? 40 : 46}
                   style={{ borderRadius: "8px", display: "block", objectFit: "cover", boxShadow: "0 1px 4px rgba(0,0,0,0.12)" }}
                 />
                 <button
@@ -678,45 +680,47 @@ export default function SearchPanel({
 
               {/* アクション */}
               {(mode === "search" || mode === "playlist") && (
-                <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
+                <div style={{ display: "flex", gap: isMobile ? "4px" : "6px", flexShrink: 0, flexDirection: isMobile ? "column" : "row" }}>
                   <button
                     onClick={(e) => { e.stopPropagation(); isMain ? removeMainSeed() : setAsMainSeed(track); }}
                     style={{
-                      padding: "5px 10px",
+                      padding: isMobile ? "7px 8px" : "5px 10px",
                       background: isMain ? C.acc : C.s1,
                       border: `1px solid ${isMain ? C.acc : C.s2}`,
                       borderRadius: "8px",
                       color: isMain ? "#fff" : C.t2,
-                      fontSize: "11px", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
+                      fontSize: isMobile ? "10px" : "11px", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
                     }}
                   >
-                    {isMain ? "★ メイン" : "メイン"}
+                    {isMain ? "★" : "Seed"}
                   </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); inSubSeed ? removeSubSeed(track.id) : addToSubSeed(track); }}
-                    style={{
-                      padding: "5px 10px",
-                      background: inSubSeed ? C.greenDim : C.s1,
-                      border: `1px solid ${inSubSeed ? "#34c759" : C.s2}`,
-                      borderRadius: "8px",
-                      color: inSubSeed ? "#1b7a34" : C.t2,
-                      fontSize: "11px", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
-                    }}
-                  >
-                    {inSubSeed ? "✓ サブ" : "サブ"}
-                  </button>
+                  {!isMobile && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); inSubSeed ? removeSubSeed(track.id) : addToSubSeed(track); }}
+                      style={{
+                        padding: "5px 10px",
+                        background: inSubSeed ? C.greenDim : C.s1,
+                        border: `1px solid ${inSubSeed ? C.green : C.s2}`,
+                        borderRadius: "8px",
+                        color: inSubSeed ? C.greenText : C.t2,
+                        fontSize: "11px", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
+                      }}
+                    >
+                      {inSubSeed ? "✓ サブ" : "サブ"}
+                    </button>
+                  )}
                   <button
                     onClick={(e) => { e.stopPropagation(); inPlaylist ? removeFromPlaylist(track.id) : addToPlaylist(track); }}
                     style={{
-                      padding: "5px 10px",
+                      padding: isMobile ? "7px 8px" : "5px 10px",
                       background: inPlaylist ? C.accDim : C.s1,
                       border: `1px solid ${inPlaylist ? C.acc : C.s2}`,
                       borderRadius: "8px",
                       color: inPlaylist ? C.acc : C.t2,
-                      fontSize: "11px", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
+                      fontSize: isMobile ? "10px" : "11px", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
                     }}
                   >
-                    {inPlaylist ? "✓ リスト" : "リスト"}
+                    {inPlaylist ? "✓" : "+"}
                   </button>
                 </div>
               )}
@@ -724,16 +728,17 @@ export default function SearchPanel({
                 <button
                   onClick={(e) => { e.stopPropagation(); inPlaylist ? removeFromPlaylist(track.id) : addToPlaylist(track); }}
                   style={{
-                    padding: "5px 12px",
+                    padding: isMobile ? "10px 10px" : "5px 12px",
                     background: inPlaylist ? C.accDim : C.s1,
                     border: `1px solid ${inPlaylist ? C.acc : C.s2}`,
                     borderRadius: "8px",
                     color: inPlaylist ? C.acc : C.t2,
                     fontSize: "11px", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
                     flexShrink: 0,
+                    minWidth: isMobile ? 40 : undefined,
                   }}
                 >
-                  {inPlaylist ? "✓ リスト" : "リスト"}
+                  {inPlaylist ? "✓" : "+"}
                 </button>
               )}
             </div>
@@ -787,7 +792,7 @@ export default function SearchPanel({
       <div style={{
         borderTop: `1px solid ${C.sep}`,
         background: C.s1,
-        padding: "10px 14px 12px",
+        padding: isMobile ? "8px 12px 10px" : "10px 14px 12px",
         flexShrink: 0,
       }}>
         {/* シークバー */}
@@ -856,7 +861,7 @@ export default function SearchPanel({
           </button>
 
           {/* 音量 */}
-          <div style={{ display: "flex", alignItems: "center", gap: "5px", flexShrink: 0 }}>
+          <div style={{ display: isMobile ? "none" : "flex", alignItems: "center", gap: "5px", flexShrink: 0 }}>
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke={volume === 0 ? C.t3 : C.t2} strokeWidth="1.6" strokeLinecap="round">
               <path d="M2 5.5h2.5l4-3v11l-4-3H2z"/>
               {volume > 0 && <path d="M11 5.5a3 3 0 0 1 0 5"/>}
@@ -880,17 +885,22 @@ export default function SearchPanel({
           style={{
             position: "fixed", inset: 0, zIndex: 1000,
             background: "rgba(0,0,0,0.45)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            padding: "20px",
+            display: "flex",
+            alignItems: isMobile ? "flex-end" : "center",
+            justifyContent: "center",
+            padding: isMobile ? "0" : "20px",
           }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              background: C.bg, borderRadius: "16px",
-              width: "100%", maxWidth: "420px",
+              background: C.bg, borderRadius: isMobile ? "20px 20px 0 0" : "16px",
+              width: "100%", maxWidth: isMobile ? "100%" : "420px",
               overflow: "hidden",
+              overflowY: "auto",
+              maxHeight: isMobile ? "90vh" : undefined,
               boxShadow: "0 20px 60px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.07)",
+              marginTop: isMobile ? "auto" : undefined,
             }}
           >
             {/* ヘッダー：アルバムアート + 基本情報 */}

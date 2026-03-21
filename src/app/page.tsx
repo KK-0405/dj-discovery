@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { type Track, type Mode, type SavedPlaylist, type SimilarFilters, type HistoryEntry } from "@/types";
 import { useTheme } from "@/lib/theme-context";
+import { useMobile } from "@/lib/use-mobile";
 import AuthModal from "@/components/AuthModal";
 import SearchPanel from "@/components/SearchPanel";
 import SeedPanel from "@/components/SeedPanel";
@@ -73,6 +74,8 @@ const DEFAULT_FILTERS: SimilarFilters = {
 
 export default function Home() {
   const { C, isDark, setIsDark } = useTheme();
+  const isMobile = useMobile();
+  const [mobileSheet, setMobileSheet] = useState<"none" | "seed" | "playlist" | "menu">("none");
   const { session, userProfile, loading: authLoading, signOut, refreshProfile } = useAuth();
   const [query, setQuery] = useState("");
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -408,7 +411,7 @@ export default function Home() {
   useEffect(() => { loadPlaylists(); }, [session?.access_token]);
 
   return (
-    <div style={{ display: "flex", height: "100vh", background: C.bg, overflow: "hidden" }}>
+    <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", height: isMobile ? "100dvh" : "100vh", background: C.bg, overflow: "hidden" }}>
       {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
 
       {showUserSettings && (
@@ -494,8 +497,8 @@ export default function Home() {
         </div>
       )}
 
-      {/* サイドバー */}
-      <div style={{
+      {/* サイドバー (デスクトップのみ) */}
+      {!isMobile && <div style={{
         width: "200px",
         background: C.s1,
         borderRight: `1px solid ${C.sep}`,
@@ -731,7 +734,7 @@ export default function Home() {
             </button>
           )}
         </div>
-      </div>
+      </div>}
 
       {/* メインコンテンツ */}
       <SearchPanel
@@ -747,41 +750,216 @@ export default function Home() {
         togglePublic={togglePublic}
       />
 
-      {/* 右パネル */}
-      <div style={{
-        width: "260px",
-        background: C.bg2,
-        borderLeft: `1px solid ${C.sep}`,
-        display: "flex",
-        flexDirection: "column",
-        overflowY: "auto",
-        flexShrink: 0,
-      }}>
-        <SeedPanel
-          mainSeed={mainSeed} setMainSeed={setMainSeed}
-          subSeeds={subSeeds} removeSubSeed={removeSubSeed}
-          exploreSimilar={exploreSimilar}
-          filters={filters} setFilters={setFilters}
-          similarCount={similarCount} setSimilarCount={setSimilarCount}
-          seedAnalyzing={seedAnalyzing} seedError={seedError}
-          playlistCount={playlist.length}
-          availableGenres={availableGenres}
-          hasSimilar={similarTracks.length > 0}
-          chatFilterIds={chatFilterIds}
-          chatFilterMessage={chatFilterMessage}
-          chatLoading={chatLoading}
-          onChatFilter={onChatFilter}
-          onClearChatFilter={() => { setChatFilterIds(null); setChatFilterMessage(""); }}
-        />
-        <div style={{ height: "1px", background: "rgba(0,0,0,0.07)", margin: "0 16px" }} />
-        <PlaylistPanel
-          playlist={playlist} removeFromPlaylist={removeFromPlaylist}
-          playlistName={playlistName} setPlaylistName={setPlaylistName}
-          savePlaylist={savePlaylist} setPlaylist={setPlaylist}
-          savedPlaylists={savedPlaylists}
-          addTracksToExistingPlaylist={addTracksToExistingPlaylist}
-        />
-      </div>
+      {/* 右パネル (デスクトップのみ) */}
+      {!isMobile && (
+        <div style={{
+          width: "260px",
+          background: C.bg2,
+          borderLeft: `1px solid ${C.sep}`,
+          display: "flex",
+          flexDirection: "column",
+          overflowY: "auto",
+          flexShrink: 0,
+        }}>
+          <SeedPanel
+            mainSeed={mainSeed} setMainSeed={setMainSeed}
+            subSeeds={subSeeds} removeSubSeed={removeSubSeed}
+            exploreSimilar={exploreSimilar}
+            filters={filters} setFilters={setFilters}
+            similarCount={similarCount} setSimilarCount={setSimilarCount}
+            seedAnalyzing={seedAnalyzing} seedError={seedError}
+            playlistCount={playlist.length}
+            availableGenres={availableGenres}
+            hasSimilar={similarTracks.length > 0}
+            chatFilterIds={chatFilterIds}
+            chatFilterMessage={chatFilterMessage}
+            chatLoading={chatLoading}
+            onChatFilter={onChatFilter}
+            onClearChatFilter={() => { setChatFilterIds(null); setChatFilterMessage(""); }}
+          />
+          <div style={{ height: "1px", background: "rgba(0,0,0,0.07)", margin: "0 16px" }} />
+          <PlaylistPanel
+            playlist={playlist} removeFromPlaylist={removeFromPlaylist}
+            playlistName={playlistName} setPlaylistName={setPlaylistName}
+            savePlaylist={savePlaylist} setPlaylist={setPlaylist}
+            savedPlaylists={savedPlaylists}
+            addTracksToExistingPlaylist={addTracksToExistingPlaylist}
+          />
+        </div>
+      )}
+
+      {/* モバイル: ボトムタブバー */}
+      {isMobile && (() => {
+        const seedActive = mobileSheet === "seed" || (mobileSheet === "none" && mode === "similar");
+        const plActive = mobileSheet === "playlist" || (mobileSheet === "none" && mode === "playlist");
+        const menuActive = mobileSheet === "menu";
+        const searchActive = mobileSheet === "none" && !seedActive && !plActive;
+        const tabStyle = (active: boolean): React.CSSProperties => ({
+          flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+          gap: "3px", padding: "8px 0", border: "none", background: "none", cursor: "pointer",
+          color: active ? C.acc : C.t3,
+        });
+        const labelStyle: React.CSSProperties = { fontSize: "9px", fontWeight: 600, letterSpacing: "0.02em" };
+        return (
+          <div style={{
+            display: "flex", flexShrink: 0,
+            background: C.s1, borderTop: `1px solid ${C.sep}`,
+            paddingBottom: "env(safe-area-inset-bottom)",
+          }}>
+            <button style={tabStyle(searchActive)} onClick={() => setMobileSheet("none")}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <span style={labelStyle}>検索</span>
+            </button>
+            <button style={tabStyle(seedActive)} onClick={() => setMobileSheet(mobileSheet === "seed" ? "none" : "seed")}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 7a5 5 0 0 1 0 10"/><path d="M12 3a9 9 0 0 1 0 18"/></svg>
+              <span style={labelStyle}>Seed</span>
+            </button>
+            <button style={tabStyle(plActive)} onClick={() => setMobileSheet(mobileSheet === "playlist" ? "none" : "playlist")}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="3" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="3" cy="18" r="1" fill="currentColor" stroke="none"/></svg>
+              <span style={labelStyle}>リスト {playlist.length > 0 ? `(${playlist.length})` : ""}</span>
+            </button>
+            <button style={tabStyle(menuActive)} onClick={() => setMobileSheet(mobileSheet === "menu" ? "none" : "menu")}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+              <span style={labelStyle}>メニュー</span>
+            </button>
+          </div>
+        );
+      })()}
+
+      {/* モバイル: ボトムシート */}
+      {isMobile && mobileSheet !== "none" && (
+        <div
+          onClick={() => setMobileSheet("none")}
+          style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.45)" }}
+        >
+          <div
+            className="sheet-enter"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: "absolute", bottom: 0, left: 0, right: 0,
+              background: C.bg2,
+              borderRadius: "20px 20px 0 0",
+              maxHeight: "87vh",
+              display: "flex", flexDirection: "column",
+              boxShadow: "0 -4px 24px rgba(0,0,0,0.2)",
+            }}
+          >
+            {/* ドラッグハンドル */}
+            <div style={{ flexShrink: 0, display: "flex", justifyContent: "center", paddingTop: "12px", paddingBottom: "4px" }}>
+              <div style={{ width: 36, height: 4, background: C.s3, borderRadius: 2 }} />
+            </div>
+            {/* コンテンツ */}
+            <div style={{ flex: 1, overflowY: "auto", paddingBottom: "env(safe-area-inset-bottom)" }}>
+              {mobileSheet === "seed" && (
+                <SeedPanel
+                  mainSeed={mainSeed} setMainSeed={setMainSeed}
+                  subSeeds={subSeeds} removeSubSeed={removeSubSeed}
+                  exploreSimilar={() => { exploreSimilar(); setMobileSheet("none"); }}
+                  filters={filters} setFilters={setFilters}
+                  similarCount={similarCount} setSimilarCount={setSimilarCount}
+                  seedAnalyzing={seedAnalyzing} seedError={seedError}
+                  playlistCount={playlist.length}
+                  availableGenres={availableGenres}
+                  hasSimilar={similarTracks.length > 0}
+                  chatFilterIds={chatFilterIds}
+                  chatFilterMessage={chatFilterMessage}
+                  chatLoading={chatLoading}
+                  onChatFilter={onChatFilter}
+                  onClearChatFilter={() => { setChatFilterIds(null); setChatFilterMessage(""); }}
+                />
+              )}
+              {mobileSheet === "playlist" && (
+                <PlaylistPanel
+                  playlist={playlist} removeFromPlaylist={removeFromPlaylist}
+                  playlistName={playlistName} setPlaylistName={setPlaylistName}
+                  savePlaylist={savePlaylist} setPlaylist={setPlaylist}
+                  savedPlaylists={savedPlaylists}
+                  addTracksToExistingPlaylist={addTracksToExistingPlaylist}
+                />
+              )}
+              {mobileSheet === "menu" && (
+                <div style={{ padding: "8px 0 16px" }}>
+                  {/* ロゴ */}
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 16px 16px", borderBottom: `1px solid ${C.sep}` }}>
+                    <div style={{ width: 30, height: 30, background: "linear-gradient(135deg, #3C3489, #26215C)", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 2px 8px rgba(63,52,137,0.4)" }}>
+                      <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="2.2" fill="white" opacity="0.95"/><circle cx="10" cy="10" r="5" fill="none" stroke="white" strokeWidth="1.6" opacity="0.8"/><circle cx="10" cy="10" r="8" fill="none" stroke="white" strokeWidth="1.1" opacity="0.5"/></svg>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: "14px", fontWeight: 700, color: C.t1 }}>Ripple</div>
+                      <div style={{ fontSize: "10px", color: C.t3 }}>Find Your Sound</div>
+                    </div>
+                  </div>
+
+                  {/* ダークモード */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: `1px solid ${C.sep}` }}>
+                    <span style={{ fontSize: "14px", color: C.t1, fontWeight: 500 }}>{isDark ? "🌙 ダーク" : "☀️ ライト"}</span>
+                    <button onClick={() => setIsDark(!isDark)} style={{ width: 44, height: 26, borderRadius: 13, background: isDark ? C.acc : C.s3, border: "none", cursor: "pointer", padding: 0, position: "relative", transition: "background 0.2s" }}>
+                      <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#fff", position: "absolute", top: 3, left: isDark ? 21 : 3, transition: "left 0.2s", boxShadow: "0 1px 4px rgba(0,0,0,0.25)" }} />
+                    </button>
+                  </div>
+
+                  {/* 履歴 */}
+                  {history.length > 0 && (
+                    <div style={{ padding: "12px 16px 8px" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+                        <span style={{ fontSize: "11px", color: C.t3, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>History</span>
+                        <button onClick={() => { writeHistory([]); setHistory([]); }} style={{ fontSize: "11px", color: C.t3, background: "none", border: "none", cursor: "pointer" }}>全削除</button>
+                      </div>
+                      {history.slice(0, 8).map((entry) => {
+                        const thumb = entry.mainSeed.album.images[0]?.url;
+                        return (
+                          <button key={entry.id} onClick={() => { setMainSeed(entry.mainSeed); setSubSeeds(entry.subSeeds); setSimilarTracks(entry.similarTracks); setMode("similar"); setViewingPlaylist(null); setFilters(DEFAULT_FILTERS); setScrollKey((k) => k + 1); setMobileSheet("none"); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: "10px", padding: "8px 0", border: "none", background: "none", cursor: "pointer", textAlign: "left" }}>
+                            {thumb ? <img src={thumb} alt="" style={{ width: 36, height: 36, borderRadius: "6px", objectFit: "cover", flexShrink: 0 }} /> : <div style={{ width: 36, height: 36, borderRadius: "6px", background: C.accDim, flexShrink: 0 }} />}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: "13px", fontWeight: 500, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.mainSeed.name}</div>
+                              <div style={{ fontSize: "11px", color: C.t3 }}>{entry.similarTracks.length}曲</div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* プレイリスト */}
+                  {session && savedPlaylists.length > 0 && (
+                    <div style={{ padding: "12px 16px 8px", borderTop: `1px solid ${C.sep}` }}>
+                      <div style={{ fontSize: "11px", color: C.t3, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "8px" }}>Playlists</div>
+                      {savedPlaylists.map((p) => (
+                        <button key={p.id} onClick={() => { setViewingPlaylist(p); setMode("playlist"); setScrollKey((k) => k + 1); setMobileSheet("none"); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: "10px", padding: "8px 0", border: "none", background: "none", cursor: "pointer", textAlign: "left" }}>
+                          <div style={{ width: 36, height: 36, borderRadius: "6px", overflow: "hidden", flexShrink: 0, background: C.accDim, display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+                            {p.tracks.slice(0, 4).map((t, i) => <img key={i} src={t.album.images[0]?.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />)}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: "13px", fontWeight: 500, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
+                            <div style={{ fontSize: "11px", color: C.t3 }}>{p.tracks.length}曲</div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* 認証 */}
+                  <div style={{ padding: "12px 16px", borderTop: `1px solid ${C.sep}` }}>
+                    {session ? (
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <div style={{ width: 32, height: 32, borderRadius: "50%", background: C.accDim, display: "flex", alignItems: "center", justifyContent: "center", color: C.acc, fontWeight: 700, fontSize: "14px" }}>{(userProfile?.user_id ?? "?")[0].toUpperCase()}</div>
+                          <span style={{ fontSize: "13px", fontWeight: 500, color: C.t1 }}>{userProfile?.user_id ?? "No ID"}</span>
+                        </div>
+                        <button onClick={() => signOut()} style={{ padding: "7px 14px", border: `1px solid ${C.sep}`, borderRadius: "8px", background: "none", color: C.red, fontSize: "13px", fontWeight: 500, cursor: "pointer" }}>ログアウト</button>
+                      </div>
+                    ) : (
+                      <button onClick={() => { setShowAuthModal(true); setMobileSheet("none"); }} style={{ width: "100%", padding: "12px", background: C.acc, border: "none", borderRadius: "10px", color: "#fff", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}>
+                        新規登録 / ログイン
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
