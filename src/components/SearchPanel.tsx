@@ -277,8 +277,8 @@ export default function SearchPanel({
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: C.bg }}>
 
       {/* 検索バー */}
-      <div style={{ ...((!isMobile && showLogo) ? { height: "56px", padding: "0 20px", display: "flex", alignItems: "center" } : { padding: isMobile ? "12px 12px 10px" : "20px 20px 14px", paddingTop: isMobile ? "calc(env(safe-area-inset-top) + 16px)" : "20px" }), borderBottom: `1px solid ${C.sep}`, background: C.bg }}>
-        <div style={{ display: "flex", gap: "8px", alignItems: "center", flex: 1 }}>
+      <div style={{ padding: isMobile ? "12px 12px 10px" : "20px 20px 14px", paddingTop: isMobile ? "calc(env(safe-area-inset-top) + 16px)" : "20px", borderBottom: `1px solid ${C.sep}`, background: C.bg }}>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
           {showLogo && (
             <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0, marginRight: "4px" }}>
               <div style={{ width: 28, height: 28, background: "linear-gradient(135deg, #3C3489, #26215C)", borderRadius: "7px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 2px 8px rgba(63,52,137,0.4)" }}>
