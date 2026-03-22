@@ -839,6 +839,7 @@ export default function Home() {
         hasSession={!!session}
         onLoadSavedPlaylist={(p) => { setViewingPlaylist(p); navigateTo("playlist"); setScrollKey((k) => k + 1); }}
         onNavigate={navigateTo}
+        showLogo={!isMobile && !sidebarOpen}
       />
 
       {/* 右パネル (768px以上で常時表示) */}

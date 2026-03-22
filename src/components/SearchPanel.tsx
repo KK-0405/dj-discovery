@@ -40,6 +40,7 @@ type Props = {
   hasSession?: boolean;
   onLoadSavedPlaylist?: (p: SavedPlaylist) => void;
   onNavigate?: (mode: Mode) => void;
+  showLogo?: boolean;
 };
 
 type MatchBadge = { label: string; color: string; bg: string };
@@ -105,6 +106,7 @@ export default function SearchPanel({
   addToPlaylist, removeFromPlaylist, isInPlaylist, filteredSimilarCount, metadataLoading,
   onResetSimilar, onSearchMore, loadingMore, viewingPlaylist, togglePublic, onOpenMenu, onOpenPanel,
   historyEntries = [], onClearHistory, onLoadHistoryEntry, savedPlaylistsAll = [], hasSession, onLoadSavedPlaylist, onNavigate,
+  showLogo = false,
 }: Props) {
   const { C } = useTheme();
   const isMobile = useMobile();
@@ -277,6 +279,14 @@ export default function SearchPanel({
       {/* 検索バー */}
       <div style={{ padding: isMobile ? "12px 12px 10px" : "20px 20px 14px", paddingTop: isMobile ? "calc(env(safe-area-inset-top) + 16px)" : "20px", borderBottom: `1px solid ${C.sep}`, background: C.bg }}>
         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          {showLogo && (
+            <div style={{ display: "flex", alignItems: "center", gap: "7px", flexShrink: 0, marginRight: "4px" }}>
+              <div style={{ width: 28, height: 28, background: "linear-gradient(135deg, #3C3489, #26215C)", borderRadius: "7px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 2px 8px rgba(63,52,137,0.4)" }}>
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="2.2" fill="white" opacity="0.95"/><circle cx="10" cy="10" r="5" fill="none" stroke="white" strokeWidth="1.6" opacity="0.8"/><circle cx="10" cy="10" r="8" fill="none" stroke="white" strokeWidth="1.1" opacity="0.5"/></svg>
+              </div>
+              <span style={{ fontSize: "18px", fontWeight: 700, color: C.t1, letterSpacing: "-0.02em", whiteSpace: "nowrap" }}>Ripple</span>
+            </div>
+          )}
           {onOpenMenu && (
             <button
               onClick={onOpenMenu}
