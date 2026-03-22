@@ -183,9 +183,14 @@ function buildSimilarPrompt(
     : "";
 
   const japaneseSeed = isJapaneseContext(seed.title, seed.artist, seed.genre_tags);
+
   const langRule = japaneseSeed
-    ? `- ⚠️ LANGUAGE IS JAPANESE. You MUST write title and artist in Japanese script (漢字・ひらがな・カタカナ). Romaji is ABSOLUTELY FORBIDDEN. WRONG: "Yoru ni Kakeru" / CORRECT: "夜に駆ける". WRONG: "Ado" in romaji artist / CORRECT: "Ado" or "あど". Every single title must contain Japanese characters if the song is Japanese.`
-    : "- Output title and artist fields in English (use Latin alphabet).";
+    ? `- ⚠️ LANGUAGE IS JAPANESE. You MUST write title and artist in Japanese script (漢字・ひらがな・カタカナ). Romaji is ABSOLUTELY FORBIDDEN. WRONG: "Yoru ni Kakeru" / CORRECT: "夜に駆ける". Every single title must contain Japanese characters if the song is Japanese.`
+    : `- Output title and artist fields in English (use Latin alphabet only). Do NOT include Japanese-only releases, J-pop, K-pop, C-pop, or other regional Asian music UNLESS the artist/song has genuine major international crossover (e.g., appeared on US/UK Billboard charts). This is a Western/international artist — stay within the Western/international music sphere.`;
+
+  const territoryRule = japaneseSeed
+    ? `- TERRITORY: Japanese music ecosystem. Prioritise Japanese domestic releases. International tracks only if extremely well-known in Japan.`
+    : `- TERRITORY: Western/International (US, UK, Europe, Australia, etc.). The seed artist is NOT Japanese. Do NOT recommend songs whose primary audience is Japan or Asia. Recommend music that listeners of this Western artist would recognise.`;
 
   return `You are a DJ and music expert.
 
@@ -200,6 +205,7 @@ CRITICAL RULES (violations are not acceptable):
 4. EXCLUDE karaoke, カラオケ, cover versions, tribute recordings, instrumental covers, BGM collections, sound-alike tracks. Only original artist recordings. NEVER include artists such as "歌っちゃ王", "Karaoke Version", "Karaoke All Stars", or any karaoke/cover label artist.
 5. ${langRule}
 6. Every object must have ALL fields — do not omit any field or output partial objects.
+7. ${territoryRule}
 
 OUTPUT FORMAT: A raw JSON array only. No markdown fences, no explanation, no text before or after the array.
 Array length must be ${count}. Start with [ and end with ].
