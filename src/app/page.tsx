@@ -716,7 +716,7 @@ export default function Home() {
 
 
         {/* 認証フッター — 常時表示、sidebarOpen で見た目を切り替え */}
-        <div style={{ flexShrink: 0, borderTop: `1px solid ${C.sep}`, padding: sidebarOpen ? "12px 10px" : "12px 0", display: "flex", justifyContent: sidebarOpen ? "stretch" : "center" }}>
+        <div style={{ flexShrink: 0, marginTop: sidebarOpen ? 0 : "auto", borderTop: `1px solid ${C.sep}`, padding: sidebarOpen ? "12px 10px" : "12px 0", display: "flex", justifyContent: sidebarOpen ? "stretch" : "center" }}>
           {authLoading ? (
             <div style={{ width: sidebarOpen ? "100%" : 36, height: sidebarOpen ? 40 : 36, borderRadius: sidebarOpen ? "9px" : "50%", background: C.s2 }} />
           ) : session ? (
