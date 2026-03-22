@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { type Track, type Mode, type SavedPlaylist, type SimilarFilters, type HistoryEntry } from "@/types";
@@ -76,6 +76,20 @@ export default function Home() {
   const { C, isDark, setIsDark } = useTheme();
   const isMobile = useMobile();
   const [mobileSheet, setMobileSheet] = useState<"none" | "seed" | "playlist" | "panel" | "menu">("none");
+  const swipeTouchStart = useRef<{ x: number; y: number } | null>(null);
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    swipeTouchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  }, []);
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!swipeTouchStart.current || mobileSheet !== "none") return;
+    const dx = e.changedTouches[0].clientX - swipeTouchStart.current.x;
+    const dy = e.changedTouches[0].clientY - swipeTouchStart.current.y;
+    swipeTouchStart.current = null;
+    // 水平方向が支配的、かつ 60px 以上のスワイプのみ判定
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    if (dx > 0) setMobileSheet("menu");   // 右スワイプ → 左パネル
+    else setMobileSheet("panel");          // 左スワイプ → 右パネル
+  }, [mobileSheet]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   useEffect(() => {
     const saved = localStorage.getItem("dj_sidebar_v1");
@@ -421,7 +435,11 @@ export default function Home() {
   useEffect(() => { loadPlaylists(); }, [session?.access_token]);
 
   return (
-    <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", height: isMobile ? "100dvh" : "100vh", background: C.bg, overflow: "hidden" }}>
+    <div
+      style={{ display: "flex", flexDirection: isMobile ? "column" : "row", height: isMobile ? "100dvh" : "100vh", background: C.bg, overflow: "hidden" }}
+      onTouchStart={isMobile ? handleTouchStart : undefined}
+      onTouchEnd={isMobile ? handleTouchEnd : undefined}
+    >
       {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
 
       {showUserSettings && (
@@ -791,8 +809,8 @@ export default function Home() {
         loadingMore={loadingMore}
         viewingPlaylist={viewingPlaylist}
         togglePublic={togglePublic}
-        onOpenMenu={isMobile ? () => setMobileSheet("menu") : undefined}
-        onOpenPanel={isMobile ? () => setMobileSheet("panel") : undefined}
+        onOpenMenu={undefined}
+        onOpenPanel={undefined}
       />
 
       {/* 右パネル (768px以上で常時表示) */}
