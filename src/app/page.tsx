@@ -562,7 +562,7 @@ export default function Home() {
       }}>
 
         {/* ヘッダー行: ハンバーガー + アプリ名 */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: sidebarOpen ? "8px 16px" : "8px 2px", height: "56px", flexShrink: 0, justifyContent: sidebarOpen ? "flex-start" : "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: sidebarOpen ? "8px 20px" : "8px 2px", height: "56px", flexShrink: 0, justifyContent: sidebarOpen ? "flex-start" : "center" }}>
           <button
             onClick={toggleSidebar}
             title={sidebarOpen ? "閉じる" : "開く"}

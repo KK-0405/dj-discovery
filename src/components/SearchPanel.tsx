@@ -280,7 +280,7 @@ export default function SearchPanel({
       <div style={{ ...((!isMobile && showLogo) ? { height: "56px", padding: "0 20px", display: "flex", alignItems: "center" } : { padding: isMobile ? "12px 12px 10px" : "20px 20px 14px", paddingTop: isMobile ? "calc(env(safe-area-inset-top) + 16px)" : "20px" }), borderBottom: `1px solid ${C.sep}`, background: C.bg }}>
         <div style={{ display: "flex", gap: "8px", alignItems: "center", flex: 1 }}>
           {showLogo && (
-            <div style={{ display: "flex", alignItems: "center", gap: "7px", flexShrink: 0, marginRight: "4px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0, marginRight: "4px" }}>
               <div style={{ width: 28, height: 28, background: "linear-gradient(135deg, #3C3489, #26215C)", borderRadius: "7px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 2px 8px rgba(63,52,137,0.4)" }}>
                 <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="2.2" fill="white" opacity="0.95"/><circle cx="10" cy="10" r="5" fill="none" stroke="white" strokeWidth="1.6" opacity="0.8"/><circle cx="10" cy="10" r="8" fill="none" stroke="white" strokeWidth="1.1" opacity="0.5"/></svg>
               </div>
