@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { type Track, type Mode, type SavedPlaylist } from "@/types";
+import { type Track, type Mode, type SavedPlaylist, type HistoryEntry } from "@/types";
 import { type ArtistSuggestion } from "@/lib/itunes";
 import { useTheme, type Colors } from "@/lib/theme-context";
 import { useMobile } from "@/lib/use-mobile";
@@ -32,6 +32,14 @@ type Props = {
   togglePublic: (id: string, isPublic: boolean) => Promise<void>;
   onOpenMenu?: () => void;
   onOpenPanel?: () => void;
+  // history / playlists ビュー用
+  historyEntries?: HistoryEntry[];
+  onClearHistory?: () => void;
+  onLoadHistoryEntry?: (entry: HistoryEntry) => void;
+  savedPlaylistsAll?: SavedPlaylist[];
+  hasSession?: boolean;
+  onLoadSavedPlaylist?: (p: SavedPlaylist) => void;
+  onNavigate?: (mode: Mode) => void;
 };
 
 type MatchBadge = { label: string; color: string; bg: string };
@@ -96,6 +104,7 @@ export default function SearchPanel({
   removeMainSeed, removeSubSeed,
   addToPlaylist, removeFromPlaylist, isInPlaylist, filteredSimilarCount, metadataLoading,
   onResetSimilar, onSearchMore, loadingMore, viewingPlaylist, togglePublic, onOpenMenu, onOpenPanel,
+  historyEntries = [], onClearHistory, onLoadHistoryEntry, savedPlaylistsAll = [], hasSession, onLoadSavedPlaylist, onNavigate,
 }: Props) {
   const { C } = useTheme();
   const isMobile = useMobile();
@@ -437,6 +446,8 @@ export default function SearchPanel({
         <span style={{ fontSize: "10px", color: C.t3, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>
           {mode === "search" ? "検索結果"
             : mode === "playlist" ? `${viewingPlaylist?.name ?? "プレイリスト"} — ${displayTracks.length}曲`
+            : mode === "history" ? "履歴"
+            : mode === "playlists" ? "プレイリスト"
             : `類似曲 — ${filteredSimilarCount}曲`}
         </span>
         {metadataLoading && (
@@ -470,6 +481,16 @@ export default function SearchPanel({
           </button>
         )}
 
+        {(mode === "history" || mode === "playlists") && (
+          <button
+            onClick={() => onNavigate?.("search")}
+            style={{ marginLeft: "auto", padding: "3px 10px", background: "none", border: `1px solid ${C.s3}`, borderRadius: "6px", color: C.t3, fontSize: "11px", fontWeight: 500, cursor: "pointer", flexShrink: 0 }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.t2; e.currentTarget.style.color = C.t2; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.s3; e.currentTarget.style.color = C.t3; }}
+          >
+            ✕ 閉じる
+          </button>
+        )}
         {(mode === "similar" || mode === "playlist") && (
           <button
             onClick={onResetSimilar}
@@ -495,7 +516,95 @@ export default function SearchPanel({
 
       {/* トラックリスト */}
       <div ref={listRef} style={{ flex: 1, overflowY: "auto", padding: isMobile ? "6px 8px" : "8px 12px", background: C.bg }}>
-        {loading && (
+
+        {/* ── 履歴ビュー ── */}
+        {mode === "history" && (
+          <div style={{ maxWidth: "640px", margin: "0 auto", padding: "16px 4px" }}>
+            {historyEntries.length > 0 && (
+              <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }}>
+                <button onClick={onClearHistory} style={{ fontSize: "11px", color: C.t3, background: "none", border: "none", cursor: "pointer", padding: "4px 8px" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = C.t1)}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = C.t3)}
+                >全削除</button>
+              </div>
+            )}
+            {historyEntries.length === 0 ? (
+              <div style={{ padding: "60px 0", textAlign: "center", color: C.t3, fontSize: "13px" }}>履歴がありません</div>
+            ) : historyEntries.map((entry) => {
+              const thumb = entry.mainSeed.album.images[0]?.url;
+              const age = Date.now() - entry.savedAt;
+              const relTime = age < 3600000 ? `${Math.max(1, Math.floor(age / 60000))}分前`
+                : age < 86400000 ? `${Math.floor(age / 3600000)}時間前`
+                : age < 604800000 ? `${Math.floor(age / 86400000)}日前`
+                : `${Math.floor(age / 604800000)}週前`;
+              const seed = entry.mainSeed;
+              return (
+                <div key={entry.id} onClick={() => onLoadHistoryEntry?.(entry)}
+                  style={{ display: "flex", gap: "14px", padding: "12px 8px", borderRadius: "12px", cursor: "pointer", marginBottom: "2px" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = C.hover)}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                >
+                  {thumb ? <img src={thumb} alt="" style={{ width: 56, height: 56, borderRadius: "8px", objectFit: "cover", flexShrink: 0 }} />
+                    : <div style={{ width: 56, height: 56, borderRadius: "8px", background: C.accDim, flexShrink: 0 }} />}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "8px", marginBottom: "3px" }}>
+                      <div style={{ fontSize: "14px", fontWeight: 600, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{seed.name}</div>
+                      <div style={{ fontSize: "11px", color: C.t3, flexShrink: 0 }}>{relTime}</div>
+                    </div>
+                    <div style={{ fontSize: "12px", color: C.t2, marginBottom: "6px" }}>{seed.artists[0]?.name}</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginBottom: "4px" }}>
+                      {seed.bpm && <span style={{ fontSize: "10px", background: C.s2, color: C.t2, padding: "2px 6px", borderRadius: "4px" }}>{Math.round(seed.bpm)} BPM</span>}
+                      {seed.key && <span style={{ fontSize: "10px", background: C.s2, color: C.t2, padding: "2px 6px", borderRadius: "4px" }}>{seed.key}</span>}
+                      {seed.camelot && <span style={{ fontSize: "10px", background: C.s2, color: C.t2, padding: "2px 6px", borderRadius: "4px" }}>{seed.camelot}</span>}
+                      {seed.energy !== undefined && <span style={{ fontSize: "10px", background: C.s2, color: C.t2, padding: "2px 6px", borderRadius: "4px" }}>Energy {Math.round(seed.energy * 100)}%</span>}
+                      <span style={{ fontSize: "10px", background: C.accDim, color: C.acc, padding: "2px 6px", borderRadius: "4px" }}>{entry.similarTracks.length}曲</span>
+                    </div>
+                    {seed.genre_tags && seed.genre_tags.length > 0 && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "3px", marginBottom: entry.subSeeds.length ? "4px" : 0 }}>
+                        {seed.genre_tags.slice(0, 5).map((g) => (
+                          <span key={g} style={{ fontSize: "10px", background: C.s1, color: C.t3, padding: "1px 6px", borderRadius: "3px", border: `1px solid ${C.sep}` }}>{g}</span>
+                        ))}
+                      </div>
+                    )}
+                    {entry.subSeeds.length > 0 && (
+                      <div style={{ fontSize: "11px", color: C.t3 }}>+ {entry.subSeeds.map((s) => s.name).join(", ")}</div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── プレイリスト一覧ビュー ── */}
+        {mode === "playlists" && (
+          <div style={{ maxWidth: "640px", margin: "0 auto", padding: "16px 4px" }}>
+            {!hasSession ? (
+              <div style={{ padding: "60px 0", textAlign: "center", color: C.t3, fontSize: "13px" }}>ログインするとプレイリストを表示できます</div>
+            ) : savedPlaylistsAll.length === 0 ? (
+              <div style={{ padding: "60px 0", textAlign: "center", color: C.t3, fontSize: "13px" }}>保存済みプレイリストがありません</div>
+            ) : savedPlaylistsAll.map((p) => (
+              <div key={p.id} onClick={() => onLoadSavedPlaylist?.(p)}
+                style={{ display: "flex", gap: "14px", alignItems: "center", padding: "10px 8px", borderRadius: "12px", cursor: "pointer", marginBottom: "2px" }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = C.hover)}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              >
+                <div style={{ width: 52, height: 52, borderRadius: "8px", overflow: "hidden", flexShrink: 0, background: C.accDim, display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+                  {p.tracks.slice(0, 4).map((t, i) => (
+                    <img key={i} src={t.album.images[0]?.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                  ))}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: "14px", fontWeight: 600, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
+                  <div style={{ fontSize: "12px", color: C.t3, marginTop: "2px" }}>{p.tracks.length}曲</div>
+                </div>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke={C.t3} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="5 2 10 7 5 12"/></svg>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {mode !== "history" && mode !== "playlists" && loading && (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "64px 0", gap: "16px" }}>
             <svg
               width="40" height="40" viewBox="0 0 20 20" fill="none"

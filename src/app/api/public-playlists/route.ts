@@ -6,6 +6,7 @@ export async function GET() {
     .from("playlists")
     .select("id, name, tracks, user_id, slug, created_at")
     .eq("is_public", true)
+    .not("slug", "is", null)
     .order("created_at", { ascending: false })
     .limit(20);
 

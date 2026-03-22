@@ -144,6 +144,22 @@ export default function Home() {
 
   useEffect(() => { setHistory(readHistory()); }, []);
 
+  // ブラウザ履歴 (pushState / popstate) によるナビゲーション
+  const navigateTo = useCallback((newMode: Mode) => {
+    window.history.pushState({ mode: newMode }, "");
+    setMode(newMode);
+  }, []);
+  useEffect(() => {
+    // 初期状態を記録
+    window.history.replaceState({ mode: "search" }, "");
+    const handler = (e: PopStateEvent) => {
+      const m = (e.state?.mode as Mode) ?? "search";
+      setMode(m);
+    };
+    window.addEventListener("popstate", handler);
+    return () => window.removeEventListener("popstate", handler);
+  }, []);
+
   const search = async () => {
     if (!query) return;
     setLoading(true);
@@ -584,7 +600,7 @@ export default function Home() {
             </div>
             {/* History */}
             <div
-              onClick={() => history.length > 0 ? setMode("history") : toggleSidebar()}
+              onClick={() => history.length > 0 ? navigateTo("history") : toggleSidebar()}
               style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, width: 72, height: 74, borderRadius: 10, cursor: "pointer", background: mode === "similar" && !viewingPlaylist ? C.accDim : "transparent", color: C.t1 }}
               onMouseEnter={(e) => { if (!(mode === "similar" && !viewingPlaylist)) (e.currentTarget as HTMLDivElement).style.background = C.hover; }}
               onMouseLeave={(e) => { if (!(mode === "similar" && !viewingPlaylist)) (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
@@ -596,7 +612,7 @@ export default function Home() {
             </div>
             {/* Playlists */}
             <div
-              onClick={() => setMode("playlists")}
+              onClick={() => navigateTo("playlists")}
               style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, width: 72, height: 74, borderRadius: 10, cursor: "pointer", background: mode === "playlist" ? C.accDim : "transparent", color: C.t1 }}
               onMouseEnter={(e) => { if (mode !== "playlist") (e.currentTarget as HTMLDivElement).style.background = C.hover; }}
               onMouseLeave={(e) => { if (mode !== "playlist") (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
@@ -801,126 +817,27 @@ export default function Home() {
       {!isMobile && <div style={{ width: "72px", flexShrink: 0 }} />}
 
       {/* メインコンテンツ */}
-      {mode === "history" ? (
-        <div style={{ flex: 1, overflowY: "auto", background: C.bg }}>
-          <div style={{ maxWidth: "640px", margin: "0 auto", padding: "24px 16px" }}>
-            {/* ヘッダー */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
-              <div style={{ fontSize: "18px", fontWeight: 700, color: C.t1 }}>履歴</div>
-              <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                {history.length > 0 && (
-                  <button onClick={() => { writeHistory([]); setHistory([]); }} style={{ fontSize: "11px", color: C.t3, background: "none", border: "none", cursor: "pointer", padding: "4px 8px" }}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = C.t1)}
-                    onMouseLeave={(e) => (e.currentTarget.style.color = C.t3)}
-                  >全削除</button>
-                )}
-                <button onClick={() => setMode("search")} style={{ padding: "6px 14px", border: `1px solid ${C.sep}`, borderRadius: "8px", background: "none", color: C.t2, fontSize: "12px", cursor: "pointer" }}>閉じる</button>
-              </div>
-            </div>
-            {/* リスト */}
-            {history.length === 0 ? (
-              <div style={{ padding: "60px 0", textAlign: "center", color: C.t3, fontSize: "13px" }}>履歴がありません</div>
-            ) : history.map((entry) => {
-              const thumb = entry.mainSeed.album.images[0]?.url;
-              const age = Date.now() - entry.savedAt;
-              const relTime = age < 3600000 ? `${Math.max(1, Math.floor(age / 60000))}分前`
-                : age < 86400000 ? `${Math.floor(age / 3600000)}時間前`
-                : age < 604800000 ? `${Math.floor(age / 86400000)}日前`
-                : `${Math.floor(age / 604800000)}週前`;
-              const seed = entry.mainSeed;
-              return (
-                <div
-                  key={entry.id}
-                  onClick={() => { setMainSeed(entry.mainSeed); setSubSeeds(entry.subSeeds); setSimilarTracks(entry.similarTracks); setMode("similar"); setViewingPlaylist(null); setFilters(DEFAULT_FILTERS); setScrollKey((k) => k + 1); }}
-                  style={{ display: "flex", gap: "14px", padding: "14px 12px", borderRadius: "12px", cursor: "pointer", marginBottom: "4px" }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = C.hover)}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                >
-                  {thumb ? (
-                    <img src={thumb} alt="" style={{ width: 58, height: 58, borderRadius: "8px", objectFit: "cover", flexShrink: 0 }} />
-                  ) : (
-                    <div style={{ width: 58, height: 58, borderRadius: "8px", background: C.accDim, flexShrink: 0 }} />
-                  )}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "8px", marginBottom: "3px" }}>
-                      <div style={{ fontSize: "14px", fontWeight: 600, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{seed.name}</div>
-                      <div style={{ fontSize: "11px", color: C.t3, flexShrink: 0 }}>{relTime}</div>
-                    </div>
-                    <div style={{ fontSize: "12px", color: C.t2, marginBottom: "7px" }}>{seed.artists[0]?.name}</div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginBottom: seed.genre_tags?.length || entry.subSeeds.length ? "6px" : 0 }}>
-                      {seed.bpm && <span style={{ fontSize: "10px", background: C.s2, color: C.t2, padding: "2px 6px", borderRadius: "4px" }}>{Math.round(seed.bpm)} BPM</span>}
-                      {seed.key && <span style={{ fontSize: "10px", background: C.s2, color: C.t2, padding: "2px 6px", borderRadius: "4px" }}>{seed.key}</span>}
-                      {seed.camelot && <span style={{ fontSize: "10px", background: C.s2, color: C.t2, padding: "2px 6px", borderRadius: "4px" }}>{seed.camelot}</span>}
-                      {seed.energy !== undefined && <span style={{ fontSize: "10px", background: C.s2, color: C.t2, padding: "2px 6px", borderRadius: "4px" }}>Energy {Math.round(seed.energy * 100)}%</span>}
-                      <span style={{ fontSize: "10px", background: C.accDim, color: C.acc, padding: "2px 6px", borderRadius: "4px" }}>{entry.similarTracks.length}曲</span>
-                    </div>
-                    {seed.genre_tags && seed.genre_tags.length > 0 && (
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: "3px", marginBottom: entry.subSeeds.length ? "5px" : 0 }}>
-                        {seed.genre_tags.slice(0, 5).map((g) => (
-                          <span key={g} style={{ fontSize: "10px", background: C.s1, color: C.t3, padding: "1px 6px", borderRadius: "3px", border: `1px solid ${C.sep}` }}>{g}</span>
-                        ))}
-                      </div>
-                    )}
-                    {entry.subSeeds.length > 0 && (
-                      <div style={{ fontSize: "11px", color: C.t3 }}>+ {entry.subSeeds.map((s) => s.name).join(", ")}</div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ) : mode === "playlists" ? (
-        <div style={{ flex: 1, overflowY: "auto", background: C.bg }}>
-          <div style={{ maxWidth: "640px", margin: "0 auto", padding: "24px 16px" }}>
-            {/* ヘッダー */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
-              <div style={{ fontSize: "18px", fontWeight: 700, color: C.t1 }}>プレイリスト</div>
-              <button onClick={() => setMode("search")} style={{ padding: "6px 14px", border: `1px solid ${C.sep}`, borderRadius: "8px", background: "none", color: C.t2, fontSize: "12px", cursor: "pointer" }}>閉じる</button>
-            </div>
-            {/* リスト */}
-            {!session ? (
-              <div style={{ padding: "60px 0", textAlign: "center", color: C.t3, fontSize: "13px" }}>ログインするとプレイリストを表示できます</div>
-            ) : savedPlaylists.length === 0 ? (
-              <div style={{ padding: "60px 0", textAlign: "center", color: C.t3, fontSize: "13px" }}>保存済みプレイリストがありません</div>
-            ) : savedPlaylists.map((p) => (
-              <div
-                key={p.id}
-                onClick={() => { setViewingPlaylist(p); setMode("playlist"); setScrollKey((k) => k + 1); }}
-                style={{ display: "flex", gap: "14px", alignItems: "center", padding: "12px 12px", borderRadius: "12px", cursor: "pointer", marginBottom: "4px" }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = C.hover)}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-              >
-                <div style={{ width: 52, height: 52, borderRadius: "8px", overflow: "hidden", flexShrink: 0, background: C.accDim, display: "grid", gridTemplateColumns: "1fr 1fr" }}>
-                  {p.tracks.slice(0, 4).map((t, i) => (
-                    <img key={i} src={t.album.images[0]?.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                  ))}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: "14px", fontWeight: 600, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
-                  <div style={{ fontSize: "12px", color: C.t3, marginTop: "2px" }}>{p.tracks.length}曲</div>
-                </div>
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke={C.t3} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="5 2 10 7 5 12"/></svg>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : (
       <SearchPanel
         query={query} setQuery={setQuery} search={search} loading={loading} scrollKey={scrollKey}
         mode={mode} displayTracks={displayTracks} mainSeed={mainSeed}
         subSeeds={subSeeds} setAsMainSeed={setAsMainSeed} removeMainSeed={() => setMainSeed(null)} addToSubSeed={addToSubSeed} removeSubSeed={removeSubSeed}
         addToPlaylist={addToPlaylist} removeFromPlaylist={removeFromPlaylist} isInPlaylist={isInPlaylist}
         filteredSimilarCount={filteredSimilar.length} metadataLoading={metadataLoading}
-        onResetSimilar={() => { setSimilarTracks([]); setMode("search"); setFilters(DEFAULT_FILTERS); setViewingPlaylist(null); }}
+        onResetSimilar={() => { setSimilarTracks([]); navigateTo("search"); setFilters(DEFAULT_FILTERS); setViewingPlaylist(null); }}
         onSearchMore={exploreSimilarMore}
         loadingMore={loadingMore}
         viewingPlaylist={viewingPlaylist}
         togglePublic={togglePublic}
         onOpenMenu={undefined}
         onOpenPanel={undefined}
+        historyEntries={history}
+        onClearHistory={() => { writeHistory([]); setHistory([]); }}
+        onLoadHistoryEntry={(entry) => { setMainSeed(entry.mainSeed); setSubSeeds(entry.subSeeds); setSimilarTracks(entry.similarTracks); navigateTo("similar"); setViewingPlaylist(null); setFilters(DEFAULT_FILTERS); setScrollKey((k) => k + 1); }}
+        savedPlaylistsAll={savedPlaylists}
+        hasSession={!!session}
+        onLoadSavedPlaylist={(p) => { setViewingPlaylist(p); navigateTo("playlist"); setScrollKey((k) => k + 1); }}
+        onNavigate={navigateTo}
       />
-      )}
 
       {/* 右パネル (768px以上で常時表示) */}
       {!isMobile && (
