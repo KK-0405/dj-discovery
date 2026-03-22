@@ -75,10 +75,7 @@ const DEFAULT_FILTERS: SimilarFilters = {
 export default function Home() {
   const { C, isDark, setIsDark } = useTheme();
   const isMobile = useMobile();
-  // 1100px 未満では右パネルを非表示（モバイルではなく狭いデスクトップ）
-  const isNarrow = useMobile(1100);
-  const [mobileSheet, setMobileSheet] = useState<"none" | "seed" | "playlist" | "menu">("none");
-  const [narrowPanelOpen, setNarrowPanelOpen] = useState(false);
+  const [mobileSheet, setMobileSheet] = useState<"none" | "seed" | "playlist" | "panel" | "menu">("none");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   useEffect(() => {
     const saved = localStorage.getItem("dj_sidebar_v1");
@@ -795,11 +792,11 @@ export default function Home() {
         viewingPlaylist={viewingPlaylist}
         togglePublic={togglePublic}
         onOpenMenu={isMobile ? () => setMobileSheet("menu") : undefined}
-        onOpenPanel={(!isMobile && isNarrow) ? () => setNarrowPanelOpen((v) => !v) : undefined}
+        onOpenPanel={isMobile ? () => setMobileSheet("panel") : undefined}
       />
 
-      {/* 右パネル (デスクトップのみ・1100px以上) */}
-      {!isMobile && !isNarrow && (
+      {/* 右パネル (768px以上で常時表示) */}
+      {!isMobile && (
         <div style={{
           width: "260px",
           background: C.bg2,
@@ -836,49 +833,53 @@ export default function Home() {
         </div>
       )}
 
-      {/* 狭いデスクトップ: 右パネルオーバーレイ */}
-      {!isMobile && isNarrow && narrowPanelOpen && (
+      {/* モバイル: 右パネルボトムシート (グリッドボタンから開く) */}
+      {isMobile && mobileSheet === "panel" && (
         <div
-          onClick={() => setNarrowPanelOpen(false)}
-          style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.35)" }}
+          onClick={() => setMobileSheet("none")}
+          style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.45)" }}
         >
           <div
+            className="sheet-enter"
             onClick={(e) => e.stopPropagation()}
             style={{
-              position: "absolute", top: 0, right: 0, bottom: 0,
-              width: "280px",
+              position: "absolute", bottom: 0, left: 0, right: 0,
               background: C.bg2,
-              borderLeft: `1px solid ${C.sep}`,
+              borderRadius: "20px 20px 0 0",
+              maxHeight: "87vh",
               display: "flex", flexDirection: "column",
-              overflowY: "auto",
-              boxShadow: "-4px 0 24px rgba(0,0,0,0.15)",
-              animation: "slide-in-right 0.22s cubic-bezier(0.32,0.72,0,1)",
+              boxShadow: "0 -4px 24px rgba(0,0,0,0.2)",
             }}
           >
-            <SeedPanel
-              mainSeed={mainSeed} setMainSeed={setMainSeed}
-              subSeeds={subSeeds} removeSubSeed={removeSubSeed}
-              exploreSimilar={exploreSimilar}
-              filters={filters} setFilters={setFilters}
-              similarCount={similarCount} setSimilarCount={setSimilarCount}
-              seedAnalyzing={seedAnalyzing} seedError={seedError}
-              playlistCount={playlist.length}
-              availableGenres={availableGenres}
-              hasSimilar={similarTracks.length > 0}
-              chatFilterIds={chatFilterIds}
-              chatFilterMessage={chatFilterMessage}
-              chatLoading={chatLoading}
-              onChatFilter={onChatFilter}
-              onClearChatFilter={() => { setChatFilterIds(null); setChatFilterMessage(""); }}
-            />
-            <div style={{ height: "1px", background: C.sep, margin: "0 16px" }} />
-            <PlaylistPanel
-              playlist={playlist} removeFromPlaylist={removeFromPlaylist}
-              playlistName={playlistName} setPlaylistName={setPlaylistName}
-              savePlaylist={savePlaylist} setPlaylist={setPlaylist}
-              savedPlaylists={savedPlaylists}
-              addTracksToExistingPlaylist={addTracksToExistingPlaylist}
-            />
+            <div style={{ flexShrink: 0, display: "flex", justifyContent: "center", paddingTop: "12px", paddingBottom: "4px" }}>
+              <div style={{ width: 36, height: 4, background: C.s3, borderRadius: 2 }} />
+            </div>
+            <div style={{ flex: 1, overflowY: "auto", paddingBottom: "env(safe-area-inset-bottom)" }}>
+              <SeedPanel
+                mainSeed={mainSeed} setMainSeed={setMainSeed}
+                subSeeds={subSeeds} removeSubSeed={removeSubSeed}
+                exploreSimilar={() => { exploreSimilar(); setMobileSheet("none"); }}
+                filters={filters} setFilters={setFilters}
+                similarCount={similarCount} setSimilarCount={setSimilarCount}
+                seedAnalyzing={seedAnalyzing} seedError={seedError}
+                playlistCount={playlist.length}
+                availableGenres={availableGenres}
+                hasSimilar={similarTracks.length > 0}
+                chatFilterIds={chatFilterIds}
+                chatFilterMessage={chatFilterMessage}
+                chatLoading={chatLoading}
+                onChatFilter={onChatFilter}
+                onClearChatFilter={() => { setChatFilterIds(null); setChatFilterMessage(""); }}
+              />
+              <div style={{ height: "1px", background: C.sep, margin: "0 16px" }} />
+              <PlaylistPanel
+                playlist={playlist} removeFromPlaylist={removeFromPlaylist}
+                playlistName={playlistName} setPlaylistName={setPlaylistName}
+                savePlaylist={savePlaylist} setPlaylist={setPlaylist}
+                savedPlaylists={savedPlaylists}
+                addTracksToExistingPlaylist={addTracksToExistingPlaylist}
+              />
+            </div>
           </div>
         </div>
       )}
