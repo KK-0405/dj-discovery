@@ -97,6 +97,8 @@ export default function Home() {
     if (saved !== null) setSidebarOpen(saved === "1");
     setSidebarMounted(true);
   }, []);
+  // デスクトップ(≥768px)では常に開いた状態を強制
+  const effectiveSidebarOpen = !isMobile ? true : sidebarOpen;
   const toggleSidebar = () => setSidebarOpen((v) => {
     const next = !v;
     localStorage.setItem("dj_sidebar_v1", next ? "1" : "0");
@@ -552,7 +554,7 @@ export default function Home() {
         top: 0,
         bottom: 0,
         zIndex: 40,
-        width: sidebarOpen ? "240px" : "72px",
+        width: effectiveSidebarOpen ? "240px" : "72px",
         background: C.s1,
         borderRight: `1px solid ${C.sep}`,
         display: "flex",
@@ -565,7 +567,7 @@ export default function Home() {
         <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 16px", height: "56px", flexShrink: 0 }}>
           <button
             onClick={toggleSidebar}
-            title={sidebarOpen ? "閉じる" : "開く"}
+            title={effectiveSidebarOpen ? "閉じる" : "開く"}
             style={{ width: 40, height: 40, borderRadius: "50%", border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: C.t2, flexShrink: 0 }}
             onMouseEnter={(e) => { e.currentTarget.style.background = C.hover; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
@@ -576,7 +578,7 @@ export default function Home() {
           </button>
           <div
             onClick={() => { setQuery(""); setTracks([]); setSimilarTracks([]); setMode("search"); setMainSeed(null); setSubSeeds([]); setFilters(DEFAULT_FILTERS); setViewingPlaylist(null); setSeedError(null); }}
-            style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", flex: 1, minWidth: 0, opacity: sidebarOpen ? 1 : 0, transition: "opacity 150ms ease", pointerEvents: sidebarOpen ? "auto" : "none", whiteSpace: "nowrap" }}
+            style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", flex: 1, minWidth: 0, opacity: effectiveSidebarOpen ? 1 : 0, transition: "opacity 150ms ease", pointerEvents: effectiveSidebarOpen ? "auto" : "none", whiteSpace: "nowrap" }}
           >
             <div style={{ width: 28, height: 28, background: "linear-gradient(135deg, #3C3489, #26215C)", borderRadius: "7px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 2px 8px rgba(63,52,137,0.4)" }}>
               <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="2.2" fill="white" opacity="0.95"/><circle cx="10" cy="10" r="5" fill="none" stroke="white" strokeWidth="1.6" opacity="0.8"/><circle cx="10" cy="10" r="8" fill="none" stroke="white" strokeWidth="1.1" opacity="0.5"/></svg>
@@ -586,7 +588,7 @@ export default function Home() {
         </div>
 
         {/* ミニナビ (collapsed 時) */}
-        {!sidebarOpen && (
+        {!effectiveSidebarOpen && (
           <nav style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", padding: "4px 0" }}>
             {/* Search */}
             <div
@@ -629,7 +631,7 @@ export default function Home() {
         )}
 
         {/* フルナビ (expanded 時) */}
-        {sidebarOpen && <nav style={{ padding: "10px 8px", flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minHeight: 0 }}>
+        {effectiveSidebarOpen && <nav style={{ padding: "10px 8px", flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minHeight: 0 }}>
           <div style={{ fontSize: "10px", color: C.t3, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", padding: "4px 8px 6px" }}>
             Library
           </div>
@@ -734,11 +736,11 @@ export default function Home() {
 
 
         {/* 認証フッター — 常時表示、sidebarOpen で見た目を切り替え */}
-        <div style={{ flexShrink: 0, marginTop: sidebarOpen ? 0 : "auto", borderTop: `1px solid ${C.sep}`, padding: sidebarOpen ? "12px 10px" : "12px 0", display: "flex", justifyContent: sidebarOpen ? "stretch" : "center" }}>
+        <div style={{ flexShrink: 0, marginTop: effectiveSidebarOpen ? 0 : "auto", borderTop: `1px solid ${C.sep}`, padding: effectiveSidebarOpen ? "12px 10px" : "12px 0", display: "flex", justifyContent: effectiveSidebarOpen ? "stretch" : "center" }}>
           {authLoading ? (
-            <div style={{ width: sidebarOpen ? "100%" : 36, height: sidebarOpen ? 40 : 36, borderRadius: sidebarOpen ? "9px" : "50%", background: C.s2 }} />
+            <div style={{ width: effectiveSidebarOpen ? "100%" : 36, height: effectiveSidebarOpen ? 40 : 36, borderRadius: effectiveSidebarOpen ? "9px" : "50%", background: C.s2 }} />
           ) : session ? (
-            sidebarOpen ? (
+            effectiveSidebarOpen ? (
               <div style={{ position: "relative", width: "100%" }}>
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
@@ -790,7 +792,7 @@ export default function Home() {
                 {(userProfile?.user_id ?? "?")[0].toUpperCase()}
               </button>
             )
-          ) : sidebarOpen ? (
+          ) : effectiveSidebarOpen ? (
             <button
               onClick={() => setShowAuthModal(true)}
               style={{ width: "100%", padding: "9px 10px", background: C.accDim, border: `1px solid ${C.accBorder}`, borderRadius: "9px", color: C.acc, fontSize: "13px", fontWeight: 600, cursor: "pointer" }}
