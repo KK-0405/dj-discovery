@@ -611,7 +611,7 @@ export default function Home() {
         )}
 
         {/* フルナビ (expanded 時) */}
-        {sidebarOpen && <nav style={{ padding: "10px 8px", flex: 1, overflowY: "auto", minHeight: 0 }}>
+        {sidebarOpen && <nav style={{ padding: "10px 8px", flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minHeight: 0 }}>
           <div style={{ fontSize: "10px", color: C.t3, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", padding: "4px 8px 6px" }}>
             Library
           </div>
@@ -640,7 +640,7 @@ export default function Home() {
                   全削除
                 </button>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "1px", maxHeight: "185px", overflowY: "auto" }}>
                 {history.map((entry) => {
                   const isActive = mainSeed?.id === entry.mainSeed.id && mode === "similar";
                   const thumb = entry.mainSeed.album.images[0]?.url;
@@ -677,40 +677,43 @@ export default function Home() {
             </>
           )}
 
-          <div style={{ fontSize: "10px", color: C.t3, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", padding: "12px 8px 6px" }}>
-            Playlists
+          {/* Playlists セクション: 残りスペースを埋めてスクロール */}
+          <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden", borderTop: `1px solid ${C.sep}`, marginTop: "8px" }}>
+            <div style={{ fontSize: "10px", color: C.t3, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", padding: "10px 8px 6px", flexShrink: 0 }}>
+              Playlists
+            </div>
+            <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+              {session && savedPlaylists.length > 0 ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
+                  {savedPlaylists.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => { setViewingPlaylist(p); setMode("playlist"); setScrollKey((k) => k + 1); }}
+                      style={{ width: "100%", display: "flex", alignItems: "center", gap: "8px", padding: "7px 10px", borderRadius: "8px", background: viewingPlaylist?.id === p.id ? C.accDim : "none", border: "none", cursor: "pointer", textAlign: "left" }}
+                      onMouseEnter={(e) => { if (viewingPlaylist?.id !== p.id) e.currentTarget.style.background = C.hover; }}
+                      onMouseLeave={(e) => { if (viewingPlaylist?.id !== p.id) e.currentTarget.style.background = "none"; }}
+                    >
+                      <div style={{ width: 22, height: 22, borderRadius: "4px", overflow: "hidden", flexShrink: 0, background: C.accDim, display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+                        {p.tracks.slice(0, 4).map((t, i) => (
+                          <img key={i} src={t.album.images[0]?.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                        ))}
+                      </div>
+                      <span style={{ fontSize: "12px", fontWeight: viewingPlaylist?.id === p.id ? 600 : 500, color: viewingPlaylist?.id === p.id ? C.acc : C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+                        {p.name}
+                      </span>
+                      <span style={{ fontSize: "10px", color: C.t3, flexShrink: 0 }}>{p.tracks.length}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ padding: "6px 10px", fontSize: "11px", color: "#aeaeb2" }}>
+                  {session ? "保存済みなし" : "ログインで表示"}
+                </div>
+              )}
+            </div>
           </div>
-          {session && savedPlaylists.length > 0 ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
-              {savedPlaylists.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => { setViewingPlaylist(p); setMode("playlist"); setScrollKey((k) => k + 1); }}
-                  style={{ width: "100%", display: "flex", alignItems: "center", gap: "8px", padding: "7px 10px", borderRadius: "8px", background: viewingPlaylist?.id === p.id ? C.accDim : "none", border: "none", cursor: "pointer", textAlign: "left" }}
-                  onMouseEnter={(e) => { if (viewingPlaylist?.id !== p.id) e.currentTarget.style.background = C.hover; }}
-                  onMouseLeave={(e) => { if (viewingPlaylist?.id !== p.id) e.currentTarget.style.background = "none"; }}
-                >
-                  <div style={{ width: 22, height: 22, borderRadius: "4px", overflow: "hidden", flexShrink: 0, background: C.accDim, display: "grid", gridTemplateColumns: "1fr 1fr" }}>
-                    {p.tracks.slice(0, 4).map((t, i) => (
-                      <img key={i} src={t.album.images[0]?.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                    ))}
-                  </div>
-                  <span style={{ fontSize: "12px", fontWeight: viewingPlaylist?.id === p.id ? 600 : 500, color: viewingPlaylist?.id === p.id ? C.acc : C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
-                    {p.name}
-                  </span>
-                  <span style={{ fontSize: "10px", color: C.t3, flexShrink: 0 }}>{p.tracks.length}</span>
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div style={{ padding: "6px 10px", fontSize: "11px", color: "#aeaeb2" }}>
-              {session ? "保存済みなし" : "ログインで表示"}
-            </div>
-          )}
         </nav>}
 
-        {/* スペーサー: 認証フッターを下に押し出す */}
-        <div style={{ flex: 1 }} />
 
         {/* 認証フッター — 常時表示、sidebarOpen で見た目を切り替え */}
         <div style={{ flexShrink: 0, borderTop: `1px solid ${C.sep}`, padding: sidebarOpen ? "12px 10px" : "12px 0", display: "flex", justifyContent: sidebarOpen ? "stretch" : "center" }}>
