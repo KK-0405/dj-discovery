@@ -53,42 +53,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) await loadProfile(session.user.id, session.user.email);
-      setLoading(false);
-    });
+    // getSession() は onAuthStateChange の INITIAL_SESSION イベントと競合してレースコンディションを起こすため使用しない。
+    // onAuthStateChange だけを使うのが Supabase v2 の推奨パターン。
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // 同期的に先に state を更新してから非同期処理へ
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) {
-        // Googleログイン初回: usersテーブルに自動作成
-        if (event === "SIGNED_IN" && session.user.app_metadata?.provider === "google") {
-          await ensureGoogleUserRecord(session.user);
+
+      try {
+        if (session?.user) {
+          // Googleログイン初回: usersテーブルに自動作成
+          if (event === "SIGNED_IN" && session.user.app_metadata?.provider === "google") {
+            await ensureGoogleUserRecord(session.user);
+          }
+          await loadProfile(session.user.id, session.user.email);
+        } else {
+          setUserProfile(null);
         }
-        await loadProfile(session.user.id, session.user.email);
-      } else {
-        setUserProfile(null);
+      } catch {
+        // プロフィール取得失敗時もローディングは解除する
+        if (session?.user?.email) {
+          setUserProfile({ user_id: session.user.email.split("@")[0] || "user", avatar_url: null });
+        }
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
   const signOut = () => {
-    // Supabase SDKを呼ばず直接localStorageからセッションを削除してリダイレクト
-    // SDKのsignOut()はネットワーク問題でハングする場合があるため迂回する
-    try {
-      Object.keys(localStorage)
-        .filter((k) => k.startsWith("sb-"))
-        .forEach((k) => localStorage.removeItem(k));
-    } catch { /* localStorage アクセス不可の場合は無視 */ }
-    window.location.href = "/";
+    // SDK を呼んだ後、タイムアウト付きでローカルストレージも確実にクリアしてリロード
+    const cleanup = () => {
+      try {
+        Object.keys(localStorage)
+          .filter((k) => k.startsWith("sb-"))
+          .forEach((k) => localStorage.removeItem(k));
+      } catch { /* ignore */ }
+      window.location.href = "/";
+    };
+    const timer = setTimeout(cleanup, 1500);
+    supabase.auth.signOut().then(() => {
+      clearTimeout(timer);
+      cleanup();
+    }).catch(() => {
+      clearTimeout(timer);
+      cleanup();
+    });
   };
 
   return (

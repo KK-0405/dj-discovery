@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useState } from "react";
 
 export type Colors = {
   bg: string;
@@ -34,63 +34,63 @@ export type Colors = {
 };
 
 export const LIGHT: Colors = {
-  bg: "#ffffff",
-  bg2: "#fafafa",
-  s1: "#f5f5f7",
-  s2: "#e8e8ed",
-  s3: "#d2d2d7",
-  acc: "#534AB7",
-  accDim: "rgba(83,74,183,0.1)",
-  accBorder: "rgba(83,74,183,0.3)",
-  t1: "#1d1d1f",
-  t2: "#6e6e73",
-  t3: "#aeaeb2",
-  sep: "rgba(0,0,0,0.08)",
-  sepStrong: "rgba(0,0,0,0.15)",
-  hover: "rgba(0,0,0,0.04)",
-  green: "#34c759",
-  greenDim: "rgba(52,199,89,0.1)",
-  greenText: "#1b7a34",
-  blue: "#007aff",
-  blueDim: "rgba(0,122,255,0.1)",
-  blueText: "#0055cc",
-  orange: "#ff9500",
-  orangeDim: "rgba(255,149,0,0.1)",
-  orangeText: "#b06c00",
-  purple: "#af52de",
-  purpleDim: "rgba(175,82,222,0.1)",
-  purpleText: "#7a35a8",
+  bg: "#FFFFFF",
+  bg2: "#F2F2F2",
+  s1: "#F2F2F2",
+  s2: "#E5E5E5",
+  s3: "#D0D0D0",
+  acc: "#0F0F0F",
+  accDim: "#EBEBEB",
+  accBorder: "#D0D0D0",
+  t1: "#0F0F0F",
+  t2: "#606060",
+  t3: "#AAAAAA",
+  sep: "#E5E5E5",
+  sepStrong: "#D0D0D0",
+  hover: "#F2F2F2",
+  green: "#404040",
+  greenDim: "#F2F2F2",
+  greenText: "#0F0F0F",
+  blue: "#505050",
+  blueDim: "#EBEBEB",
+  blueText: "#0F0F0F",
+  orange: "#404040",
+  orangeDim: "#F2F2F2",
+  orangeText: "#0F0F0F",
+  purple: "#505050",
+  purpleDim: "#E8E8E8",
+  purpleText: "#0F0F0F",
   red: "#ff3b30",
   redDim: "rgba(255,59,48,0.08)",
 };
 
 export const DARK: Colors = {
-  bg: "#111111",
-  bg2: "#161616",
-  s1: "#1c1c1e",
-  s2: "#2c2c2e",
-  s3: "#3a3a3c",
-  acc: "#7b74e0",
-  accDim: "rgba(123,116,224,0.15)",
-  accBorder: "rgba(123,116,224,0.35)",
-  t1: "#f2f2f7",
-  t2: "#98989f",
-  t3: "#5a5a60",
-  sep: "rgba(255,255,255,0.08)",
-  sepStrong: "rgba(255,255,255,0.18)",
-  hover: "rgba(255,255,255,0.06)",
-  green: "#30d158",
-  greenDim: "rgba(48,209,88,0.13)",
-  greenText: "#30d158",
-  blue: "#0a84ff",
-  blueDim: "rgba(10,132,255,0.15)",
-  blueText: "#4db6ff",
-  orange: "#ff9f0a",
-  orangeDim: "rgba(255,159,10,0.15)",
-  orangeText: "#ff9f0a",
-  purple: "#bf5af2",
-  purpleDim: "rgba(191,90,242,0.15)",
-  purpleText: "#bf5af2",
+  bg: "#0F0F0F",
+  bg2: "#212121",
+  s1: "#212121",
+  s2: "#3F3F3F",
+  s3: "#555555",
+  acc: "#F1F1F1",
+  accDim: "#3F3F3F",
+  accBorder: "#555555",
+  t1: "#F1F1F1",
+  t2: "#AAAAAA",
+  t3: "#606060",
+  sep: "#3F3F3F",
+  sepStrong: "#555555",
+  hover: "#2A2A2A",
+  green: "#AAAAAA",
+  greenDim: "#2A2A2A",
+  greenText: "#F1F1F1",
+  blue: "#999999",
+  blueDim: "#252525",
+  blueText: "#F1F1F1",
+  orange: "#AAAAAA",
+  orangeDim: "#2A2A2A",
+  orangeText: "#F1F1F1",
+  purple: "#999999",
+  purpleDim: "#252525",
+  purpleText: "#F1F1F1",
   red: "#ff453a",
   redDim: "rgba(255,69,58,0.1)",
 };
@@ -110,14 +110,13 @@ const ThemeContext = createContext<ThemeCtx>({
 const STORAGE_KEY = "dj_theme_v1";
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [isDark, setIsDarkState] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === "dark") setIsDarkState(true);
-    setMounted(true);
-  }, []);
+  // localStorage から初期値を同期読み込みして useState に渡すことで、
+  // mounted フラグ + null return パターンを廃止する。
+  // これにより再マウント時に画面が白くなる問題がなくなる。
+  const [isDark, setIsDarkState] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem(STORAGE_KEY) === "dark";
+  });
 
   const setIsDark = (v: boolean) => {
     setIsDarkState(v);
@@ -125,9 +124,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   };
 
   const C = isDark ? DARK : LIGHT;
-
-  // Avoid flash of wrong theme before mount
-  if (!mounted) return null;
 
   return (
     <ThemeContext.Provider value={{ isDark, setIsDark, C }}>

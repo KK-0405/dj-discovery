@@ -76,6 +76,16 @@ export default function Home() {
   const { C, isDark, setIsDark } = useTheme();
   const isMobile = useMobile();
   const [mobileSheet, setMobileSheet] = useState<"none" | "seed" | "playlist" | "menu">("none");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  useEffect(() => {
+    const saved = localStorage.getItem("dj_sidebar_v1");
+    if (saved !== null) setSidebarOpen(saved === "1");
+  }, []);
+  const toggleSidebar = () => setSidebarOpen((v) => {
+    const next = !v;
+    localStorage.setItem("dj_sidebar_v1", next ? "1" : "0");
+    return next;
+  });
   const { session, userProfile, loading: authLoading, signOut, refreshProfile } = useAuth();
   const [query, setQuery] = useState("");
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -431,7 +441,7 @@ export default function Home() {
                 onClick={() => setIsDark(!isDark)}
                 style={{
                   width: 44, height: 26, borderRadius: 13,
-                  background: isDark ? C.acc : C.s3,
+                  background: isDark ? "#555555" : C.s3,
                   border: "none", cursor: "pointer", padding: 0,
                   position: "relative", transition: "background 0.2s",
                   flexShrink: 0,
@@ -488,7 +498,7 @@ export default function Home() {
                   }
                   setUserIdSaving(false);
                 }}
-                style={{ padding: "8px 16px", border: "none", borderRadius: "8px", background: C.acc, color: "#fff", fontSize: "13px", fontWeight: 600, cursor: userIdSaving ? "not-allowed" : "pointer", opacity: userIdSaving || !newUserId.trim() ? 0.6 : 1 }}
+                style={{ padding: "8px 16px", border: "none", borderRadius: "8px", background: C.acc, color: C.bg, fontSize: "13px", fontWeight: 600, cursor: userIdSaving ? "not-allowed" : "pointer", opacity: userIdSaving || !newUserId.trim() ? 0.6 : 1 }}
               >
                 {userIdSaving ? "保存中…" : "保存"}
               </button>
@@ -497,55 +507,99 @@ export default function Home() {
         </div>
       )}
 
-      {/* サイドバー (デスクトップのみ) */}
+      {/* サイドバー開時のバックドロップ — 削除: デスクトップでは backdrop がメインコンテンツの全クリックをブロックするため */}
+
+      {/* サイドバー (デスクトップのみ) — YouTube オーバーレイスタイル */}
       {!isMobile && <div style={{
-        width: "200px",
+        position: "fixed",
+        left: 0,
+        top: 0,
+        bottom: 0,
+        zIndex: 40,
+        width: sidebarOpen ? "240px" : "72px",
         background: C.s1,
         borderRight: `1px solid ${C.sep}`,
         display: "flex",
         flexDirection: "column",
-        flexShrink: 0,
+        transition: "width 200ms ease-in-out",
+        overflow: "hidden",
       }}>
-        {/* ロゴ */}
-        <div style={{ padding: "20px 16px 16px", borderBottom: `1px solid ${C.sep}` }}>
+
+        {/* ヘッダー行: ハンバーガー + アプリ名 */}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 16px", height: "56px", flexShrink: 0 }}>
+          <button
+            onClick={toggleSidebar}
+            title={sidebarOpen ? "閉じる" : "開く"}
+            style={{ width: 40, height: 40, borderRadius: "50%", border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: C.t2, flexShrink: 0 }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = C.hover; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
+            </svg>
+          </button>
           <div
             onClick={() => { setQuery(""); setTracks([]); setSimilarTracks([]); setMode("search"); setMainSeed(null); setSubSeeds([]); setFilters(DEFAULT_FILTERS); setViewingPlaylist(null); setSeedError(null); }}
-            style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}
+            style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", flex: 1, minWidth: 0, opacity: sidebarOpen ? 1 : 0, transition: "opacity 150ms ease", pointerEvents: sidebarOpen ? "auto" : "none", whiteSpace: "nowrap" }}
           >
-            <div style={{
-              width: 34, height: 34,
-              background: "linear-gradient(135deg, #3C3489, #26215C)",
-              borderRadius: "9px",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              flexShrink: 0,
-              boxShadow: "0 2px 10px rgba(63,52,137,0.45)",
-            }}>
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="10" cy="10" r="2.2" fill="white" opacity="0.95"/>
-                <circle cx="10" cy="10" r="5" fill="none" stroke="white" strokeWidth="1.6" opacity="0.8"/>
-                <circle cx="10" cy="10" r="8" fill="none" stroke="white" strokeWidth="1.1" opacity="0.5"/>
-              </svg>
+            <div style={{ width: 28, height: 28, background: "linear-gradient(135deg, #3C3489, #26215C)", borderRadius: "7px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 2px 8px rgba(63,52,137,0.4)" }}>
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="2.2" fill="white" opacity="0.95"/><circle cx="10" cy="10" r="5" fill="none" stroke="white" strokeWidth="1.6" opacity="0.8"/><circle cx="10" cy="10" r="8" fill="none" stroke="white" strokeWidth="1.1" opacity="0.5"/></svg>
             </div>
-            <div>
-              <div style={{ fontSize: "14px", fontWeight: 700, color: C.t1, letterSpacing: "-0.01em" }}>Ripple</div>
-              <div style={{ fontSize: "10px", color: C.t3, marginTop: "1px" }}>Find Your Sound</div>
-            </div>
+            <span style={{ fontSize: "18px", fontWeight: 700, color: C.t1, letterSpacing: "-0.02em" }}>Ripple</span>
           </div>
         </div>
 
-        {/* ナビ */}
-        <nav style={{ padding: "10px 8px", flex: 1, overflowY: "auto", minHeight: 0 }}>
+        {/* ミニナビ (collapsed 時) */}
+        {!sidebarOpen && (
+          <nav style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", padding: "4px 0" }}>
+            {/* Search */}
+            <div
+              onClick={() => { setQuery(""); setTracks([]); setSimilarTracks([]); setMode("search"); setMainSeed(null); setSubSeeds([]); setFilters(DEFAULT_FILTERS); setViewingPlaylist(null); setSeedError(null); }}
+              style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, width: 72, height: 74, borderRadius: 10, cursor: "pointer", background: mode === "search" && !viewingPlaylist ? C.accDim : "transparent", color: C.t1 }}
+              onMouseEnter={(e) => { if (!(mode === "search" && !viewingPlaylist)) (e.currentTarget as HTMLDivElement).style.background = C.hover; }}
+              onMouseLeave={(e) => { if (!(mode === "search" && !viewingPlaylist)) (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <span style={{ fontSize: 10, color: C.t3 }}>Search</span>
+            </div>
+            {/* History */}
+            <div
+              onClick={() => toggleSidebar()}
+              style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, width: 72, height: 74, borderRadius: 10, cursor: "pointer", background: mode === "similar" && !viewingPlaylist ? C.accDim : "transparent", color: C.t1 }}
+              onMouseEnter={(e) => { if (!(mode === "similar" && !viewingPlaylist)) (e.currentTarget as HTMLDivElement).style.background = C.hover; }}
+              onMouseLeave={(e) => { if (!(mode === "similar" && !viewingPlaylist)) (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="12 8 12 12 14 14"/><path d="M3.05 11a9 9 0 1 0 .5-4"/><polyline points="3 3 3 7 7 7"/>
+              </svg>
+              <span style={{ fontSize: 10, color: C.t3 }}>History</span>
+            </div>
+            {/* Playlists */}
+            <div
+              onClick={() => toggleSidebar()}
+              style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, width: 72, height: 74, borderRadius: 10, cursor: "pointer", background: mode === "playlist" ? C.accDim : "transparent", color: C.t1 }}
+              onMouseEnter={(e) => { if (mode !== "playlist") (e.currentTarget as HTMLDivElement).style.background = C.hover; }}
+              onMouseLeave={(e) => { if (mode !== "playlist") (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+                <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+              </svg>
+              <span style={{ fontSize: 10, color: C.t3 }}>Playlist</span>
+            </div>
+          </nav>
+        )}
+
+        {/* フルナビ (expanded 時) */}
+        {sidebarOpen && <nav style={{ padding: "10px 8px", flex: 1, overflowY: "auto", minHeight: 0 }}>
           <div style={{ fontSize: "10px", color: C.t3, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", padding: "4px 8px 6px" }}>
             Library
           </div>
           <div
             onClick={() => { setQuery(""); setTracks([]); setSimilarTracks([]); setMode("search"); setMainSeed(null); setSubSeeds([]); setFilters(DEFAULT_FILTERS); setViewingPlaylist(null); setSeedError(null); }}
-            style={{
-              display: "flex", alignItems: "center", gap: "8px",
-              padding: "8px 10px", borderRadius: "8px",
-              background: mode === "search" && !viewingPlaylist ? C.accDim : "none",
-              cursor: "pointer",
-            }}
+            style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 10px", borderRadius: "8px", background: mode === "search" && !viewingPlaylist ? C.accDim : "none", cursor: "pointer" }}
             onMouseEnter={(e) => { if (!(mode === "search" && !viewingPlaylist)) e.currentTarget.style.background = C.hover; }}
             onMouseLeave={(e) => { if (!(mode === "search" && !viewingPlaylist)) e.currentTarget.style.background = "none"; }}
           >
@@ -555,7 +609,6 @@ export default function Home() {
             <span style={{ fontSize: "13px", fontWeight: 600, color: mode === "search" && !viewingPlaylist ? C.acc : C.t2 }}>Search</span>
           </div>
 
-          {/* 履歴 */}
           {history.length > 0 && (
             <>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 8px 6px" }}>
@@ -581,21 +634,8 @@ export default function Home() {
                   return (
                     <button
                       key={entry.id}
-                      onClick={() => {
-                        setMainSeed(entry.mainSeed);
-                        setSubSeeds(entry.subSeeds);
-                        setSimilarTracks(entry.similarTracks);
-                        setMode("similar");
-                        setViewingPlaylist(null);
-                        setFilters(DEFAULT_FILTERS);
-                        setScrollKey((k) => k + 1);
-                      }}
-                      style={{
-                        width: "100%", display: "flex", alignItems: "center", gap: "8px",
-                        padding: "7px 10px", borderRadius: "8px",
-                        background: isActive ? C.accDim : "none",
-                        border: "none", cursor: "pointer", textAlign: "left",
-                      }}
+                      onClick={() => { setMainSeed(entry.mainSeed); setSubSeeds(entry.subSeeds); setSimilarTracks(entry.similarTracks); setMode("similar"); setViewingPlaylist(null); setFilters(DEFAULT_FILTERS); setScrollKey((k) => k + 1); }}
+                      style={{ width: "100%", display: "flex", alignItems: "center", gap: "8px", padding: "7px 10px", borderRadius: "8px", background: isActive ? C.accDim : "none", border: "none", cursor: "pointer", textAlign: "left" }}
                       onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = C.hover; }}
                       onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "none"; }}
                     >
@@ -622,24 +662,16 @@ export default function Home() {
           <div style={{ fontSize: "10px", color: C.t3, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", padding: "12px 8px 6px" }}>
             Playlists
           </div>
-
-          {/* 保存済みプレイリスト一覧 */}
           {session && savedPlaylists.length > 0 ? (
             <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
               {savedPlaylists.map((p) => (
                 <button
                   key={p.id}
                   onClick={() => { setViewingPlaylist(p); setMode("playlist"); setScrollKey((k) => k + 1); }}
-                  style={{
-                    width: "100%", display: "flex", alignItems: "center", gap: "8px",
-                    padding: "7px 10px", borderRadius: "8px",
-                    background: viewingPlaylist?.id === p.id ? C.accDim : "none",
-                    border: "none", cursor: "pointer", textAlign: "left",
-                  }}
+                  style={{ width: "100%", display: "flex", alignItems: "center", gap: "8px", padding: "7px 10px", borderRadius: "8px", background: viewingPlaylist?.id === p.id ? C.accDim : "none", border: "none", cursor: "pointer", textAlign: "left" }}
                   onMouseEnter={(e) => { if (viewingPlaylist?.id !== p.id) e.currentTarget.style.background = C.hover; }}
                   onMouseLeave={(e) => { if (viewingPlaylist?.id !== p.id) e.currentTarget.style.background = "none"; }}
                 >
-                  {/* ミニサムネイル */}
                   <div style={{ width: 22, height: 22, borderRadius: "4px", overflow: "hidden", flexShrink: 0, background: C.accDim, display: "grid", gridTemplateColumns: "1fr 1fr" }}>
                     {p.tracks.slice(0, 4).map((t, i) => (
                       <img key={i} src={t.album.images[0]?.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
@@ -657,84 +689,95 @@ export default function Home() {
               {session ? "保存済みなし" : "ログインで表示"}
             </div>
           )}
-        </nav>
+        </nav>}
 
-        {/* フッター: 認証UI */}
-        <div style={{ padding: "12px 10px", borderTop: `1px solid ${C.sep}` }}>
+        {/* スペーサー: 認証フッターを下に押し出す */}
+        <div style={{ flex: 1 }} />
+
+        {/* 認証フッター — 常時表示、sidebarOpen で見た目を切り替え */}
+        <div style={{ flexShrink: 0, borderTop: `1px solid ${C.sep}`, padding: sidebarOpen ? "12px 10px" : "12px 0", display: "flex", justifyContent: sidebarOpen ? "stretch" : "center" }}>
           {authLoading ? (
-            /* プロフィール取得中はスケルトン表示（"No ID" 防止） */
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "7px 10px" }}>
-              <div style={{ width: 28, height: 28, borderRadius: "50%", background: C.s2, flexShrink: 0 }} />
-              <div style={{ flex: 1, height: 12, borderRadius: "6px", background: C.s2 }} />
-            </div>
+            <div style={{ width: sidebarOpen ? "100%" : 36, height: sidebarOpen ? 40 : 36, borderRadius: sidebarOpen ? "9px" : "50%", background: C.s2 }} />
           ) : session ? (
-            <div style={{ position: "relative" }}>
-              <button
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                style={{
-                  width: "100%", display: "flex", alignItems: "center", gap: "8px",
-                  padding: "7px 10px", borderRadius: "9px",
-                  background: showUserMenu ? C.accDim : "none",
-                  border: "none", cursor: "pointer",
-                  transition: "background 0.15s",
-                }}
-                onMouseEnter={(e) => { if (!showUserMenu) e.currentTarget.style.background = C.hover; }}
-                onMouseLeave={(e) => { if (!showUserMenu) e.currentTarget.style.background = "none"; }}
-              >
-                <div style={{ width: 28, height: 28, borderRadius: "50%", background: C.accDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", flexShrink: 0, color: C.acc, fontWeight: 700 }}>
-                  {(userProfile?.user_id ?? "?")[0].toUpperCase()}
-                </div>
-                <span style={{ fontSize: "12px", fontWeight: 500, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, textAlign: "left" as const }}>
-                  {userProfile?.user_id ?? "No ID"}
-                </span>
-                <span style={{ fontSize: "10px", color: C.t3 }}>⋯</span>
-              </button>
-
-              {showUserMenu && (
-                <div ref={userMenuRef} style={{ position: "absolute", bottom: "calc(100% + 6px)", left: 0, right: 0, background: C.bg, borderRadius: "10px", boxShadow: isDark ? "0 4px 20px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.08)" : "0 4px 20px rgba(0,0,0,0.14), 0 0 0 1px rgba(0,0,0,0.06)", zIndex: 51, overflow: "hidden" }}>
-                  <div style={{ padding: "10px 14px 8px", borderBottom: `1px solid ${C.sep}` }}>
-                    <div style={{ fontSize: "12px", fontWeight: 600, color: C.t1 }}>{userProfile?.user_id}</div>
-                    <div style={{ fontSize: "11px", color: C.t3, marginTop: "1px" }}>{userProfile?.user_id ?? "No ID"}</div>
+            sidebarOpen ? (
+              <div style={{ position: "relative", width: "100%" }}>
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  style={{ width: "100%", display: "flex", alignItems: "center", gap: "8px", padding: "7px 10px", borderRadius: "9px", background: showUserMenu ? C.accDim : "none", border: "none", cursor: "pointer", transition: "background 0.15s" }}
+                  onMouseEnter={(e) => { if (!showUserMenu) e.currentTarget.style.background = C.hover; }}
+                  onMouseLeave={(e) => { if (!showUserMenu) e.currentTarget.style.background = "none"; }}
+                >
+                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: C.accDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", flexShrink: 0, color: C.acc, fontWeight: 700 }}>
+                    {(userProfile?.user_id ?? "?")[0].toUpperCase()}
                   </div>
-                  <button
-                    onClick={() => { setShowUserMenu(false); setNewUserId(userProfile?.user_id ?? ""); setUserIdError(null); setShowUserSettings(true); }}
-                    style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", color: C.t1, fontSize: "13px", fontWeight: 500, cursor: "pointer", textAlign: "left" as const, borderBottom: `1px solid ${C.sep}` }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = C.hover)}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
-                  >
-                    ユーザー設定
-                  </button>
-                  <button
-                    onClick={() => signOut()}
-                    style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", color: C.red, fontSize: "13px", fontWeight: 500, cursor: "pointer", textAlign: "left" as const }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = C.redDim)}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
-                  >
-                    ログアウト
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : (
+                  <span style={{ fontSize: "12px", fontWeight: 500, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, textAlign: "left" as const }}>
+                    {userProfile?.user_id ?? "No ID"}
+                  </span>
+                  <span style={{ fontSize: "10px", color: C.t3 }}>⋯</span>
+                </button>
+                {showUserMenu && (
+                  <div ref={userMenuRef} style={{ position: "absolute", bottom: "calc(100% + 6px)", left: 0, right: 0, background: C.bg, borderRadius: "10px", boxShadow: isDark ? "0 4px 20px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.08)" : "0 4px 20px rgba(0,0,0,0.14), 0 0 0 1px rgba(0,0,0,0.06)", zIndex: 51, overflow: "hidden" }}>
+                    <div style={{ padding: "10px 14px 8px", borderBottom: `1px solid ${C.sep}` }}>
+                      <div style={{ fontSize: "12px", fontWeight: 600, color: C.t1 }}>{userProfile?.user_id}</div>
+                      <div style={{ fontSize: "11px", color: C.t3, marginTop: "1px" }}>{userProfile?.user_id ?? "No ID"}</div>
+                    </div>
+                    <button
+                      onClick={() => { setShowUserMenu(false); setNewUserId(userProfile?.user_id ?? ""); setUserIdError(null); setShowUserSettings(true); }}
+                      style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", color: C.t1, fontSize: "13px", fontWeight: 500, cursor: "pointer", textAlign: "left" as const, borderBottom: `1px solid ${C.sep}` }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = C.hover)}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
+                    >
+                      ユーザー設定
+                    </button>
+                    <button
+                      onClick={() => signOut()}
+                      style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", color: C.red, fontSize: "13px", fontWeight: 500, cursor: "pointer", textAlign: "left" as const }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = C.redDim)}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
+                    >
+                      ログアウト
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button
+                onClick={toggleSidebar}
+                title={userProfile?.user_id ?? "アカウント"}
+                style={{ width: 36, height: 36, borderRadius: "50%", border: "none", background: C.accDim, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: C.acc, fontSize: "14px", fontWeight: 700, flexShrink: 0 }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = C.hover; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = C.accDim; }}
+              >
+                {(userProfile?.user_id ?? "?")[0].toUpperCase()}
+              </button>
+            )
+          ) : sidebarOpen ? (
             <button
               onClick={() => setShowAuthModal(true)}
-              style={{
-                width: "100%", padding: "9px 10px",
-                background: C.accDim,
-                border: `1px solid ${C.accBorder}`,
-                borderRadius: "9px",
-                color: C.acc,
-                fontSize: "13px", fontWeight: 600,
-                cursor: "pointer",
-              }}
+              style={{ width: "100%", padding: "9px 10px", background: C.accDim, border: `1px solid ${C.accBorder}`, borderRadius: "9px", color: C.acc, fontSize: "13px", fontWeight: 600, cursor: "pointer" }}
               onMouseEnter={(e) => (e.currentTarget.style.background = C.accBorder)}
               onMouseLeave={(e) => (e.currentTarget.style.background = C.accDim)}
             >
               新規登録 / ログイン
             </button>
+          ) : (
+            <button
+              onClick={() => setShowAuthModal(true)}
+              title="ログイン"
+              style={{ width: 36, height: 36, borderRadius: "50%", border: `1px solid ${C.accBorder}`, background: C.accDim, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: C.acc, flexShrink: 0 }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = C.hover; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = C.accDim; }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+              </svg>
+            </button>
           )}
         </div>
       </div>}
+
+      {/* サイドバーのフットプリント (常に72px) */}
+      {!isMobile && <div style={{ width: "72px", flexShrink: 0 }} />}
 
       {/* メインコンテンツ */}
       <SearchPanel
@@ -748,6 +791,7 @@ export default function Home() {
         loadingMore={loadingMore}
         viewingPlaylist={viewingPlaylist}
         togglePublic={togglePublic}
+        onOpenMenu={isMobile ? () => setMobileSheet("menu") : undefined}
       />
 
       {/* 右パネル (デスクトップのみ) */}
@@ -788,46 +832,8 @@ export default function Home() {
         </div>
       )}
 
-      {/* モバイル: ボトムタブバー */}
-      {isMobile && (() => {
-        const seedActive = mobileSheet === "seed" || (mobileSheet === "none" && mode === "similar");
-        const plActive = mobileSheet === "playlist" || (mobileSheet === "none" && mode === "playlist");
-        const menuActive = mobileSheet === "menu";
-        const searchActive = mobileSheet === "none" && !seedActive && !plActive;
-        const tabStyle = (active: boolean): React.CSSProperties => ({
-          flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-          gap: "3px", padding: "8px 0", border: "none", background: "none", cursor: "pointer",
-          color: active ? C.acc : C.t3,
-        });
-        const labelStyle: React.CSSProperties = { fontSize: "9px", fontWeight: 600, letterSpacing: "0.02em" };
-        return (
-          <div style={{
-            display: "flex", flexShrink: 0,
-            background: C.s1, borderTop: `1px solid ${C.sep}`,
-            paddingBottom: "env(safe-area-inset-bottom)",
-          }}>
-            <button style={tabStyle(searchActive)} onClick={() => setMobileSheet("none")}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <span style={labelStyle}>検索</span>
-            </button>
-            <button style={tabStyle(seedActive)} onClick={() => setMobileSheet(mobileSheet === "seed" ? "none" : "seed")}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 7a5 5 0 0 1 0 10"/><path d="M12 3a9 9 0 0 1 0 18"/></svg>
-              <span style={labelStyle}>Seed</span>
-            </button>
-            <button style={tabStyle(plActive)} onClick={() => setMobileSheet(mobileSheet === "playlist" ? "none" : "playlist")}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="3" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="3" cy="18" r="1" fill="currentColor" stroke="none"/></svg>
-              <span style={labelStyle}>リスト {playlist.length > 0 ? `(${playlist.length})` : ""}</span>
-            </button>
-            <button style={tabStyle(menuActive)} onClick={() => setMobileSheet(mobileSheet === "menu" ? "none" : "menu")}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-              <span style={labelStyle}>メニュー</span>
-            </button>
-          </div>
-        );
-      })()}
-
-      {/* モバイル: ボトムシート */}
-      {isMobile && mobileSheet !== "none" && (
+      {/* モバイル: ボトムシート (seed / playlist) */}
+      {isMobile && (mobileSheet === "seed" || mobileSheet === "playlist") && (
         <div
           onClick={() => setMobileSheet("none")}
           style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.45)" }}
@@ -844,11 +850,9 @@ export default function Home() {
               boxShadow: "0 -4px 24px rgba(0,0,0,0.2)",
             }}
           >
-            {/* ドラッグハンドル */}
             <div style={{ flexShrink: 0, display: "flex", justifyContent: "center", paddingTop: "12px", paddingBottom: "4px" }}>
               <div style={{ width: 36, height: 4, background: C.s3, borderRadius: 2 }} />
             </div>
-            {/* コンテンツ */}
             <div style={{ flex: 1, overflowY: "auto", paddingBottom: "env(safe-area-inset-bottom)" }}>
               {mobileSheet === "seed" && (
                 <SeedPanel
@@ -877,84 +881,107 @@ export default function Home() {
                   addTracksToExistingPlaylist={addTracksToExistingPlaylist}
                 />
               )}
-              {mobileSheet === "menu" && (
-                <div style={{ padding: "8px 0 16px" }}>
-                  {/* ロゴ */}
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 16px 16px", borderBottom: `1px solid ${C.sep}` }}>
-                    <div style={{ width: 30, height: 30, background: "linear-gradient(135deg, #3C3489, #26215C)", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 2px 8px rgba(63,52,137,0.4)" }}>
-                      <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="2.2" fill="white" opacity="0.95"/><circle cx="10" cy="10" r="5" fill="none" stroke="white" strokeWidth="1.6" opacity="0.8"/><circle cx="10" cy="10" r="8" fill="none" stroke="white" strokeWidth="1.1" opacity="0.5"/></svg>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: "14px", fontWeight: 700, color: C.t1 }}>Ripple</div>
-                      <div style={{ fontSize: "10px", color: C.t3 }}>Find Your Sound</div>
-                    </div>
-                  </div>
+            </div>
+          </div>
+        </div>
+      )}
 
-                  {/* ダークモード */}
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: `1px solid ${C.sep}` }}>
-                    <span style={{ fontSize: "14px", color: C.t1, fontWeight: 500 }}>{isDark ? "🌙 ダーク" : "☀️ ライト"}</span>
-                    <button onClick={() => setIsDark(!isDark)} style={{ width: 44, height: 26, borderRadius: 13, background: isDark ? C.acc : C.s3, border: "none", cursor: "pointer", padding: 0, position: "relative", transition: "background 0.2s" }}>
-                      <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#fff", position: "absolute", top: 3, left: isDark ? 21 : 3, transition: "left 0.2s", boxShadow: "0 1px 4px rgba(0,0,0,0.25)" }} />
-                    </button>
-                  </div>
+      {/* モバイル: 左ドロワー (menu) */}
+      {isMobile && mobileSheet === "menu" && (
+        <div
+          onClick={() => setMobileSheet("none")}
+          style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.45)" }}
+        >
+          <div
+            className="drawer-enter"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: "absolute", top: 0, left: 0, bottom: 0,
+              width: "280px",
+              background: C.s1,
+              display: "flex", flexDirection: "column",
+              boxShadow: "4px 0 24px rgba(0,0,0,0.2)",
+              overflowY: "auto",
+              paddingTop: "env(safe-area-inset-top)",
+              paddingBottom: "env(safe-area-inset-bottom)",
+            }}
+          >
+            {/* ロゴ + 閉じるボタン */}
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "20px 16px 16px", borderBottom: `1px solid ${C.sep}` }}>
+              <div style={{ width: 30, height: 30, background: "linear-gradient(135deg, #3C3489, #26215C)", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 2px 8px rgba(63,52,137,0.4)" }}>
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="2.2" fill="white" opacity="0.95"/><circle cx="10" cy="10" r="5" fill="none" stroke="white" strokeWidth="1.6" opacity="0.8"/><circle cx="10" cy="10" r="8" fill="none" stroke="white" strokeWidth="1.1" opacity="0.5"/></svg>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: "14px", fontWeight: 700, color: C.t1 }}>Ripple</div>
+                <div style={{ fontSize: "10px", color: C.t3 }}>Find Your Sound</div>
+              </div>
+              <button onClick={() => setMobileSheet("none")} style={{ width: 30, height: 30, border: "none", background: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: C.t3, borderRadius: "6px" }}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+              </button>
+            </div>
 
-                  {/* 履歴 */}
-                  {history.length > 0 && (
-                    <div style={{ padding: "12px 16px 8px" }}>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
-                        <span style={{ fontSize: "11px", color: C.t3, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>History</span>
-                        <button onClick={() => { writeHistory([]); setHistory([]); }} style={{ fontSize: "11px", color: C.t3, background: "none", border: "none", cursor: "pointer" }}>全削除</button>
-                      </div>
-                      {history.slice(0, 8).map((entry) => {
-                        const thumb = entry.mainSeed.album.images[0]?.url;
-                        return (
-                          <button key={entry.id} onClick={() => { setMainSeed(entry.mainSeed); setSubSeeds(entry.subSeeds); setSimilarTracks(entry.similarTracks); setMode("similar"); setViewingPlaylist(null); setFilters(DEFAULT_FILTERS); setScrollKey((k) => k + 1); setMobileSheet("none"); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: "10px", padding: "8px 0", border: "none", background: "none", cursor: "pointer", textAlign: "left" }}>
-                            {thumb ? <img src={thumb} alt="" style={{ width: 36, height: 36, borderRadius: "6px", objectFit: "cover", flexShrink: 0 }} /> : <div style={{ width: 36, height: 36, borderRadius: "6px", background: C.accDim, flexShrink: 0 }} />}
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: "13px", fontWeight: 500, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.mainSeed.name}</div>
-                              <div style={{ fontSize: "11px", color: C.t3 }}>{entry.similarTracks.length}曲</div>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
+            {/* ダークモード */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderBottom: `1px solid ${C.sep}` }}>
+              <span style={{ fontSize: "14px", color: C.t1, fontWeight: 500 }}>{isDark ? "ダーク" : "ライト"}</span>
+              <button onClick={() => setIsDark(!isDark)} style={{ width: 44, height: 26, borderRadius: 13, background: isDark ? "#555555" : C.s3, border: "none", cursor: "pointer", padding: 0, position: "relative", transition: "background 0.2s" }}>
+                <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#fff", position: "absolute", top: 3, left: isDark ? 21 : 3, transition: "left 0.2s", boxShadow: "0 1px 4px rgba(0,0,0,0.25)" }} />
+              </button>
+            </div>
 
-                  {/* プレイリスト */}
-                  {session && savedPlaylists.length > 0 && (
-                    <div style={{ padding: "12px 16px 8px", borderTop: `1px solid ${C.sep}` }}>
-                      <div style={{ fontSize: "11px", color: C.t3, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "8px" }}>Playlists</div>
-                      {savedPlaylists.map((p) => (
-                        <button key={p.id} onClick={() => { setViewingPlaylist(p); setMode("playlist"); setScrollKey((k) => k + 1); setMobileSheet("none"); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: "10px", padding: "8px 0", border: "none", background: "none", cursor: "pointer", textAlign: "left" }}>
-                          <div style={{ width: 36, height: 36, borderRadius: "6px", overflow: "hidden", flexShrink: 0, background: C.accDim, display: "grid", gridTemplateColumns: "1fr 1fr" }}>
-                            {p.tracks.slice(0, 4).map((t, i) => <img key={i} src={t.album.images[0]?.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />)}
-                          </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: "13px", fontWeight: 500, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
-                            <div style={{ fontSize: "11px", color: C.t3 }}>{p.tracks.length}曲</div>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* 認証 */}
-                  <div style={{ padding: "12px 16px", borderTop: `1px solid ${C.sep}` }}>
-                    {session ? (
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <div style={{ width: 32, height: 32, borderRadius: "50%", background: C.accDim, display: "flex", alignItems: "center", justifyContent: "center", color: C.acc, fontWeight: 700, fontSize: "14px" }}>{(userProfile?.user_id ?? "?")[0].toUpperCase()}</div>
-                          <span style={{ fontSize: "13px", fontWeight: 500, color: C.t1 }}>{userProfile?.user_id ?? "No ID"}</span>
-                        </div>
-                        <button onClick={() => signOut()} style={{ padding: "7px 14px", border: `1px solid ${C.sep}`, borderRadius: "8px", background: "none", color: C.red, fontSize: "13px", fontWeight: 500, cursor: "pointer" }}>ログアウト</button>
-                      </div>
-                    ) : (
-                      <button onClick={() => { setShowAuthModal(true); setMobileSheet("none"); }} style={{ width: "100%", padding: "12px", background: C.acc, border: "none", borderRadius: "10px", color: "#fff", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}>
-                        新規登録 / ログイン
-                      </button>
-                    )}
-                  </div>
+            {/* 履歴 */}
+            {history.length > 0 && (
+              <div style={{ padding: "14px 16px 8px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
+                  <span style={{ fontSize: "11px", color: C.t3, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>History</span>
+                  <button onClick={() => { writeHistory([]); setHistory([]); }} style={{ fontSize: "11px", color: C.t3, background: "none", border: "none", cursor: "pointer" }}>全削除</button>
                 </div>
+                {history.slice(0, 10).map((entry) => {
+                  const thumb = entry.mainSeed.album.images[0]?.url;
+                  return (
+                    <button key={entry.id} onClick={() => { setMainSeed(entry.mainSeed); setSubSeeds(entry.subSeeds); setSimilarTracks(entry.similarTracks); setMode("similar"); setViewingPlaylist(null); setFilters(DEFAULT_FILTERS); setScrollKey((k) => k + 1); setMobileSheet("none"); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: "10px", padding: "9px 0", border: "none", background: "none", cursor: "pointer", textAlign: "left" }}>
+                      {thumb ? <img src={thumb} alt="" style={{ width: 38, height: 38, borderRadius: "6px", objectFit: "cover", flexShrink: 0 }} /> : <div style={{ width: 38, height: 38, borderRadius: "6px", background: C.accDim, flexShrink: 0 }} />}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: "13px", fontWeight: 500, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.mainSeed.name}</div>
+                        <div style={{ fontSize: "11px", color: C.t3 }}>{entry.similarTracks.length}曲</div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* プレイリスト */}
+            {session && savedPlaylists.length > 0 && (
+              <div style={{ padding: "14px 16px 8px", borderTop: `1px solid ${C.sep}` }}>
+                <div style={{ fontSize: "11px", color: C.t3, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "10px" }}>Playlists</div>
+                {savedPlaylists.map((p) => (
+                  <button key={p.id} onClick={() => { setViewingPlaylist(p); setMode("playlist"); setScrollKey((k) => k + 1); setMobileSheet("none"); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: "10px", padding: "9px 0", border: "none", background: "none", cursor: "pointer", textAlign: "left" }}>
+                    <div style={{ width: 38, height: 38, borderRadius: "6px", overflow: "hidden", flexShrink: 0, background: C.accDim, display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+                      {p.tracks.slice(0, 4).map((t, i) => <img key={i} src={t.album.images[0]?.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />)}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: "13px", fontWeight: 500, color: C.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
+                      <div style={{ fontSize: "11px", color: C.t3 }}>{p.tracks.length}曲</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* 認証 */}
+            <div style={{ marginTop: "auto", padding: "14px 16px", borderTop: `1px solid ${C.sep}` }}>
+              {session ? (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div style={{ width: 32, height: 32, borderRadius: "50%", background: C.accDim, display: "flex", alignItems: "center", justifyContent: "center", color: C.acc, fontWeight: 700, fontSize: "14px" }}>{(userProfile?.user_id ?? "?")[0].toUpperCase()}</div>
+                    <span style={{ fontSize: "13px", fontWeight: 500, color: C.t1 }}>{userProfile?.user_id ?? "No ID"}</span>
+                  </div>
+                  <button onClick={() => signOut()} style={{ padding: "7px 14px", border: `1px solid ${C.sep}`, borderRadius: "8px", background: "none", color: C.red, fontSize: "13px", fontWeight: 500, cursor: "pointer" }}>ログアウト</button>
+                </div>
+              ) : (
+                <button onClick={() => { setShowAuthModal(true); setMobileSheet("none"); }} style={{ width: "100%", padding: "12px", background: C.acc, border: "none", borderRadius: "10px", color: C.bg, fontSize: "14px", fontWeight: 600, cursor: "pointer" }}>
+                  新規登録 / ログイン
+                </button>
               )}
             </div>
           </div>
