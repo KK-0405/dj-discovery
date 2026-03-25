@@ -71,6 +71,7 @@ const DEFAULT_FILTERS: SimilarFilters = {
   excludeSameArtist: true,
   decade: null,
   excludePlaylist: false,
+  excludeAnthems: false,
 };
 
 export default function Home() {
@@ -224,6 +225,7 @@ export default function Home() {
             genre_tags: t.genre_tags,
           })),
           count: similarCount,
+          excludeAnthems: filters.excludeAnthems,
         }),
       });
       const data = await res.json();
@@ -272,6 +274,7 @@ export default function Home() {
           })),
           count: similarCount,
           excludeTitles,
+          excludeAnthems: filters.excludeAnthems,
         }),
       });
       const data = await res.json();

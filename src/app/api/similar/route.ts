@@ -36,7 +36,7 @@ function mapDeezerTrack(t: any) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { seed, subSeeds = [], count = 20, excludeTitles = [] } = (await request.json()) as {
+    const { seed, subSeeds = [], count = 20, excludeTitles = [], excludeAnthems = false } = (await request.json()) as {
       seed: {
         title: string;
         artist: string;
@@ -51,6 +51,7 @@ export async function POST(request: NextRequest) {
       subSeeds?: { title: string; artist: string; genre_tags?: string[] }[];
       count?: number;
       excludeTitles?: string[];
+      excludeAnthems?: boolean;
     };
 
     if (!seed?.title || !seed?.artist) {
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
 
     // Step1: Geminiに類似曲の提案＋メタデータを1回で取得
     // japaneseSeed はアーティストの実際の出身国・活動市場をGeminiが判定して返す
-    const { suggestions, japaneseSeed: geminiJapaneseSeed, error: geminiError } = await getSimilarTrackSuggestions(seed, subSeeds, cap, excludeTitles);
+    const { suggestions, japaneseSeed: geminiJapaneseSeed, error: geminiError } = await getSimilarTrackSuggestions(seed, subSeeds, cap, excludeTitles, excludeAnthems);
     // Geminiが判定した値を優先、取得できなければフォールバック
     const japaneseSeed = geminiJapaneseSeed ?? isJapaneseContext(seed.title, seed.artist, seed.genre_tags);
     if (suggestions.length === 0) {

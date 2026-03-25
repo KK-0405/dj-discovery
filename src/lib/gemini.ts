@@ -227,7 +227,8 @@ function buildSimilarPrompt(
   subSeeds: { title: string; artist: string; genre_tags?: string[] }[],
   count: number,
   excludeTitles: string[] = [],
-  japaneseSeedOverride?: boolean
+  japaneseSeedOverride?: boolean,
+  excludeAnthems?: boolean
 ): string {
   const genres = seed.genre_tags?.join(", ") || "unknown";
   const subGenreStr = subSeeds.flatMap((s) => s.genre_tags ?? []).filter(Boolean);
@@ -261,8 +262,7 @@ SELECTION PHILOSOPHY — choose tracks based on OVERALL SIMILARITY, prioritized 
 2. LYRICAL & EMOTIONAL THEMES: Match the seed's lyrical subject matter, emotional tone, and narrative mood. If the seed is about anxiety, uncertainty, or the future, prioritize tracks with similar themes. These thematic connections are as important as sonic ones.
 3. MUSICAL COMPATIBILITY: Similar BPM (±8 BPM) and matching energy level.
 4. PRODUCTION STYLE & ERA: Same production aesthetic, era, cultural context.
-- Prioritize deeper cuts, album tracks, B-sides, and underground favorites. Aim for roughly 20% well-known, 80% lesser-known gems.
-- AVOID anthem-level mega-hits — tracks so universally famous that even non-fans know them (e.g. "Bohemian Rhapsody", "Billie Jean", "Smells Like Teen Spirit", "Shape of You"). These songs need no discovery. Instead, surface hidden gems, fan favorites, and overlooked tracks that a dedicated fan would love.
+- Mix of well-known classics AND deeper cuts / album tracks / B-sides / underground favorites. Aim for roughly 40% well-known, 60% lesser-known gems.${excludeAnthems ? "\n- AVOID anthem-level mega-hits — tracks so universally famous that even non-fans know them (e.g. \"Bohemian Rhapsody\", \"Billie Jean\", \"Smells Like Teen Spirit\", \"Shape of You\"). Surface hidden gems and overlooked tracks instead." : ""}
 - Draw from the same scene, label, producers, collaborators, or regional music community as the seed when relevant.
 
 CRITICAL RULES (violations are not acceptable):
@@ -344,7 +344,8 @@ export async function getSimilarTrackSuggestions(
   },
   subSeeds: { title: string; artist: string; genre_tags?: string[] }[],
   count: number,
-  excludeTitles: string[] = []
+  excludeTitles: string[] = [],
+  excludeAnthems: boolean = false
 ): Promise<SimilarResult> {
   if (process.env.GEMINI_MOCK === "true") {
     const mockSongs = [
@@ -373,7 +374,7 @@ export async function getSimilarTrackSuggestions(
       detectArtistOrigin(apiKey, seed.artist, seed.title),
       fetchSuggestions(
         apiKey,
-        buildSimilarPrompt(seed, subSeeds, buffered, excludeTitles, optimisticJapanese),
+        buildSimilarPrompt(seed, subSeeds, buffered, excludeTitles, optimisticJapanese, excludeAnthems),
         optimisticJapanese
       ),
     ]);
@@ -383,7 +384,7 @@ export async function getSimilarTrackSuggestions(
     // 楽観的推測が外れた場合は正しい判定で再取得
     let suggestions = first.suggestions;
     if (japaneseSeed !== optimisticJapanese) {
-      const retryPrompt = buildSimilarPrompt(seed, subSeeds, buffered, excludeTitles, japaneseSeed);
+      const retryPrompt = buildSimilarPrompt(seed, subSeeds, buffered, excludeTitles, japaneseSeed, excludeAnthems);
       const retried = await fetchSuggestions(apiKey, retryPrompt, japaneseSeed);
       if (!retried.error && retried.suggestions.length > 0) {
         suggestions = retried.suggestions;
@@ -394,7 +395,7 @@ export async function getSimilarTrackSuggestions(
     if (suggestions.length < buffered) {
       const need = buffered - suggestions.length;
       const alreadyHave = suggestions.map((s) => `"${s.title}" by ${s.artist}`);
-      const promptN = buildSimilarPrompt(seed, subSeeds, need, alreadyHave, japaneseSeed);
+      const promptN = buildSimilarPrompt(seed, subSeeds, need, alreadyHave, japaneseSeed, excludeAnthems);
       const next = await fetchSuggestions(apiKey, promptN, japaneseSeed);
       if (!next.error && next.suggestions.length > 0) {
         suggestions = [...suggestions, ...next.suggestions];

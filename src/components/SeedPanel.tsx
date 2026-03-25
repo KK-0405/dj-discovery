@@ -86,6 +86,7 @@ export default function SeedPanel({
     filters.selectedGenres.length > 0, filters.energyLevel !== null,
     filters.sameArtist, filters.decade !== null,
     filters.excludePlaylist,
+    filters.excludeAnthems,
   ].filter(Boolean).length;
 
   const hasGemini = mainSeed?.energy !== undefined;
@@ -337,6 +338,22 @@ export default function SeedPanel({
               {playlistCount === 0 && (
                 <div style={{ fontSize: "10px", color: C.t3, marginTop: "2px" }}>※ プレイリストに曲を追加後に使用可</div>
               )}
+            </div>
+
+            {/* アンセム除外 */}
+            <div style={{ marginTop: "10px", paddingTop: "10px", borderTop: `1px solid ${C.sep}` }}>
+              <div style={{ fontSize: "11px", color: C.t3, marginBottom: "4px" }}>絞り込み</div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "5px 0" }}>
+                <span style={{ fontSize: "12px", color: C.t2 }}>アンセムを除外</span>
+                <div style={{ marginLeft: "8px", flexShrink: 0 }}>
+                  <input
+                    type="checkbox"
+                    checked={filters.excludeAnthems}
+                    onChange={(e) => set({ excludeAnthems: e.target.checked })}
+                    style={{ accentColor: C.acc, cursor: "pointer", width: 14, height: 14 }}
+                  />
+                </div>
+              </div>
             </div>
 
           </div>

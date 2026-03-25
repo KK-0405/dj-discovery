@@ -20,6 +20,8 @@ export type SimilarFilters = {
   decade: string | null;
   // プレイリスト除外
   excludePlaylist: boolean;
+  // アンセム除外
+  excludeAnthems: boolean;
 };
 
 export type HistoryEntry = {
