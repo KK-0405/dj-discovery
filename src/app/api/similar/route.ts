@@ -152,13 +152,7 @@ export async function POST(request: NextRequest) {
       .filter(Boolean)
       .slice(0, cap);
 
-    const _debug = {
-      geminiSuggestions: suggestions.length,
-      deezerFound: deezerResults.filter(Boolean).length,
-      deezerNull: deezerResults.filter((r) => r === null).length,
-      japaneseSeed,
-      geminiError,
-    };
+    const _debug = `gemini:${suggestions.length} deezer_ok:${deezerResults.filter(Boolean).length} deezer_ng:${deezerResults.filter((r) => r === null).length} jp:${japaneseSeed} err:${geminiError ?? "none"}`;
     return NextResponse.json({ tracks: tracksWithMeta, _debug });
   } catch (error) {
     console.error("Similar error:", error);

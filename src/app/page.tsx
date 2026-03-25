@@ -231,7 +231,7 @@ export default function Home() {
       });
       const data = await res.json();
       setSimilarTracks(data.tracks ?? []);
-      setSeedError(JSON.stringify(data._debug));
+      setSeedError(data._debug ? String(data._debug) : null);
       if (data.tracks?.length > 0) {
         setHistory(pushHistory({
           id: mainSeed.id,
