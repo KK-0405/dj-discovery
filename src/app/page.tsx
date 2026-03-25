@@ -610,6 +610,9 @@ export default function Home() {
         </div>
       )}
 
+      {/* サイドバー外クリックで閉じるオーバーレイ */}
+      {!isMobile && sidebarOpen && <div onClick={() => setSidebarOpen(() => { localStorage.setItem("dj_sidebar_v1", "0"); return false; })} style={{ position: "fixed", left: 72, top: 56, right: 0, bottom: 0, zIndex: 99 }} />}
+
       {/* サイドバーボディ（YouTube式・top:56px から・オーバーレイ・72px↔240px） */}
       {!isMobile && sidebarMounted && <div style={{
         position: "fixed", left: 0, top: 56, bottom: 0,
