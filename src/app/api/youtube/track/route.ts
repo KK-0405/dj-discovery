@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
 import { createClient } from "@supabase/supabase-js";
+import { isJapanese } from "@/lib/gemini";
 
 function formatViews(n: number): string {
   if (n >= 100_000_000) return `${(n / 100_000_000).toFixed(1)}億回再生`;
@@ -12,14 +13,24 @@ function formatViews(n: number): string {
 // キャッシュの有効期限（1日）
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
-// タイトル・アーティスト名が動画タイトルにどれだけ含まれるかスコアリング
+// タイトル・アーティスト名が動画タイトルにどれだけ含まれるかスコアリング（日本語対応）
 function scoreVideo(videoTitle: string, title: string, artist: string): number {
   const vt = videoTitle.toLowerCase();
-  const titleWords = title.toLowerCase().split(/\s+/).filter((w) => w.length > 1);
-  const artistWords = artist.toLowerCase().split(/\s+/).filter((w) => w.length > 1);
+  const t = title.toLowerCase();
+  const a = artist.toLowerCase();
   let score = 0;
-  for (const w of titleWords) if (vt.includes(w)) score += 2;
-  for (const w of artistWords) if (vt.includes(w)) score += 2;
+  // タイトル: 日本語は全体一致、英語は単語分割
+  if (isJapanese(title)) {
+    if (vt.includes(t)) score += 6;
+  } else {
+    for (const w of t.split(/\s+/).filter((w) => w.length > 1)) if (vt.includes(w)) score += 2;
+  }
+  // アーティスト: 日本語は全体一致、英語は単語分割
+  if (isJapanese(artist)) {
+    if (vt.includes(a)) score += 4;
+  } else {
+    for (const w of a.split(/\s+/).filter((w) => w.length > 1)) if (vt.includes(w)) score += 2;
+  }
   if (vt.includes("official")) score += 1;
   if (vt.includes("music video") || vt.includes("mv")) score += 1;
   if (/karaoke|cover|tribute|live/i.test(vt)) score -= 5;
@@ -97,7 +108,9 @@ export async function GET(request: NextRequest) {
         score: scoreVideo(item.snippet?.title ?? "", title, artist),
       }))
       .sort((a, b) => b.score - a.score);
-    const videoId = scored[0]?.item?.id?.videoId;
+    const best = scored[0];
+    const minScore = isJapanese(title) ? 4 : 2;
+    const videoId = (best && best.score >= minScore) ? best.item?.id?.videoId : undefined;
     if (!videoId) {
       return NextResponse.json({ searchUrl });
     }

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSimilarTrackSuggestions, isJapanese, isJapaneseContext } from "@/lib/gemini";
 
+// 日本語テキストかどうかで一致方法を切り替えるマッチスコア
+// 日本語はスペース区切りがないため、単語分割ではなく部分文字列で判定する
+
 // Deezerが返したトラックのアーティスト名で最終フィルター
 const BLOCKED_ARTISTS = [
   /歌っちゃ王/,
@@ -69,22 +72,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ tracks: [], _debug: geminiError ?? "Gemini returned 0 suggestions" });
     }
 
-    // タイトル・アーティストの一致度スコアリング
+    // タイトル・アーティストの一致度スコアリング（日本語対応）
     function matchScore(deezerTitle: string, deezerArtist: string, sugTitle: string, sugArtist: string): number {
       const dt = deezerTitle.toLowerCase();
       const da = deezerArtist.toLowerCase();
       const st = sugTitle.toLowerCase();
       const sa = sugArtist.toLowerCase();
       let score = 0;
-      // タイトルの単語が含まれるか
-      for (const w of st.split(/\s+/).filter((w) => w.length > 1)) if (dt.includes(w)) score += 2;
-      // アーティスト名の単語が含まれるか
-      for (const w of sa.split(/\s+/).filter((w) => w.length > 1)) if (da.includes(w)) score += 2;
+      // タイトル: 日本語は全体一致、英語は単語分割
+      if (isJapanese(sugTitle)) {
+        if (dt.includes(st) || st.includes(dt)) score += 6;
+      } else {
+        for (const w of st.split(/\s+/).filter((w) => w.length > 1)) if (dt.includes(w)) score += 2;
+      }
+      // アーティスト: 日本語は全体一致、英語は単語分割
+      if (isJapanese(sugArtist)) {
+        if (da.includes(sa) || sa.includes(da)) score += 6;
+      } else {
+        for (const w of sa.split(/\s+/).filter((w) => w.length > 1)) if (da.includes(w)) score += 2;
+      }
       // 完全一致ボーナス
       if (dt === st) score += 4;
       if (da === sa) score += 4;
       return score;
     }
+    // 最低スコア閾値：日本語は6以上（タイトルか アーティストいずれかが一致）、英語は2以上
+    const MIN_SCORE = japaneseSeed ? 6 : 2;
 
     // Step2: 各提案をDeezerで並列検索
     const deezerResults = await Promise.all(
@@ -110,6 +123,7 @@ export async function POST(request: NextRequest) {
             .sort((a, b) => b.score - a.score);
 
           if (candidates.length === 0) return null;
+          if (candidates[0].score < MIN_SCORE) return null;
           return mapDeezerTrack(candidates[0].hit);
         } catch {
           return null;
