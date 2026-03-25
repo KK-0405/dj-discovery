@@ -96,8 +96,8 @@ export async function POST(request: NextRequest) {
       if (da === sa) score += 4;
       return score;
     }
-    // 最低スコア閾値：日本語は6以上（タイトルか アーティストいずれかが一致）、英語は2以上
-    const MIN_SCORE = japaneseSeed ? 6 : 2;
+    // 最低スコア閾値：スコア0（全く一致なし）は除外
+    const MIN_SCORE = 2;
 
     // Step2: 各提案をDeezerで並列検索
     const deezerResults = await Promise.all(
@@ -114,6 +114,8 @@ export async function POST(request: NextRequest) {
             .filter((hit) => {
               if (isDeezerKaraoke(hit.artist?.name ?? "", hit.title ?? "")) return false;
               if (!japaneseSeed && (isJapanese(hit.title ?? "") || isJapanese(hit.artist?.name ?? ""))) return false;
+              // 日本語シードの場合、タイトルにも アーティスト名にも日本語がない完全英語曲は除外
+              if (japaneseSeed && !isJapanese(hit.title ?? "") && !isJapanese(hit.artist?.name ?? "")) return false;
               return true;
             })
             .map((hit) => ({
