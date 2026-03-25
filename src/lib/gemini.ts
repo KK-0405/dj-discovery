@@ -219,7 +219,8 @@ function buildSimilarPrompt(
   seed: { title: string; artist: string; genre_tags?: string[]; bpm?: number; camelot?: string; energy?: number; release_year?: number },
   subSeeds: { title: string; artist: string; genre_tags?: string[] }[],
   count: number,
-  excludeTitles: string[] = []
+  excludeTitles: string[] = [],
+  japaneseSeedOverride?: boolean
 ): string {
   const genres = seed.genre_tags?.join(", ") || "unknown";
   const subGenreStr = subSeeds.flatMap((s) => s.genre_tags ?? []).filter(Boolean);
@@ -228,7 +229,7 @@ function buildSimilarPrompt(
     ? `\n- Do NOT include these already-listed songs: ${excludeTitles.slice(0, 20).join(", ")}.`
     : "";
 
-  const japaneseSeed = isJapaneseContext(seed.title, seed.artist, seed.genre_tags);
+  const japaneseSeed = japaneseSeedOverride ?? isJapaneseContext(seed.title, seed.artist, seed.genre_tags);
 
   const katakanaNote = !japaneseSeed
     ? `\nIMPORTANT CONTEXT: The seed artist "${seed.artist}" may be written in Japanese katakana (e.g. "クイーン" = Queen, "ビートルズ" = The Beatles, "マイケル・ジャクソン" = Michael Jackson). Katakana is only a phonetic script used to write foreign names in Japanese — it does NOT make an artist Japanese. Always identify the artist's TRUE nationality and origin, and recommend music based on that.`
@@ -356,26 +357,40 @@ export async function getSimilarTrackSuggestions(
   if (!apiKey) return { suggestions: [], error: "GEMINI_API_KEY not set" };
 
   try {
-    // テキスト文字種ではなく、アーティストの実際の出身国・活動市場で日本圏か判定
-    const japaneseSeed = await detectArtistOrigin(apiKey, seed.artist, seed.title);
-    // Deezerミス・カラオケフィルター分を見越して多めにリクエスト
-    const buffered = Math.min(Math.ceil(count * 2.5), 60);
+    // isJapaneseContext で楽観的に推測しつつ、detectArtistOrigin と並列実行
+    const optimisticJapanese = isJapaneseContext(seed.title, seed.artist, seed.genre_tags);
+    const buffered = Math.min(Math.ceil(count * 2), 50);
 
-    // 1回目（バッファ込みで多めに取得）
-    const prompt1 = buildSimilarPrompt(seed, subSeeds, buffered, excludeTitles);
-    const first = await fetchSuggestions(apiKey, prompt1, japaneseSeed);
+    const [japaneseSeed, first] = await Promise.all([
+      detectArtistOrigin(apiKey, seed.artist, seed.title),
+      fetchSuggestions(
+        apiKey,
+        buildSimilarPrompt(seed, subSeeds, buffered, excludeTitles, optimisticJapanese),
+        optimisticJapanese
+      ),
+    ]);
+
     if (first.error) return first;
 
+    // 楽観的推測が外れた場合は正しい判定で再取得
     let suggestions = first.suggestions;
+    if (japaneseSeed !== optimisticJapanese) {
+      const retryPrompt = buildSimilarPrompt(seed, subSeeds, buffered, excludeTitles, japaneseSeed);
+      const retried = await fetchSuggestions(apiKey, retryPrompt, japaneseSeed);
+      if (!retried.error && retried.suggestions.length > 0) {
+        suggestions = retried.suggestions;
+      }
+    }
 
-    // 不足分を再リクエスト（最大2回）
-    for (let retry = 0; retry < 2 && suggestions.length < buffered; retry++) {
+    // 不足分を再リクエスト（最大1回）
+    if (suggestions.length < buffered) {
       const need = buffered - suggestions.length;
       const alreadyHave = suggestions.map((s) => `"${s.title}" by ${s.artist}`);
-      const promptN = buildSimilarPrompt(seed, subSeeds, need, alreadyHave);
+      const promptN = buildSimilarPrompt(seed, subSeeds, need, alreadyHave, japaneseSeed);
       const next = await fetchSuggestions(apiKey, promptN, japaneseSeed);
-      if (next.error || next.suggestions.length === 0) break;
-      suggestions = [...suggestions, ...next.suggestions];
+      if (!next.error && next.suggestions.length > 0) {
+        suggestions = [...suggestions, ...next.suggestions];
+      }
     }
 
     return { suggestions, japaneseSeed };
