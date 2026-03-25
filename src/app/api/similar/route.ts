@@ -128,32 +128,49 @@ export async function POST(request: NextRequest) {
       })
     );
 
-    // Deezerヒットをsuggestionsのメタデータと合成（Step3のGemini呼び出し不要）
-    const tracksWithMeta = deezerResults
-      .map((track, i) => {
-        if (!track) return null;
-        const s = suggestions[i];
-        return {
-          ...track,
-          // 曲名・アーティストは常にGeminiの提案を使う（正確な情報源）
-          // DeezerはプレビューURL・アルバムアート・BPMの取得にのみ使う
-          name: s.title || track.name,
-          artists: s.artist ? [{ name: s.artist }] : track.artists,
-          bpm: track.bpm || s.bpm || 0,
-          key: s.key ?? "",
-          camelot: s.camelot ?? "",
-          energy: s.energy ?? 0.5,
-          is_vocal: s.is_vocal ?? true,
-          genre_tags: s.genre_tags ?? [],
-          release_year: track.release_year || s.release_year || undefined,
-          reason: s.reason ?? undefined,
-        };
+    // Deezerで見つかった曲はDeezerのプレビュー/アート付きで、見つからなかった曲はGeminiメタデータのみで表示
+    const tracksWithMeta = suggestions
+      .map((s, i) => {
+        const deezer = deezerResults[i];
+        if (deezer) {
+          // Deezerヒットあり: プレビュー・アルバムアート付き
+          return {
+            ...deezer,
+            name: s.title || deezer.name,
+            artists: s.artist ? [{ name: s.artist }] : deezer.artists,
+            bpm: deezer.bpm || s.bpm || 0,
+            key: s.key ?? "",
+            camelot: s.camelot ?? "",
+            energy: s.energy ?? 0.5,
+            is_vocal: s.is_vocal ?? true,
+            genre_tags: s.genre_tags ?? [],
+            release_year: deezer.release_year || s.release_year || undefined,
+            reason: s.reason ?? undefined,
+          };
+        } else {
+          // Deezerヒットなし: Geminiメタデータのみ（プレビュー・アートなし）
+          return {
+            id: `gemini_${i}_${s.title}`,
+            name: s.title,
+            artists: [{ name: s.artist }],
+            album: { name: "", images: [] },
+            duration_ms: 0,
+            bpm: s.bpm || 0,
+            key: s.key ?? "",
+            camelot: s.camelot ?? "",
+            energy: s.energy ?? 0.5,
+            is_vocal: s.is_vocal ?? true,
+            genre_tags: s.genre_tags ?? [],
+            release_year: s.release_year ?? undefined,
+            url: `https://www.deezer.com/search/${encodeURIComponent(`${s.title} ${s.artist}`)}`,
+            preview: undefined,
+            reason: s.reason ?? undefined,
+          };
+        }
       })
-      .filter(Boolean)
       .slice(0, cap);
 
-    const _debug = `gemini:${suggestions.length} deezer_ok:${deezerResults.filter(Boolean).length} deezer_ng:${deezerResults.filter((r) => r === null).length} jp:${japaneseSeed} err:${geminiError ?? "none"}`;
-    return NextResponse.json({ tracks: tracksWithMeta, _debug });
+    return NextResponse.json({ tracks: tracksWithMeta });
   } catch (error) {
     console.error("Similar error:", error);
     return NextResponse.json({ error: String(error) }, { status: 500 });
