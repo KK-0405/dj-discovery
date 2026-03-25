@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSimilarTrackSuggestions, isJapanese, isJapaneseContext } from "@/lib/gemini";
-
-// 日本語テキストかどうかで一致方法を切り替えるマッチスコア
-// 日本語はスペース区切りがないため、単語分割ではなく部分文字列で判定する
+import { fetchItunesLookup } from "@/lib/itunes";
 
 // Deezerが返したトラックのアーティスト名で最終フィルター
 const BLOCKED_ARTISTS = [
@@ -128,13 +126,13 @@ export async function POST(request: NextRequest) {
       })
     );
 
-    // Deezerで見つかった曲はDeezerのプレビュー/アート付きで、見つからなかった曲はGeminiメタデータのみで表示
-    const tracksWithMeta = suggestions
+    // Deezerで見つかった曲はDeezerのプレビュー/アート付きで、見つからなかった曲はiTunesフォールバック
+    const tracksPromises = suggestions
       .map((s, i) => {
         const deezer = deezerResults[i];
         if (deezer) {
           // Deezerヒットあり: プレビュー・アルバムアート付き
-          return {
+          return Promise.resolve({
             ...deezer,
             name: s.title || deezer.name,
             artists: s.artist ? [{ name: s.artist }] : deezer.artists,
@@ -146,14 +144,14 @@ export async function POST(request: NextRequest) {
             genre_tags: s.genre_tags ?? [],
             release_year: deezer.release_year || s.release_year || undefined,
             reason: s.reason ?? undefined,
-          };
+          });
         } else {
-          // Deezerヒットなし: Geminiメタデータのみ（プレビュー・アートなし）
-          return {
+          // Deezerヒットなし: iTunesからアルバムアート・プレビューを取得
+          return fetchItunesLookup(s.title, s.artist, japaneseSeed).then((itunes) => ({
             id: `gemini_${i}_${s.title}`,
             name: s.title,
             artists: [{ name: s.artist }],
-            album: { name: "", images: [] },
+            album: { name: itunes?.albumName ?? "", images: itunes?.albumArt ? [{ url: itunes.albumArt }] : [] },
             duration_ms: 0,
             bpm: s.bpm || 0,
             key: s.key ?? "",
@@ -163,12 +161,13 @@ export async function POST(request: NextRequest) {
             genre_tags: s.genre_tags ?? [],
             release_year: s.release_year ?? undefined,
             url: `https://www.deezer.com/search/${encodeURIComponent(`${s.title} ${s.artist}`)}`,
-            preview: undefined,
+            preview: itunes?.preview,
             reason: s.reason ?? undefined,
-          };
+          }));
         }
-      })
-      .slice(0, cap);
+      });
+
+    const tracksWithMeta = (await Promise.all(tracksPromises)).slice(0, cap);
 
     return NextResponse.json({ tracks: tracksWithMeta });
   } catch (error) {

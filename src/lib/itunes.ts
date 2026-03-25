@@ -19,6 +19,31 @@ function mapItunesTrack(t: any): Track {
   };
 }
 
+export type ItunesLookup = {
+  albumArt: string;
+  preview: string | undefined;
+  albumName: string;
+};
+
+export async function fetchItunesLookup(title: string, artist: string, isJapaneseSeed: boolean): Promise<ItunesLookup | null> {
+  try {
+    const locale = isJapaneseSeed ? "country=JP&lang=ja_jp" : "country=US&lang=en_us";
+    const q = encodeURIComponent(`${title} ${artist}`);
+    const res = await fetch(`https://itunes.apple.com/search?term=${q}&media=music&entity=song&${locale}&limit=3`);
+    const data = (await res.json()) as any;
+    const hit = (data?.results ?? []).find((r: any) => r.trackId);
+    if (!hit) return null;
+    const artwork = (hit.artworkUrl100 as string | undefined)?.replace("100x100bb", "600x600bb") ?? "";
+    return {
+      albumArt: artwork,
+      preview: hit.previewUrl ?? undefined,
+      albumName: hit.collectionName ?? "",
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function fetchDeezerBpm(title: string, artist: string): Promise<number> {
   try {
     const q = encodeURIComponent(`${title} ${artist}`);
