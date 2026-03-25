@@ -73,9 +73,10 @@ export async function POST(request: NextRequest) {
             .map((h) => ({ h, score: matchScore(h.trackName ?? "", h.artistName ?? "", s.title, s.artist) }))
             .sort((a, b) => b.score - a.score);
 
-          // スコアが低すぎる場合は別の曲とみなしてプレビュー/アートを使わない
+          // スコアが低すぎる場合はiTunesに存在しない曲とみなして除外
           const MIN_MATCH = isJapanese(s.title) ? 4 : 2;
-          const best = (candidates[0]?.score ?? 0) >= MIN_MATCH ? candidates[0]?.h : undefined;
+          const best = (candidates[0]?.score ?? 0) >= MIN_MATCH ? candidates[0]?.h : null;
+          if (!best) return null;
           const artwork = best
             ? (best.artworkUrl100 as string | undefined)?.replace("100x100bb", "600x600bb") ?? ""
             : "";
@@ -122,7 +123,7 @@ export async function POST(request: NextRequest) {
       })
     );
 
-    return NextResponse.json({ tracks: tracks.slice(0, cap) });
+    return NextResponse.json({ tracks: tracks.filter(Boolean).slice(0, cap) });
   } catch (error) {
     console.error("Similar error:", error);
     return NextResponse.json({ error: String(error) }, { status: 500 });
