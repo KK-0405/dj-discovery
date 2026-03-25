@@ -180,15 +180,16 @@ export default function Home() {
     return () => window.removeEventListener("popstate", handler);
   }, []);
 
-  const search = async () => {
-    if (!query) return;
+  const search = async (overrideQuery?: string) => {
+    const q = overrideQuery ?? query;
+    if (!q) return;
     setLoading(true);
     setMode("search");
     setTracks([]);
     setSimilarTracks([]);
     setScrollKey((k) => k + 1);
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
       const data = await res.json();
       setTracks(data.tracks ?? []);
     } catch {

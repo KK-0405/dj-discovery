@@ -9,7 +9,7 @@ import { useMobile } from "@/lib/use-mobile";
 type Props = {
   query: string;
   setQuery: (q: string) => void;
-  search: () => void;
+  search: (overrideQuery?: string) => void;
   loading: boolean;
   scrollKey: number;
   mode: Mode;
@@ -203,11 +203,12 @@ export default function SearchPanel({
   };
 
   const selectSuggestion = (track: Track) => {
-    setQuery(`${track.name} ${track.artists[0]?.name ?? ""}`.trim());
+    const q = `${track.name} ${track.artists[0]?.name ?? ""}`.trim();
+    setQuery(q);
     setShowSuggestions(false);
     setSuggestions([]);
     setArtistSuggestions([]);
-    search();
+    search(q);
   };
 
   const selectArtist = (artist: ArtistSuggestion) => {
@@ -215,7 +216,7 @@ export default function SearchPanel({
     setShowSuggestions(false);
     setSuggestions([]);
     setArtistSuggestions([]);
-    search();
+    search(artist.name);
   };
 
   useEffect(() => {
