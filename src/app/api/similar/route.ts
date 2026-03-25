@@ -82,9 +82,9 @@ export async function POST(request: NextRequest) {
             : "";
 
           return {
-            id: best ? `it_${best.trackId}` : `gemini_${s.title}_${s.artist}`,
-            name: s.title,
-            artists: [{ name: s.artist }],
+            id: `it_${best.trackId}`,
+            name: best.trackName ?? s.title,
+            artists: [{ name: best.artistName ?? s.artist }],
             album: {
               name: best?.collectionName ?? "",
               images: artwork ? [{ url: artwork }] : [],
