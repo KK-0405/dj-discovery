@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { type Track, type SimilarFilters } from "@/types";
 import { useTheme } from "@/lib/theme-context";
 
@@ -19,11 +19,8 @@ type Props = {
   playlistCount: number;
   availableGenres: string[];
   hasSimilar: boolean;
-  chatFilterIds: string[] | null;
-  chatFilterMessage: string;
-  chatLoading: boolean;
-  onChatFilter: (instruction: string) => void;
-  onClearChatFilter: () => void;
+  searchInstruction: string;
+  setSearchInstruction: (v: string) => void;
 };
 
 function SectionLabel({ children, C }: { children: React.ReactNode; C: import("@/lib/theme-context").Colors }) {
@@ -73,12 +70,10 @@ const DECADES = ["1970s", "1980s", "1990s", "2000s", "2010s", "2020s"];
 export default function SeedPanel({
   mainSeed, setMainSeed, subSeeds, removeSubSeed, exploreSimilar,
   filters, setFilters, similarCount, setSimilarCount, seedAnalyzing, seedError, playlistCount, availableGenres,
-  hasSimilar, chatFilterIds, chatFilterMessage, chatLoading, onChatFilter, onClearChatFilter,
+  hasSimilar, searchInstruction, setSearchInstruction,
 }: Props) {
   const { C } = useTheme();
   const [showFilters, setShowFilters] = useState(false);
-  const [chatInput, setChatInput] = useState("");
-  const chatInputRef = useRef<HTMLTextAreaElement>(null);
   const set = (patch: Partial<SimilarFilters>) => setFilters({ ...filters, ...patch });
 
   const activeCount = [
@@ -360,91 +355,38 @@ export default function SeedPanel({
         )}
       </div>
 
-      {/* AI チャットフィルター */}
-      {hasSimilar && (
-        <div style={{ marginBottom: "14px" }}>
-          <div style={{ fontSize: "10px", color: C.t3, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>
-            AI に絞り込みを指示
-          </div>
-          <div style={{
-            background: C.s1, border: `1px solid ${chatFilterIds !== null ? C.accBorder : C.sep}`,
-            borderRadius: "10px", overflow: "hidden",
-            transition: "border-color 0.15s",
-          }}>
-            <textarea
-              ref={chatInputRef}
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  if (chatInput.trim() && !chatLoading) {
-                    onChatFilter(chatInput.trim());
-                  }
-                }
-              }}
-              placeholder={"例: テンポが速くてダークな曲だけ\n   インストのみ / 80年代限定"}
-              rows={2}
-              style={{
-                width: "100%", padding: "9px 10px",
-                background: "transparent", border: "none", outline: "none",
-                fontSize: "11px", color: C.t1, resize: "none",
-                lineHeight: 1.5, boxSizing: "border-box",
-                fontFamily: "inherit",
-              }}
-            />
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", padding: "4px 8px 6px", borderTop: `1px solid ${C.sep}` }}>
-              {chatFilterIds !== null && (
-                <button
-                  onClick={() => { onClearChatFilter(); setChatInput(""); }}
-                  style={{ background: "none", border: "none", fontSize: "11px", color: C.t3, cursor: "pointer", marginRight: "auto", padding: "0 2px", fontWeight: 500 }}
-                >
-                  クリア
-                </button>
-              )}
-              <button
-                onClick={() => { if (chatInput.trim() && !chatLoading) onChatFilter(chatInput.trim()); }}
-                disabled={!chatInput.trim() || chatLoading}
-                style={{
-                  padding: "4px 12px", borderRadius: "6px", fontSize: "11px", fontWeight: 700,
-                  background: chatInput.trim() && !chatLoading ? C.acc : C.s2,
-                  border: "none", color: chatInput.trim() && !chatLoading ? "#fff" : C.t3,
-                  cursor: chatInput.trim() && !chatLoading ? "pointer" : "default",
-                  transition: "all 0.1s",
-                }}
-              >
-                {chatLoading ? "処理中..." : "実行"}
-              </button>
-            </div>
-          </div>
-          {/* AIの返答 */}
-          {(chatFilterMessage || chatLoading) && (
-            <div style={{
-              marginTop: "6px", padding: "7px 10px",
-              background: chatFilterIds !== null ? C.accDim : C.s1,
-              border: `1px solid ${chatFilterIds !== null ? C.accBorder : C.sep}`,
-              borderRadius: "8px",
-              fontSize: "11px", color: chatFilterIds !== null ? C.acc : C.t2,
-              fontWeight: chatFilterIds !== null ? 500 : 400,
-              lineHeight: 1.5,
-            }}>
-              {chatLoading ? (
-                <span style={{ color: C.acc }}>✦ AIが分析中...</span>
-              ) : (
-                <>
-                  <span style={{ marginRight: "4px", opacity: 0.7 }}>✦</span>
-                  {chatFilterMessage}
-                  {chatFilterIds !== null && (
-                    <span style={{ marginLeft: "6px", color: C.t3, fontWeight: 400 }}>
-                      ({chatFilterIds.length}曲)
-                    </span>
-                  )}
-                </>
-              )}
-            </div>
-          )}
+      {/* AI 検索指示 */}
+      <div style={{ marginBottom: "14px" }}>
+        <div style={{ fontSize: "10px", color: C.t3, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>
+          AI への検索指示
         </div>
-      )}
+        <textarea
+          value={searchInstruction}
+          onChange={(e) => setSearchInstruction(e.target.value)}
+          placeholder={"例: アニソン以外\nインストのみ / 80年代限定"}
+          rows={2}
+          style={{
+            width: "100%", padding: "9px 10px",
+            background: C.s1,
+            border: `1px solid ${searchInstruction.trim() ? C.accBorder : C.sep}`,
+            borderRadius: "10px", outline: "none",
+            fontSize: "11px", color: C.t1, resize: "none",
+            lineHeight: 1.5, boxSizing: "border-box",
+            fontFamily: "inherit",
+            transition: "border-color 0.15s",
+          }}
+        />
+        {searchInstruction.trim() && (
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "4px" }}>
+            <button
+              onClick={() => setSearchInstruction("")}
+              style={{ background: "none", border: "none", fontSize: "11px", color: C.t3, cursor: "pointer", padding: "0 2px", fontWeight: 500 }}
+            >
+              クリア
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* 探索ボタン */}
       <button
