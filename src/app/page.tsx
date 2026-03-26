@@ -875,33 +875,37 @@ export default function Home() {
           borderLeft: `1px solid ${C.sep}`,
           display: "flex",
           flexDirection: "column",
-          overflowY: "auto",
           flexShrink: 0,
+          minHeight: 0,
         }}>
-          <SeedPanel
-            mainSeed={mainSeed} setMainSeed={setMainSeed}
-            subSeeds={subSeeds} removeSubSeed={removeSubSeed}
-            exploreSimilar={exploreSimilar}
-            filters={filters} setFilters={setFilters}
-            similarCount={similarCount} setSimilarCount={setSimilarCount}
-            seedAnalyzing={seedAnalyzing} seedError={seedError}
-            playlistCount={playlist.length}
-            availableGenres={availableGenres}
-            hasSimilar={similarTracks.length > 0}
-            chatFilterIds={chatFilterIds}
-            chatFilterMessage={chatFilterMessage}
-            chatLoading={chatLoading}
-            onChatFilter={onChatFilter}
-            onClearChatFilter={() => { setChatFilterIds(null); setChatFilterMessage(""); }}
-          />
-          <div style={{ height: "1px", background: "rgba(0,0,0,0.07)", margin: "0 16px" }} />
-          <PlaylistPanel
-            playlist={playlist} removeFromPlaylist={removeFromPlaylist}
-            playlistName={playlistName} setPlaylistName={setPlaylistName}
-            savePlaylist={savePlaylist} setPlaylist={setPlaylist}
-            savedPlaylists={savedPlaylists}
-            addTracksToExistingPlaylist={addTracksToExistingPlaylist}
-          />
+          <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
+            <SeedPanel
+              mainSeed={mainSeed} setMainSeed={setMainSeed}
+              subSeeds={subSeeds} removeSubSeed={removeSubSeed}
+              exploreSimilar={exploreSimilar}
+              filters={filters} setFilters={setFilters}
+              similarCount={similarCount} setSimilarCount={setSimilarCount}
+              seedAnalyzing={seedAnalyzing} seedError={seedError}
+              playlistCount={playlist.length}
+              availableGenres={availableGenres}
+              hasSimilar={similarTracks.length > 0}
+              chatFilterIds={chatFilterIds}
+              chatFilterMessage={chatFilterMessage}
+              chatLoading={chatLoading}
+              onChatFilter={onChatFilter}
+              onClearChatFilter={() => { setChatFilterIds(null); setChatFilterMessage(""); }}
+            />
+          </div>
+          <div style={{ height: "1px", background: "rgba(0,0,0,0.07)", flexShrink: 0 }} />
+          <div style={{ flexShrink: 0, overflowY: "auto", maxHeight: "50vh" }}>
+            <PlaylistPanel
+              playlist={playlist} removeFromPlaylist={removeFromPlaylist}
+              playlistName={playlistName} setPlaylistName={setPlaylistName}
+              savePlaylist={savePlaylist} setPlaylist={setPlaylist}
+              savedPlaylists={savedPlaylists}
+              addTracksToExistingPlaylist={addTracksToExistingPlaylist}
+            />
+          </div>
         </div>
       )}
 
