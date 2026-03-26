@@ -80,6 +80,18 @@ export default function PlaylistPanel({
     setExporting(true);
     setExportError(null);
     try {
+      // まずトークンのスコープを確認
+      const tokenInfoRes = await fetch("/api/google/token-info", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: googleToken }),
+      });
+      const tokenInfo = await tokenInfoRes.json();
+      if (!tokenInfo.scope || !tokenInfo.scope.includes("youtube")) {
+        setExportError(`YouTubeスコープなし。再ログインしてください。(scopes: ${tokenInfo.scope ?? "なし"})`);
+        return;
+      }
+
       const existingId = selectedYoutubePlaylist === "new" ? null : selectedYoutubePlaylist;
       const res = await fetch("/api/youtube/playlist", {
         method: "POST",
