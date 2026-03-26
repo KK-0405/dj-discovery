@@ -21,7 +21,7 @@ export default function PlaylistPanel({
   playlistName, setPlaylistName, savePlaylist, setPlaylist,
   savedPlaylists, addTracksToExistingPlaylist,
 }: Props) {
-  const { session, loading: authLoading } = useAuth();
+  const { session, loading: authLoading, googleToken } = useAuth();
   const { C } = useTheme();
   const [targetPlaylistId, setTargetPlaylistId] = useState<"new" | string>("new");
   const [showYoutubeSelect, setShowYoutubeSelect] = useState(false);
@@ -63,7 +63,7 @@ export default function PlaylistPanel({
     }
   };
 
-  const googleToken = session?.provider_token ?? null;
+  // googleToken は AuthContext から取得（リロード後も localStorage から復元される）
 
   const handleYoutubeExportClick = async () => {
     if (playlist.length === 0) return;

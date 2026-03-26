@@ -14,6 +14,7 @@ type AuthContextType = {
   user: User | null;
   userProfile: UserProfile | null;
   loading: boolean;
+  googleToken: string | null;
   signOut: () => void;
   refreshProfile: () => Promise<void>;
   updateUserProfile: (updates: Partial<UserProfile>) => void;
@@ -24,16 +25,42 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   userProfile: null,
   loading: true,
+  googleToken: null,
   signOut: () => {},
   refreshProfile: async () => {},
   updateUserProfile: () => {},
 });
+
+const GOOGLE_TOKEN_KEY = "dj_google_token_v1";
+
+function saveGoogleToken(token: string) {
+  try {
+    // Google アクセストークンの有効期限は約3600秒。50分で失効とみなす
+    const expiresAt = Date.now() + 50 * 60 * 1000;
+    localStorage.setItem(GOOGLE_TOKEN_KEY, JSON.stringify({ token, expiresAt }));
+  } catch { /* ignore */ }
+}
+
+function loadGoogleToken(): string | null {
+  try {
+    const raw = localStorage.getItem(GOOGLE_TOKEN_KEY);
+    if (!raw) return null;
+    const { token, expiresAt } = JSON.parse(raw);
+    if (Date.now() > expiresAt) { localStorage.removeItem(GOOGLE_TOKEN_KEY); return null; }
+    return token;
+  } catch { return null; }
+}
+
+function clearGoogleToken() {
+  try { localStorage.removeItem(GOOGLE_TOKEN_KEY); } catch { /* ignore */ }
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [googleToken, setGoogleToken] = useState<string | null>(null);
 
   // localStorage キャッシュキー（auth user ID ごとに保存）
   const profileCacheKey = (uid: string) => `dj_profile_v1_${uid}`;
@@ -127,6 +154,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
 
+      // Google provider_token の保存・復元
+      if (session?.provider_token) {
+        saveGoogleToken(session.provider_token);
+        setGoogleToken(session.provider_token);
+      } else if (session?.user) {
+        // リロード後は provider_token が消えるので localStorage から復元
+        setGoogleToken(loadGoogleToken());
+      } else {
+        clearGoogleToken();
+        setGoogleToken(null);
+      }
+
       try {
         if (session?.user) {
           // Googleログイン初回: usersテーブルに自動作成
@@ -155,6 +194,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = () => {
+    clearGoogleToken();
     // SDK を呼んだ後、タイムアウト付きでローカルストレージも確実にクリアしてリロード
     const cleanup = () => {
       try {
@@ -184,7 +224,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, userProfile, loading, signOut, refreshProfile, updateUserProfile }}>
+    <AuthContext.Provider value={{ session, user, userProfile, loading, googleToken, signOut, refreshProfile, updateUserProfile }}>
       {children}
     </AuthContext.Provider>
   );
