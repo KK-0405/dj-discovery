@@ -28,6 +28,7 @@ export default function PlaylistPanel({
   const [youtubePlaylists, setYoutubePlaylists] = useState<YoutubePlaylist[]>([]);
   const [selectedYoutubePlaylist, setSelectedYoutubePlaylist] = useState("new");
   const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
   const dragIndexRef = useRef<number | null>(null);
@@ -77,16 +78,26 @@ export default function PlaylistPanel({
 
   const handleExport = async () => {
     setExporting(true);
-    const existingId = selectedYoutubePlaylist === "new" ? null : selectedYoutubePlaylist;
-    const res = await fetch("/api/youtube/playlist", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: playlistName, tracks: playlist, existingPlaylistId: existingId, googleToken }),
-    });
-    const data = await res.json();
-    if (data.url) window.open(data.url, "_blank");
-    setExporting(false);
-    setShowYoutubeSelect(false);
+    setExportError(null);
+    try {
+      const existingId = selectedYoutubePlaylist === "new" ? null : selectedYoutubePlaylist;
+      const res = await fetch("/api/youtube/playlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: playlistName, tracks: playlist, existingPlaylistId: existingId, googleToken }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.open(data.url, "_blank");
+        setShowYoutubeSelect(false);
+      } else {
+        setExportError(data.error ?? "不明なエラー");
+      }
+    } catch (e: any) {
+      setExportError(e?.message ?? "通信エラー");
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -229,13 +240,18 @@ export default function PlaylistPanel({
                 ))}
               </select>
               <div style={{ display: "flex", gap: "6px" }}>
-                <button onClick={handleExport} style={{ flex: 1, padding: "8px", background: "#ff0000", border: "none", borderRadius: "8px", color: "#fff", fontSize: "12px", fontWeight: 700, cursor: "pointer" }}>
+                <button onClick={handleExport} disabled={exporting} style={{ flex: 1, padding: "8px", background: "#1a1a1a", border: "none", borderRadius: "8px", color: "#fff", fontSize: "12px", fontWeight: 700, cursor: exporting ? "default" : "pointer", opacity: exporting ? 0.7 : 1 }}>
                   {exporting ? "書き出し中..." : "書き出す"}
                 </button>
-                <button onClick={() => setShowYoutubeSelect(false)} style={{ padding: "8px 12px", background: C.s2, border: "none", borderRadius: "8px", color: C.t2, fontSize: "12px", cursor: "pointer" }}>
+                <button onClick={() => { setShowYoutubeSelect(false); setExportError(null); }} style={{ padding: "8px 12px", background: C.s2, border: "none", borderRadius: "8px", color: C.t2, fontSize: "12px", cursor: "pointer" }}>
                   キャンセル
                 </button>
               </div>
+              {exportError && (
+                <div style={{ fontSize: "10px", color: C.red, background: C.redDim, border: `1px solid rgba(255,59,48,0.2)`, borderRadius: "7px", padding: "6px 10px", wordBreak: "break-all" }}>
+                  エラー: {exportError}
+                </div>
+              )}
             </div>
           )}
 
