@@ -80,17 +80,23 @@ export default function PlaylistPanel({
     setExporting(true);
     setExportError(null);
     try {
-      // まずトークンのスコープを確認
+      // トークン情報を確認してデバッグ表示
       const tokenInfoRes = await fetch("/api/google/token-info", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: googleToken }),
       });
       const tokenInfo = await tokenInfoRes.json();
-      if (!tokenInfo.scope || !tokenInfo.scope.includes("youtube")) {
-        setExportError(`YouTubeスコープなし。再ログインしてください。(scopes: ${tokenInfo.scope ?? "なし"})`);
+      if (tokenInfo.error) {
+        setExportError(`トークンエラー: ${tokenInfo.error} (${tokenInfo.error_description ?? ""})`);
         return;
       }
+      if (!tokenInfo.scope || !tokenInfo.scope.includes("youtube")) {
+        setExportError(`YouTubeスコープなし。再ログインしてください。\nscopes: ${tokenInfo.scope ?? "なし"}\nclient: ${tokenInfo.azp ?? "不明"}`);
+        return;
+      }
+      // スコープOK → client IDをエラー表示に含めて追跡
+      const debugClientId = tokenInfo.azp ?? "不明";
 
       const existingId = selectedYoutubePlaylist === "new" ? null : selectedYoutubePlaylist;
       const res = await fetch("/api/youtube/playlist", {
@@ -103,7 +109,7 @@ export default function PlaylistPanel({
         window.open(data.url, "_blank");
         setShowYoutubeSelect(false);
       } else {
-        setExportError(data.error ?? "不明なエラー");
+        setExportError(`${data.error ?? "不明なエラー"} [client: ${debugClientId}]`);
       }
     } catch (e: any) {
       setExportError(e?.message ?? "通信エラー");
