@@ -594,32 +594,6 @@ export default function SearchPanel({
         )}
         {mode === "similar" && (
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
-            {displayTracks.length > 0 && (() => {
-              const notAdded = displayTracks.filter(t => !isInPlaylist(t));
-              const allAdded = notAdded.length === 0;
-              return (
-                <button
-                  onClick={() => notAdded.forEach(t => addToPlaylist(t))}
-                  disabled={allAdded}
-                  style={{
-                    padding: "3px 10px",
-                    background: allAdded ? C.s2 : C.accDim,
-                    border: `1px solid ${allAdded ? C.s3 : C.accBorder}`,
-                    borderRadius: "6px",
-                    color: allAdded ? C.t3 : C.acc,
-                    fontSize: "12px",
-                    fontWeight: 600,
-                    cursor: allAdded ? "default" : "pointer",
-                    flexShrink: 0,
-                    transition: "background 0.15s",
-                  }}
-                  onMouseEnter={(e) => { if (!allAdded) e.currentTarget.style.background = C.s2; }}
-                  onMouseLeave={(e) => { if (!allAdded) e.currentTarget.style.background = C.accDim; }}
-                >
-                  {allAdded ? "✓ 全追加済" : isMobile ? `+ ${notAdded.length}曲追加` : `+ ${notAdded.length}曲を一括追加`}
-                </button>
-              );
-            })()}
             <button
               onClick={onResetSimilar}
               style={{
@@ -848,6 +822,34 @@ export default function SearchPanel({
             )}
           </div>
         )}
+
+        {/* 一括追加ボタン（類似曲モード） */}
+        {mode === "similar" && displayTracks.length > 0 && (() => {
+          const notAdded = displayTracks.filter(t => !isInPlaylist(t));
+          const allAdded = notAdded.length === 0;
+          return (
+            <div style={{ padding: isMobile ? "6px 4px 4px" : "6px 4px 4px" }}>
+              <button
+                onClick={() => notAdded.forEach(t => addToPlaylist(t))}
+                disabled={allAdded}
+                style={{
+                  width: "100%", padding: "10px",
+                  background: allAdded ? C.s2 : C.accDim,
+                  border: `1px solid ${allAdded ? C.s3 : C.accBorder}`,
+                  borderRadius: "10px",
+                  color: allAdded ? C.t3 : C.acc,
+                  fontSize: "13px", fontWeight: 700,
+                  cursor: allAdded ? "default" : "pointer",
+                  transition: "background 0.15s",
+                }}
+                onMouseEnter={(e) => { if (!allAdded) e.currentTarget.style.background = C.s2; }}
+                onMouseLeave={(e) => { if (!allAdded) e.currentTarget.style.background = C.accDim; }}
+              >
+                {allAdded ? "✓ 全曲追加済み" : `+ ${notAdded.length}曲をまとめてリストに追加`}
+              </button>
+            </div>
+          );
+        })()}
 
         {displayTracks.map((track) => {
           const badges = mode === "similar" ? getMatchBadges(track, mainSeed, C) : [];
