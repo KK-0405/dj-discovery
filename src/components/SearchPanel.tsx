@@ -661,7 +661,7 @@ export default function SearchPanel({
                 onMouseEnter={(e) => { if (!allAdded) e.currentTarget.style.background = C.s2; }}
                 onMouseLeave={(e) => { if (!allAdded) e.currentTarget.style.background = C.accDim; }}
               >
-                {allAdded ? "✓ 全曲追加済み" : `+ ${notAdded.length}曲を一括追加`}
+                {allAdded ? "✓ 全曲追加済み" : `${notAdded.length}曲をリストへ一括追加`}
               </button>
             </div>
           );
