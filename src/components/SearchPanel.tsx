@@ -352,34 +352,51 @@ export default function SearchPanel({
               <span style={{ fontSize: "18px", fontWeight: 700, color: C.t1, letterSpacing: "-0.02em", whiteSpace: "nowrap" }}>Ripple</span>
             </div>
           )}
-          {/* モバイルtopbar: 虫眼鏡ボタン（検索inputの代替） */}
-          {isMobile && topBarLeft !== undefined && (
-            <button
-              onClick={() => setMobileSearchOpen(true)}
-              title="検索"
-              style={{ width: 34, height: 34, flexShrink: 0, border: `1px solid ${C.sep}`, background: C.s1, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: C.t2, borderRadius: "8px", order: 98 }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = C.s2; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = C.s1; }}
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-                <circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/>
-              </svg>
-            </button>
-          )}
-          {onOpenPanel && (
-            <button
-              onClick={onOpenPanel}
-              title="Seed / Playlist"
-              style={{ width: 34, height: 34, flexShrink: 0, border: `1px solid ${C.sep}`, background: C.s1, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: C.t2, borderRadius: "8px", order: 99 }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = C.s2; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = C.s1; }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
-              </svg>
-            </button>
-          )}
-          <div ref={inputWrapRef} style={{ flex: isMobile && topBarLeft !== undefined ? 0 : 1, position: "relative", display: isMobile && topBarLeft !== undefined ? "none" : undefined }}>
+          {/* モバイルtopbar: 右側ボタン群（虫眼鏡 + パネル） */}
+          {isMobile && topBarLeft !== undefined ? (
+            <>
+              <div style={{ flex: 1 }} />
+              <button
+                onClick={() => setMobileSearchOpen(true)}
+                title="検索"
+                style={{ width: 34, height: 34, flexShrink: 0, border: `1px solid ${C.sep}`, background: C.s1, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: C.t2, borderRadius: "8px" }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = C.s2; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = C.s1; }}
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+                  <circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/>
+                </svg>
+              </button>
+              {onOpenPanel && (
+                <button
+                  onClick={onOpenPanel}
+                  title="Seed / Playlist"
+                  style={{ width: 34, height: 34, flexShrink: 0, border: `1px solid ${C.sep}`, background: C.s1, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: C.t2, borderRadius: "8px" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = C.s2; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = C.s1; }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                  </svg>
+                </button>
+              )}
+            </>
+          ) : (
+            <>
+              {onOpenPanel && (
+                <button
+                  onClick={onOpenPanel}
+                  title="Seed / Playlist"
+                  style={{ width: 34, height: 34, flexShrink: 0, border: `1px solid ${C.sep}`, background: C.s1, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: C.t2, borderRadius: "8px", order: 99 }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = C.s2; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = C.s1; }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                  </svg>
+                </button>
+              )}
+          <div ref={inputWrapRef} style={{ flex: 1, position: "relative" }}>
             <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke={C.t3} strokeWidth="1.6" strokeLinecap="round" style={{ position: "absolute", left: "13px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
               <circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/>
             </svg>
@@ -514,6 +531,8 @@ export default function SearchPanel({
           >
             検索
           </button>
+          </>
+          )}
         </div>
       </div>
 
