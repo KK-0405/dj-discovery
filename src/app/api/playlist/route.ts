@@ -71,11 +71,12 @@ export async function PATCH(request: NextRequest) {
   const { user, db } = ctx;
 
   const body = await request.json();
-  const { id, tracks, is_public } = body;
+  const { id, tracks, is_public, name } = body;
 
   const updates: Record<string, unknown> = {};
   if (tracks !== undefined) updates.tracks = tracks;
   if (is_public !== undefined) updates.is_public = is_public;
+  if (name !== undefined) updates.name = name;
 
   const { data, error } = await db
     .from("playlists")

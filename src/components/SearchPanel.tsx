@@ -32,6 +32,8 @@ type Props = {
   loadingMore: boolean;
   viewingPlaylist: SavedPlaylist | null;
   togglePublic: (id: string, isPublic: boolean) => Promise<void>;
+  renamePlaylist: (id: string, name: string) => Promise<void>;
+  deletePlaylist: (id: string) => Promise<void>;
   onOpenMenu?: () => void;
   onOpenPanel?: () => void;
   // history / playlists ビュー用
@@ -108,7 +110,7 @@ export default function SearchPanel({
   mainSeed, subSeeds, setAsMainSeed, addToSubSeed,
   removeMainSeed, removeSubSeed,
   addToPlaylist, addAllToPlaylist, removeAllFromPlaylist, removeFromPlaylist, isInPlaylist, filteredSimilarCount, metadataLoading,
-  onResetSimilar, onSearchMore, loadingMore, viewingPlaylist, togglePublic, onOpenMenu, onOpenPanel,
+  onResetSimilar, onSearchMore, loadingMore, viewingPlaylist, togglePublic, renamePlaylist, deletePlaylist, onOpenMenu, onOpenPanel,
   historyEntries = [], onClearHistory, onLoadHistoryEntry, savedPlaylistsAll = [], hasSession, onLoadSavedPlaylist, onNavigate,
   showLogo = false, topBarLeft, topBarRight = 0,
 }: Props) {
@@ -133,6 +135,10 @@ export default function SearchPanel({
   const [artistSuggestions, setArtistSuggestions] = useState<ArtistSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [editPlaylistOpen, setEditPlaylistOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+  const [editDeleting, setEditDeleting] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const isSearchExecuted = useRef(false);
@@ -560,31 +566,36 @@ export default function SearchPanel({
           <span style={{ fontSize: "12px", color: C.acc }}>✦ Gemini 解析中...</span>
         )}
 
-        {/* プレイリストモード: 公開/非公開トグル */}
+        {/* プレイリストモード: 公開状態 + 編集ボタン */}
         {mode === "playlist" && viewingPlaylist && (
-          <button
-            onClick={async () => {
-              if (togglingPublic) return;
-              setTogglingPublic(true);
-              try { await togglePublic(viewingPlaylist.id, !viewingPlaylist.is_public); }
-              finally { setTogglingPublic(false); }
-            }}
-            disabled={togglingPublic}
-            style={{
-              marginLeft: "auto",
-              padding: "3px 10px",
+          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
+            <span style={{
+              padding: "3px 8px",
               background: viewingPlaylist.is_public ? C.accDim : C.s1,
               border: `1px solid ${viewingPlaylist.is_public ? C.accBorder : C.s3}`,
               borderRadius: "6px",
               color: viewingPlaylist.is_public ? C.acc : C.t2,
               fontSize: "12px", fontWeight: 600,
-              cursor: togglingPublic ? "default" : "pointer",
-              opacity: togglingPublic ? 0.5 : 1,
-              flexShrink: 0,
-            }}
-          >
-            {togglingPublic ? "..." : viewingPlaylist.is_public ? "公開中" : "非公開"}
-          </button>
+            }}>
+              {viewingPlaylist.is_public ? "公開中" : "非公開"}
+            </span>
+            <button
+              onClick={() => { setEditName(viewingPlaylist.name); setEditPlaylistOpen(true); }}
+              style={{
+                padding: "3px 10px",
+                background: C.s1,
+                border: `1px solid ${C.s3}`,
+                borderRadius: "6px",
+                color: C.t2,
+                fontSize: "12px", fontWeight: 600,
+                cursor: "pointer",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.t2; e.currentTarget.style.color = C.t1; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.s3; e.currentTarget.style.color = C.t2; }}
+            >
+              編集
+            </button>
+          </div>
         )}
 
         {(mode === "history" || mode === "playlists") && (
@@ -1281,6 +1292,100 @@ export default function SearchPanel({
                 ))}
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* プレイリスト編集モーダル */}
+      {editPlaylistOpen && viewingPlaylist && (
+        <div
+          onClick={() => setEditPlaylistOpen(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ background: C.bg, border: `1px solid ${C.sep}`, borderRadius: "14px", padding: "24px", width: "100%", maxWidth: "360px", display: "flex", flexDirection: "column", gap: "16px" }}
+          >
+            <div style={{ fontSize: "15px", fontWeight: 700, color: C.t1 }}>プレイリストを編集</div>
+
+            {/* 名前変更 */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <div style={{ fontSize: "12px", color: C.t3, fontWeight: 600 }}>プレイリスト名</div>
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                style={{ width: "100%", padding: "8px 10px", background: C.s1, border: `1px solid ${C.sep}`, borderRadius: "8px", color: C.t1, fontSize: "13px", outline: "none", boxSizing: "border-box" }}
+              />
+            </div>
+
+            {/* 公開/非公開トグル */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ fontSize: "13px", color: C.t1, fontWeight: 500 }}>公開設定</div>
+              <button
+                onClick={async () => {
+                  if (togglingPublic) return;
+                  setTogglingPublic(true);
+                  try { await togglePublic(viewingPlaylist.id, !viewingPlaylist.is_public); }
+                  finally { setTogglingPublic(false); }
+                }}
+                disabled={togglingPublic}
+                style={{
+                  padding: "5px 14px",
+                  background: viewingPlaylist.is_public ? C.accDim : C.s2,
+                  border: `1px solid ${viewingPlaylist.is_public ? C.accBorder : C.s3}`,
+                  borderRadius: "8px",
+                  color: viewingPlaylist.is_public ? C.acc : C.t2,
+                  fontSize: "13px", fontWeight: 600,
+                  cursor: togglingPublic ? "default" : "pointer",
+                  opacity: togglingPublic ? 0.5 : 1,
+                }}
+              >
+                {togglingPublic ? "..." : viewingPlaylist.is_public ? "公開中" : "非公開"}
+              </button>
+            </div>
+
+            {/* 保存・キャンセル */}
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button
+                onClick={async () => {
+                  const trimmed = editName.trim();
+                  if (!trimmed || editSaving) return;
+                  setEditSaving(true);
+                  try { await renamePlaylist(viewingPlaylist.id, trimmed); setEditPlaylistOpen(false); }
+                  finally { setEditSaving(false); }
+                }}
+                disabled={editSaving || !editName.trim()}
+                style={{ flex: 1, padding: "9px", background: C.accDim, border: `1px solid ${C.accBorder}`, borderRadius: "8px", color: C.acc, fontSize: "13px", fontWeight: 700, cursor: editSaving || !editName.trim() ? "default" : "pointer", opacity: editSaving || !editName.trim() ? 0.5 : 1 }}
+              >
+                {editSaving ? "保存中..." : "保存"}
+              </button>
+              <button
+                onClick={() => setEditPlaylistOpen(false)}
+                style={{ padding: "9px 14px", background: C.s2, border: `1px solid ${C.sep}`, borderRadius: "8px", color: C.t2, fontSize: "13px", cursor: "pointer" }}
+              >
+                キャンセル
+              </button>
+            </div>
+
+            {/* 削除 */}
+            <button
+              onClick={async () => {
+                if (!confirm("このプレイリストを削除しますか？")) return;
+                setEditDeleting(true);
+                try {
+                  await deletePlaylist(viewingPlaylist.id);
+                  setEditPlaylistOpen(false);
+                  onResetSimilar();
+                } finally { setEditDeleting(false); }
+              }}
+              disabled={editDeleting}
+              style={{ padding: "9px", background: "none", border: `1px solid ${C.s3}`, borderRadius: "8px", color: C.t3, fontSize: "12px", fontWeight: 600, cursor: editDeleting ? "default" : "pointer", opacity: editDeleting ? 0.5 : 1 }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.red; e.currentTarget.style.color = C.red; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.s3; e.currentTarget.style.color = C.t3; }}
+            >
+              {editDeleting ? "削除中..." : "プレイリストを削除"}
+            </button>
           </div>
         </div>
       )}

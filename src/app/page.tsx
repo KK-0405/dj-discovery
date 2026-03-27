@@ -434,6 +434,16 @@ export default function Home() {
     setViewingPlaylist((prev) => prev?.id === id ? { ...prev, is_public: isPublic } : prev);
   };
 
+  const renamePlaylist = async (id: string, name: string) => {
+    await fetch("/api/playlist", {
+      method: "PATCH",
+      headers: authHeaders(),
+      body: JSON.stringify({ id, name }),
+    });
+    loadPlaylists();
+    setViewingPlaylist((prev) => prev?.id === id ? { ...prev, name } : prev);
+  };
+
   const analyzeSeed = async (track: Track) => {
     setSeedAnalyzing(true);
     setSeedError(null);
@@ -914,6 +924,8 @@ export default function Home() {
         loadingMore={loadingMore}
         viewingPlaylist={viewingPlaylist}
         togglePublic={togglePublic}
+        renamePlaylist={renamePlaylist}
+        deletePlaylist={deletePlaylist}
         onOpenMenu={isMobile ? () => { if (mobileSheet === "menu") closeMobileMenu(); else setMobileSheet("menu"); } : undefined}
         onOpenPanel={isMobile ? () => { if (mobileSheet === "panel") closeMobilePanel(); else setMobileSheet("panel"); } : undefined}
         historyEntries={history}
