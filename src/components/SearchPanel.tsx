@@ -21,6 +21,7 @@ type Props = {
   addToSubSeed: (track: Track) => void;
   removeSubSeed: (id: string) => void;
   addToPlaylist: (track: Track) => void;
+  addAllToPlaylist: (tracks: Track[]) => void;
   removeFromPlaylist: (id: string) => void;
   isInPlaylist: (track: Track) => boolean;
   filteredSimilarCount: number;
@@ -105,7 +106,7 @@ export default function SearchPanel({
   query, setQuery, search, loading, scrollKey, mode, displayTracks,
   mainSeed, subSeeds, setAsMainSeed, addToSubSeed,
   removeMainSeed, removeSubSeed,
-  addToPlaylist, removeFromPlaylist, isInPlaylist, filteredSimilarCount, metadataLoading,
+  addToPlaylist, addAllToPlaylist, removeFromPlaylist, isInPlaylist, filteredSimilarCount, metadataLoading,
   onResetSimilar, onSearchMore, loadingMore, viewingPlaylist, togglePublic, onOpenMenu, onOpenPanel,
   historyEntries = [], onClearHistory, onLoadHistoryEntry, savedPlaylistsAll = [], hasSession, onLoadSavedPlaylist, onNavigate,
   showLogo = false, topBarLeft, topBarRight = 0,
@@ -602,7 +603,7 @@ export default function SearchPanel({
               const allAdded = notAdded.length === 0;
               return (
                 <button
-                  onClick={() => notAdded.forEach(t => addToPlaylist(t))}
+                  onClick={() => addAllToPlaylist(notAdded)}
                   disabled={allAdded}
                   style={{
                     padding: "3px 10px",
