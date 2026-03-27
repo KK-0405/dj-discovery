@@ -39,9 +39,9 @@ function Chip({ label, active, onClick, C }: { label: string; active: boolean; o
       style={{
         padding: "4px 10px", borderRadius: "20px", fontSize: "11px", fontWeight: 600,
         cursor: "pointer",
-        background: active ? C.acc : C.s1,
-        border: `1px solid ${active ? C.acc : C.s2}`,
-        color: active ? "#fff" : C.t2,
+        background: active ? C.s3 : C.s1,
+        border: `1px solid ${active ? C.s3 : C.s2}`,
+        color: active ? C.t1 : C.t2,
         transition: "all 0.1s",
       }}
     >
@@ -213,9 +213,9 @@ export default function SeedPanel({
                     style={{
                       padding: "3px 8px", borderRadius: "20px", fontSize: "10px", fontWeight: 600,
                       cursor: "pointer",
-                      background: active ? C.acc : C.s1,
-                      border: `1px solid ${active ? C.acc : C.s2}`,
-                      color: active ? "#fff" : C.t3,
+                      background: active ? C.s3 : C.s1,
+                      border: `1px solid ${active ? C.s3 : C.s2}`,
+                      color: active ? C.t1 : C.t3,
                       transition: "all 0.1s",
                     }}
                   >
