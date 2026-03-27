@@ -65,7 +65,7 @@ function CheckRow({
   );
 }
 
-const DECADES = ["1970s", "1980s", "1990s", "2000s", "2010s", "2020s"];
+const DECADES = ["1970s", "1980s", "1990s", "2000s", "2010s", "2020s", "2025", "2026"];
 
 export default function SeedPanel({
   mainSeed, setMainSeed, subSeeds, removeSubSeed, exploreSimilar,

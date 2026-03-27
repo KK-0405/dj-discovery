@@ -445,7 +445,10 @@ export default function Home() {
       if (filters.energyLevel === "low" && e >= 0.4) return false;
     }
     if (filters.decade && track.release_year) {
-      if (`${Math.floor(track.release_year / 10) * 10}s` !== filters.decade) return false;
+      const match = filters.decade.endsWith("s")
+        ? `${Math.floor(track.release_year / 10) * 10}s` === filters.decade
+        : String(track.release_year) === filters.decade;
+      if (!match) return false;
     }
     if (filters.excludePlaylist && playlist.find((t) => t.id === track.id)) return false;
     return true;
