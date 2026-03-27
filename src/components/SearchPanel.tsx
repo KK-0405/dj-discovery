@@ -1019,13 +1019,13 @@ export default function SearchPanel({
               {!isMobile && mode === "similar" && (
                 <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
                   <button onClick={(e) => { e.stopPropagation(); isMain ? removeMainSeed() : setAsMainSeed(track); }} style={{ padding: "5px 10px", background: isMain ? C.acc : C.s1, border: `1px solid ${isMain ? C.acc : C.s2}`, borderRadius: "8px", color: isMain ? C.bg : C.t2, fontSize: "11px", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
-                    {isMain ? "★ Seed" : "Seed"}
+                    {isMain ? "★ メイン" : "メイン"}
                   </button>
                   <button onClick={(e) => { e.stopPropagation(); inSubSeed ? removeSubSeed(track.id) : addToSubSeed(track); }} style={{ padding: "5px 10px", background: inSubSeed ? C.greenDim : C.s1, border: `1px solid ${inSubSeed ? C.green : C.s2}`, borderRadius: "8px", color: inSubSeed ? C.greenText : C.t2, fontSize: "11px", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
                     {inSubSeed ? "✓ サブ" : "サブ"}
                   </button>
                   <button onClick={(e) => { e.stopPropagation(); inPlaylist ? removeFromPlaylist(track.id) : addToPlaylist(track); }} style={{ padding: "5px 10px", background: inPlaylist ? C.accDim : C.s1, border: `1px solid ${inPlaylist ? C.acc : C.s2}`, borderRadius: "8px", color: inPlaylist ? C.acc : C.t2, fontSize: "11px", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
-                    {inPlaylist ? "✓ リスト" : "+ リスト"}
+                    {inPlaylist ? "✓ リスト" : "リスト"}
                   </button>
                 </div>
               )}
