@@ -106,11 +106,11 @@ export default function PlaylistPanel({
 
       {/* ヘッダー */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ fontSize: "12px", fontWeight: 700, color: C.t2, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+        <div style={{ fontSize: "13px", fontWeight: 700, color: C.t2, textTransform: "uppercase", letterSpacing: "0.06em" }}>
           プレイリスト
         </div>
         {playlist.length > 0 && (
-          <span style={{ background: C.acc, color: C.bg, borderRadius: "10px", padding: "0 7px", fontSize: "11px", fontWeight: 700, lineHeight: "18px" }}>
+          <span style={{ background: C.acc, color: C.bg, borderRadius: "10px", padding: "0 7px", fontSize: "12px", fontWeight: 700, lineHeight: "18px" }}>
             {playlist.length}曲
           </span>
         )}
@@ -119,7 +119,7 @@ export default function PlaylistPanel({
       {/* 現在のプレイリスト */}
       <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
         {playlist.length === 0 ? (
-          <div style={{ padding: "16px 12px", background: C.s1, border: `1px solid ${C.sep}`, borderRadius: "10px", color: C.t3, fontSize: "12px", textAlign: "center" }}>
+          <div style={{ padding: "16px 12px", background: C.s1, border: `1px solid ${C.sep}`, borderRadius: "10px", color: C.t3, fontSize: "13px", textAlign: "center" }}>
             類似曲から追加してください
           </div>
         ) : (
@@ -134,11 +134,11 @@ export default function PlaylistPanel({
               onMouseEnter={(e) => (e.currentTarget.style.background = C.s2)}
               onMouseLeave={(e) => (e.currentTarget.style.background = C.s1)}
             >
-              <span style={{ fontSize: "10px", color: C.t3, width: "14px", textAlign: "center", flexShrink: 0 }}>{index + 1}</span>
+              <span style={{ fontSize: "11px", color: C.t3, width: "14px", textAlign: "center", flexShrink: 0 }}>{index + 1}</span>
               <img src={track.album.images[0]?.url} alt={track.album.name} width={22} height={22} style={{ borderRadius: "4px", flexShrink: 0, boxShadow: "0 1px 3px rgba(0,0,0,0.12)" }} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ color: C.t1, fontSize: "11px", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{track.name}</div>
-                <div style={{ color: C.t2, fontSize: "9px" }}>{track.artists[0]?.name}</div>
+                <div style={{ color: C.t1, fontSize: "12px", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{track.name}</div>
+                <div style={{ color: C.t2, fontSize: "10px" }}>{track.artists[0]?.name}</div>
               </div>
               <button onClick={() => removeFromPlaylist(track.id)} style={{ background: "none", border: "none", color: C.t3, fontSize: "16px", cursor: "pointer", flexShrink: 0 }}>×</button>
             </div>
@@ -154,7 +154,7 @@ export default function PlaylistPanel({
           <select
             value={targetPlaylistId}
             onChange={(e) => setTargetPlaylistId(e.target.value)}
-            style={{ width: "100%", padding: "8px 10px", background: C.bg, border: `1px solid ${C.sep}`, borderRadius: "8px", color: C.t1, fontSize: "11px", outline: "none", boxSizing: "border-box" }}
+            style={{ width: "100%", padding: "8px 10px", background: C.bg, border: `1px solid ${C.sep}`, borderRadius: "8px", color: C.t1, fontSize: "12px", outline: "none", boxSizing: "border-box" }}
           >
             <option value="new">── 新規作成 ──</option>
             {savedPlaylists.map((p) => (
@@ -169,7 +169,7 @@ export default function PlaylistPanel({
               value={playlistName}
               onChange={(e) => setPlaylistName(e.target.value)}
               placeholder="プレイリスト名"
-              style={{ width: "100%", padding: "8px 10px", background: C.bg, border: `1px solid ${C.sep}`, borderRadius: "8px", color: C.t1, fontSize: "11px", outline: "none", boxSizing: "border-box" }}
+              style={{ width: "100%", padding: "8px 10px", background: C.bg, border: `1px solid ${C.sep}`, borderRadius: "8px", color: C.t1, fontSize: "12px", outline: "none", boxSizing: "border-box" }}
             />
           )}
 
@@ -183,7 +183,7 @@ export default function PlaylistPanel({
               border: `1px solid ${saveStatus === "saved" ? C.green : saveStatus === "error" ? C.red : C.sep}`,
               borderRadius: "10px",
               color: saveStatus === "saved" || saveStatus === "error" ? "#fff" : playlist.length > 0 ? C.t1 : C.t3,
-              fontSize: "12px", fontWeight: 700,
+              fontSize: "13px", fontWeight: 700,
               cursor: playlist.length > 0 ? "pointer" : "default",
               boxShadow: "none",
               transition: "background 0.2s",
@@ -197,7 +197,7 @@ export default function PlaylistPanel({
 
           {/* 保存エラー詳細 */}
           {saveStatus === "error" && saveError && (
-            <div style={{ fontSize: "10px", color: C.red, background: C.redDim, border: `1px solid rgba(255,59,48,0.2)`, borderRadius: "7px", padding: "6px 10px", wordBreak: "break-all" }}>
+            <div style={{ fontSize: "11px", color: C.red, background: C.redDim, border: `1px solid rgba(255,59,48,0.2)`, borderRadius: "7px", padding: "6px 10px", wordBreak: "break-all" }}>
               エラー: {saveError}
             </div>
           )}
@@ -214,7 +214,7 @@ export default function PlaylistPanel({
               border: `1px solid ${C.sep}`,
               borderRadius: "10px",
               color: googleToken && playlist.length > 0 ? C.t1 : C.t3,
-              fontSize: "12px", fontWeight: 700,
+              fontSize: "13px", fontWeight: 700,
               cursor: googleToken && playlist.length > 0 ? "pointer" : "not-allowed",
               opacity: googleToken ? 1 : 0.55,
               transition: "background 0.15s",
@@ -230,11 +230,11 @@ export default function PlaylistPanel({
           {/* YouTube 書き出し先選択 */}
           {showYoutubeSelect && (
             <div style={{ background: C.s1, border: `1px solid ${C.sep}`, borderRadius: "10px", padding: "12px", display: "flex", flexDirection: "column", gap: "8px" }}>
-              <div style={{ fontSize: "11px", color: C.t2, fontWeight: 600 }}>書き出し先</div>
+              <div style={{ fontSize: "12px", color: C.t2, fontWeight: 600 }}>書き出し先</div>
               <select
                 value={selectedYoutubePlaylist}
                 onChange={(e) => setSelectedYoutubePlaylist(e.target.value)}
-                style={{ width: "100%", padding: "7px 10px", background: C.bg, border: `1px solid ${C.sep}`, borderRadius: "8px", color: C.t1, fontSize: "12px", outline: "none" }}
+                style={{ width: "100%", padding: "7px 10px", background: C.bg, border: `1px solid ${C.sep}`, borderRadius: "8px", color: C.t1, fontSize: "13px", outline: "none" }}
               >
                 <option value="new">新規プレイリストを作成</option>
                 {youtubePlaylists.map((p) => (
@@ -242,15 +242,15 @@ export default function PlaylistPanel({
                 ))}
               </select>
               <div style={{ display: "flex", gap: "6px" }}>
-                <button onClick={handleExport} disabled={exporting} style={{ flex: 1, padding: "8px", background: "#1a1a1a", border: "none", borderRadius: "8px", color: "#fff", fontSize: "12px", fontWeight: 700, cursor: exporting ? "default" : "pointer", opacity: exporting ? 0.7 : 1 }}>
+                <button onClick={handleExport} disabled={exporting} style={{ flex: 1, padding: "8px", background: "#1a1a1a", border: "none", borderRadius: "8px", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: exporting ? "default" : "pointer", opacity: exporting ? 0.7 : 1 }}>
                   {exporting ? "書き出し中..." : "書き出す"}
                 </button>
-                <button onClick={() => { setShowYoutubeSelect(false); setExportError(null); }} style={{ padding: "8px 12px", background: C.s2, border: "none", borderRadius: "8px", color: C.t2, fontSize: "12px", cursor: "pointer" }}>
+                <button onClick={() => { setShowYoutubeSelect(false); setExportError(null); }} style={{ padding: "8px 12px", background: C.s2, border: "none", borderRadius: "8px", color: C.t2, fontSize: "13px", cursor: "pointer" }}>
                   キャンセル
                 </button>
               </div>
               {exportError && (
-                <div style={{ fontSize: "10px", color: C.red, background: C.redDim, border: `1px solid rgba(255,59,48,0.2)`, borderRadius: "7px", padding: "6px 10px", wordBreak: "break-all" }}>
+                <div style={{ fontSize: "11px", color: C.red, background: C.redDim, border: `1px solid rgba(255,59,48,0.2)`, borderRadius: "7px", padding: "6px 10px", wordBreak: "break-all" }}>
                   エラー: {exportError}
                 </div>
               )}
@@ -266,7 +266,7 @@ export default function PlaylistPanel({
             <path d="M3.964 10.707A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332z" fill="#FBBC05"/>
             <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.96L3.964 7.293C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
           </svg>
-          <div style={{ fontSize: "11px", color: C.t2, lineHeight: 1.6 }}>
+          <div style={{ fontSize: "12px", color: C.t2, lineHeight: 1.6 }}>
             Googleでログインすると、プレイリストを<strong style={{ color: C.t1 }}>YouTube Music</strong>に書き出せます
           </div>
         </div>
