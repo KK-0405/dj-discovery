@@ -123,7 +123,7 @@ export default function SeedPanel({
                 {mainSeed.energy !== undefined && <span style={{ fontSize: "11px", color: C.t3 }}>E:{Math.round(mainSeed.energy * 10)}</span>}
                 {mainSeed.release_year && <span style={{ fontSize: "11px", color: C.t3 }}>{mainSeed.release_year}</span>}
                 {seedAnalyzing && <span style={{ fontSize: "11px", color: C.acc, fontWeight: 500 }}>✦ 解析中...</span>}
-                {seedError && <span style={{ fontSize: "10px", color: "#ff3b30", fontWeight: 700 }}>⚠ ERR</span>}
+                {seedError && <span style={{ fontSize: "10px", color: "#ff3b30", fontWeight: 700 }}>ERR</span>}
               </div>
             </div>
             <button onClick={() => setMainSeed(null)} style={{ background: "none", border: "none", color: C.t3, fontSize: "18px", cursor: "pointer", flexShrink: 0, lineHeight: 1 }}>×</button>
@@ -145,7 +145,7 @@ export default function SeedPanel({
           borderRadius: "10px",
         }}>
           <div style={{ fontSize: "11px", fontWeight: 700, color: "#ff3b30", marginBottom: "5px", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-            ⚠ Gemini エラー
+            Gemini エラー
           </div>
           <div style={{
             fontSize: "12px", color: "#c0392b",

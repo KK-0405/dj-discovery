@@ -914,7 +914,10 @@ export default function SearchPanel({
                   onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
                   onMouseLeave={(e) => { if (playingId !== track.id) e.currentTarget.style.opacity = "0"; }}
                 >
-                  {playingId === track.id ? "⏸" : "▶"}
+                  {playingId === track.id
+                    ? <svg width="11" height="13" viewBox="0 0 11 13" fill="currentColor"><rect x="0" y="0" width="3.5" height="13" rx="1"/><rect x="7.5" y="0" width="3.5" height="13" rx="1"/></svg>
+                    : <svg width="11" height="13" viewBox="0 0 11 13" fill="currentColor"><path d="M0 0L11 6.5L0 13V0Z"/></svg>
+                  }
                 </button>
                 {playingId === track.id && (
                   <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "3px", borderRadius: "0 0 8px 8px", background: "rgba(255,255,255,0.3)", overflow: "hidden" }}>
@@ -1538,7 +1541,12 @@ export default function SearchPanel({
                     cursor: "pointer", flexShrink: 0,
                   }}
                 >
-                  {playingId === detailTrack.id ? "⏸ 停止" : "▶ プレビュー"}
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                    {playingId === detailTrack.id
+                      ? <><svg width="10" height="12" viewBox="0 0 10 12" fill="currentColor"><rect x="0" y="0" width="3.5" height="12" rx="1"/><rect x="6.5" y="0" width="3.5" height="12" rx="1"/></svg>停止</>
+                      : <><svg width="10" height="12" viewBox="0 0 10 12" fill="currentColor"><path d="M0 0L10 6L0 12V0Z"/></svg>プレビュー</>
+                    }
+                  </span>
                 </button>
               {(mode === "search" || mode === "playlist") && (() => {
                 const isMain = mainSeed?.id === detailTrack.id;
