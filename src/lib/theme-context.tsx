@@ -134,6 +134,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     document.body.style.background = C.bg;
   }, [C.bg]);
 
+  // ステータスバースタイルをテーマに同期（iOS PWA用）
+  useEffect(() => {
+    const m = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+    if (m) m.setAttribute('content', isDark ? 'black' : 'default');
+  }, [isDark]);
+
   return (
     <ThemeContext.Provider value={{ isDark, setIsDark, C }}>
       {children}

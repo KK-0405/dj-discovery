@@ -551,7 +551,7 @@ export default function Home() {
 
   return (
     <div
-      style={{ display: "flex", flexDirection: isMobile ? "column" : "row", height: isMobile ? "100dvh" : "100vh", background: C.bg, overflow: "hidden", paddingBottom: isMobile ? "env(safe-area-inset-bottom, 0px)" : undefined }}
+      style={{ display: "flex", flexDirection: isMobile ? "column" : "row", height: isMobile ? "100dvh" : "100vh", background: C.bg, overflow: "hidden" }}
       onTouchStart={isMobile ? handleTouchStart : undefined}
       onTouchEnd={isMobile ? handleTouchEnd : undefined}
     >
@@ -1179,6 +1179,8 @@ export default function Home() {
           </div>
         </div>
       )}
+      {/* Safe area spacer — iOSホームインジケーター分を明示的に確保 */}
+      {isMobile && <div style={{ height: "env(safe-area-inset-bottom, 0px)", flexShrink: 0, background: C.bg }} />}
     </div>
   );
 }

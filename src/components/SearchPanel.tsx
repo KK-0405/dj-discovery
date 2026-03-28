@@ -1097,8 +1097,7 @@ export default function SearchPanel({
       <div style={{
         borderTop: `1px solid ${C.sep}`,
         background: C.s1,
-        padding: isMobile ? "8px 12px 0" : "10px 14px 12px",
-        paddingBottom: isMobile ? "calc(env(safe-area-inset-bottom, 0px) + 10px)" : "12px",
+        padding: isMobile ? "8px 12px 10px" : "10px 14px 12px",
         flexShrink: 0,
       }}>
         {/* シークバー */}
