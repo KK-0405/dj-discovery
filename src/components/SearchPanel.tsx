@@ -681,7 +681,7 @@ export default function SearchPanel({
       </div>
 
       {/* トラックリスト */}
-      <div ref={listRef} style={{ flex: 1, overflowY: "auto", padding: isMobile ? "6px 8px" : "8px 12px", background: C.bg }}>
+      <div ref={listRef} style={{ flex: 1, overflowY: "auto", padding: isMobile ? "6px 8px" : "8px 12px", paddingBottom: isMobile ? "calc(env(safe-area-inset-bottom, 0px) + 24px)" : "8px", background: C.bg }}>
 
         {/* ── 履歴ビュー ── */}
         {mode === "history" && (
@@ -1630,7 +1630,7 @@ export default function SearchPanel({
                 })()}
               </div>
               {/* 2行目: YouTube (常に固定高さでレイアウトシフトなし) */}
-              <div style={{ padding: "0 20px 16px", height: "38px", display: "flex", alignItems: "center", gap: "8px" }}>
+              <div style={{ padding: "0 20px", paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)", minHeight: "38px", display: "flex", alignItems: "center", gap: "8px" }}>
                 {ytData.loading ? (
                   <>
                     <svg width="12" height="12" viewBox="0 0 20 20" fill="none" style={{ animation: "ripple-spin 1s linear infinite", flexShrink: 0 }}>
