@@ -133,6 +133,8 @@ export default function SearchPanel({
   const [progress, setProgress] = useState(0);
   const [volume, setVolume] = useState(0.2);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const pendingAudioRef = useRef<HTMLAudioElement | null>(null);
+  const playTokenRef = useRef<number>(0);
   const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [suggestions, setSuggestions] = useState<Track[]>([]);
   const [artistSuggestions, setArtistSuggestions] = useState<ArtistSuggestion[]>([]);
@@ -239,6 +241,9 @@ export default function SearchPanel({
   }, []);
 
   const stopPreview = () => {
+    // ロード中の pending audio も止める
+    pendingAudioRef.current?.pause();
+    pendingAudioRef.current = null;
     audioRef.current?.pause();
     if (progressRef.current) clearInterval(progressRef.current);
     setPlayingId(null);
@@ -265,18 +270,24 @@ export default function SearchPanel({
     if (playingId === track.id) { stopPreview(); return; }
     stopPreview();
 
+    // このリクエストを識別するトークン（stopPreview後にインクリメント）
+    const token = ++playTokenRef.current;
+
     // まず既存の preview URL を試す
     if (track.preview) {
-      // audio load を試みて失敗したらフレッシュURLを取得し直す
       const audio = new Audio(track.preview);
       audio.volume = volume;
+      pendingAudioRef.current = audio;
       let started = false;
+
       audio.oncanplay = () => {
         if (started) return;
+        // 別の曲が割り込んでいたらスキップ
+        if (token !== playTokenRef.current) { audio.pause(); return; }
         started = true;
         audio.oncanplay = null;
         audio.onerror = null;
-        // 再生開始
+        pendingAudioRef.current = null;
         audio.onended = () => { setPlayingId(null); setPlayingTrack(null); setProgress(0); if (progressRef.current) clearInterval(progressRef.current); };
         audio.play();
         audioRef.current = audio;
@@ -288,17 +299,21 @@ export default function SearchPanel({
           setProgress(audioRef.current.currentTime / audioRef.current.duration);
         }, 200);
       };
+
       audio.onerror = async () => {
         if (started) return;
+        if (token !== playTokenRef.current) return; // 割り込みあり → 何もしない
         started = true;
+        pendingAudioRef.current = null;
         // URLが期限切れ → Deezerから再取得
         try {
           const res = await fetch(`/api/preview?id=${track.id}`);
+          if (token !== playTokenRef.current) return; // fetch中に割り込みが入った
           const data = await res.json();
           if (data.preview) startAudio(data.preview, track);
         } catch { /* 取得失敗 → 無音のまま */ }
       };
-      // load を開始（oncanplay / onerror を待つ）
+
       audio.load();
       return;
     }
@@ -306,6 +321,7 @@ export default function SearchPanel({
     // preview なし → Deezerからフレッシュ取得を試みる
     try {
       const res = await fetch(`/api/preview?id=${track.id}`);
+      if (token !== playTokenRef.current) return; // fetch中に割り込みが入った
       const data = await res.json();
       if (data.preview) startAudio(data.preview, track);
     } catch { /* 取得失敗 */ }
