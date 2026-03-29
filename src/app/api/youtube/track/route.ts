@@ -14,26 +14,46 @@ function formatViews(n: number): string {
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 // タイトル・アーティスト名が動画タイトルにどれだけ含まれるかスコアリング（日本語対応）
-function scoreVideo(videoTitle: string, title: string, artist: string): number {
+function scoreVideo(videoTitle: string, title: string, artist: string, channelTitle?: string): number {
   const vt = videoTitle.toLowerCase();
+  const vc = (channelTitle ?? "").toLowerCase();
   const t = title.toLowerCase();
   const a = artist.toLowerCase();
   let score = 0;
-  // タイトル: 日本語は全体一致、英語は単語分割
+
+  // タイトル一致
   if (isJapanese(title)) {
     if (vt.includes(t)) score += 6;
   } else {
     for (const w of t.split(/\s+/).filter((w) => w.length > 1)) if (vt.includes(w)) score += 2;
   }
-  // アーティスト: 日本語は全体一致、英語は単語分割
+  // アーティスト一致
   if (isJapanese(artist)) {
     if (vt.includes(a)) score += 4;
   } else {
     for (const w of a.split(/\s+/).filter((w) => w.length > 1)) if (vt.includes(w)) score += 2;
   }
-  if (vt.includes("official")) score += 1;
+
+  // 公式チャンネルボーナス
+  if (vt.includes("official") || vc.includes("official")) score += 2;
   if (vt.includes("music video") || vt.includes("mv")) score += 1;
-  if (/karaoke|cover|tribute|live/i.test(vt)) score -= 5;
+  if (vc.includes("vevo") || vt.includes("vevo")) score += 4;
+  if (vc.includes("- topic")) score += 3; // YouTube自動生成トピックチャンネル
+
+  // 英語カバー・非公式ペナルティ
+  if (/karaoke|tribute/i.test(vt)) score -= 10;
+  if (/\bcover\b/i.test(vt)) score -= 8;
+  if (/\blive\b/i.test(vt)) score -= 3;
+
+  // 日本語カバー・非公式ペナルティ
+  if (/うたってみた|歌ってみた/.test(videoTitle)) score -= 10;
+  if (/踊ってみた|おどってみた/.test(videoTitle)) score -= 10;
+  if (/弾いてみた|演奏してみた|叩いてみた/.test(videoTitle)) score -= 8;
+  if (/非公式|ファン|fan.?made/i.test(vt)) score -= 8;
+
+  // TV転載・違法アップロードペナルティ
+  if (/テレビ|tv放送|放送|転載|フル動画|切り抜き/.test(videoTitle)) score -= 8;
+
   return score;
 }
 
@@ -98,18 +118,23 @@ export async function GET(request: NextRequest) {
       part: ["snippet"],
       q: `${q} official`,
       type: ["video"],
-      maxResults: 5,
+      maxResults: 10,
     });
 
     const items = searchRes.data.items ?? [];
     const scored = items
       .map((item) => ({
         item,
-        score: scoreVideo(item.snippet?.title ?? "", title, artist),
+        score: scoreVideo(
+          item.snippet?.title ?? "",
+          title,
+          artist,
+          item.snippet?.channelTitle ?? "",
+        ),
       }))
       .sort((a, b) => b.score - a.score);
     const best = scored[0];
-    const minScore = isJapanese(title) ? 4 : 2;
+    const minScore = isJapanese(title) ? 7 : 3;
     const videoId = (best && best.score >= minScore) ? best.item?.id?.videoId : undefined;
     if (!videoId) {
       return NextResponse.json({ searchUrl });
